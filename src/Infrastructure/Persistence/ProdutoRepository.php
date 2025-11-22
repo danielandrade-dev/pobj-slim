@@ -4,7 +4,6 @@ namespace App\Infrastructure\Persistence;
 
 use PDO;
 use App\Domain\DTO\ProdutoDTO;
-use App\Infrastructure\Helpers\RowMapper;
 
 class ProdutoRepository
 {
@@ -34,15 +33,20 @@ class ProdutoRepository
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         return array_map(function ($row) {
+            $idFamilia = isset($row['id_familia']) ? $row['id_familia'] : null;
+            $idIndicador = isset($row['id_indicador']) ? $row['id_indicador'] : null;
+            $idSubindicador = isset($row['id_subindicador']) ? $row['id_subindicador'] : null;
+            $peso = isset($row['peso']) ? $row['peso'] : null;
+            
             $dto = new ProdutoDTO(
                 isset($row['id']) ? $row['id'] : null,
-                RowMapper::toString(isset($row['id_familia']) ? $row['id_familia'] : null),
+                $idFamilia !== null ? (string)$idFamilia : null,
                 isset($row['familia']) ? $row['familia'] : '',
-                RowMapper::toString(isset($row['id_indicador']) ? $row['id_indicador'] : null),
+                $idIndicador !== null ? (string)$idIndicador : null,
                 isset($row['indicador']) ? $row['indicador'] : '',
-                RowMapper::toString(isset($row['id_subindicador']) ? $row['id_subindicador'] : null),
+                $idSubindicador !== null ? (string)$idSubindicador : null,
                 isset($row['subindicador']) ? $row['subindicador'] : '',
-                RowMapper::toFloat(isset($row['peso']) ? $row['peso'] : null)
+                ($peso !== null && $peso !== '' && is_numeric($peso)) ? (float)$peso : null
             );
             
             return $dto->toArray();
