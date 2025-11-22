@@ -45,7 +45,7 @@ class MetaRepository
 
     public function findAllAsArray(): array
     {
-        $sql = "SELECT 
+        $sql = "SELECT DISTINCT
                     m.id AS registro_id,
                     m.data_meta AS data,
                     m.data_meta AS competencia,
@@ -117,18 +117,15 @@ class MetaRepository
                 isset($row['ds_indicador']) ? $row['ds_indicador'] : null,
                 isset($row['subproduto']) ? $row['subproduto'] : null,
                 isset($row['id_subindicador']) ? $row['id_subindicador'] : null,
-                $familiaId !== null ? (string)$familiaId : null,
-                $indicadorId !== null ? (string)$indicadorId : null,
-                null,
-                null,
-                null,
-                null,
+                null, // familiaCodigo - não disponível no banco
+                null, // indicadorCodigo - não disponível no banco
+                null, // carteira - não disponível no banco
+                null, // canalVenda - não disponível no banco
+                null, // tipoVenda - não disponível no banco
+                null, // modalidadePagamento - não disponível no banco
                 $dataIso,
                 $dataIso,
-                $this->toFloat(isset($row['meta_mensal']) ? $row['meta_mensal'] : null),
-                null,
-                null,
-                null
+                $this->toFloat(isset($row['meta_mensal']) ? $row['meta_mensal'] : null)
             );
             
             return $dto->toArray();
