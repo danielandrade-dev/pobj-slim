@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => '__root__',
-        'pretty_version' => '1.0.0+no-version-set',
-        'version' => '1.0.0.0',
-        'reference' => NULL,
+        'pretty_version' => 'dev-main',
+        'version' => 'dev-main',
+        'reference' => '3d09b28e25fcc9b879938e886c47e6dc880ee003',
         'type' => 'library',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -11,20 +11,11 @@
     ),
     'versions' => array(
         '__root__' => array(
-            'pretty_version' => '1.0.0+no-version-set',
-            'version' => '1.0.0.0',
-            'reference' => NULL,
+            'pretty_version' => 'dev-main',
+            'version' => 'dev-main',
+            'reference' => '3d09b28e25fcc9b879938e886c47e6dc880ee003',
             'type' => 'library',
             'install_path' => __DIR__ . '/../../',
-            'aliases' => array(),
-            'dev_requirement' => false,
-        ),
-        'fig/http-message-util' => array(
-            'pretty_version' => '1.1.5',
-            'version' => '1.1.5.0',
-            'reference' => '9d94dc0154230ac39e5bf89398b324a86f63f765',
-            'type' => 'library',
-            'install_path' => __DIR__ . '/../fig/http-message-util',
             'aliases' => array(),
             'dev_requirement' => false,
         ),
@@ -55,21 +46,6 @@
             'aliases' => array(),
             'dev_requirement' => false,
         ),
-        'psr/http-factory' => array(
-            'pretty_version' => '1.1.0',
-            'version' => '1.1.0.0',
-            'reference' => '2b4765fddfe3b508ac62f829e852b1501d3f6e8a',
-            'type' => 'library',
-            'install_path' => __DIR__ . '/../psr/http-factory',
-            'aliases' => array(),
-            'dev_requirement' => false,
-        ),
-        'psr/http-factory-implementation' => array(
-            'dev_requirement' => false,
-            'provided' => array(
-                0 => '^1.0',
-            ),
-        ),
         'psr/http-message' => array(
             'pretty_version' => '1.1',
             'version' => '1.1.0.0',
@@ -83,26 +59,7 @@
             'dev_requirement' => false,
             'provided' => array(
                 0 => '1.0',
-                1 => '^1.0 || ^2.0',
             ),
-        ),
-        'ralouphie/getallheaders' => array(
-            'pretty_version' => '3.0.3',
-            'version' => '3.0.3.0',
-            'reference' => '120b605dfeb996808c31b6477290a714d356e822',
-            'type' => 'library',
-            'install_path' => __DIR__ . '/../ralouphie/getallheaders',
-            'aliases' => array(),
-            'dev_requirement' => false,
-        ),
-        'slim/psr7' => array(
-            'pretty_version' => '1.8.0',
-            'version' => '1.8.0.0',
-            'reference' => '76e7e3b1cdfd583e9035c4c966c08e01e45ce959',
-            'type' => 'library',
-            'install_path' => __DIR__ . '/../slim/psr7',
-            'aliases' => array(),
-            'dev_requirement' => false,
         ),
         'slim/slim' => array(
             'pretty_version' => '3.12.5',
