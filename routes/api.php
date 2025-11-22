@@ -20,12 +20,6 @@ $app->get('/api/filtros', function ($request, $response) use ($app) {
     return $controller->handle($request, $response);
 });
 
-// Resumo
-$app->get('/api/resumo', function ($request, $response) use ($app) {
-    $controller = $app->getContainer()->get('App\Presentation\Controllers\ResumoController');
-    return $controller->handle($request, $response);
-});
-
 // Status Indicadores
 $app->get('/api/status_indicadores', function ($request, $response) use ($app) {
     $controller = $app->getContainer()->get('App\Presentation\Controllers\StatusIndicadoresController');

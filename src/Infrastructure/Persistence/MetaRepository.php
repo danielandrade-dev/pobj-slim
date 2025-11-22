@@ -16,33 +16,6 @@ class MetaRepository
         $this->pdo = $pdo;
     }
 
-    public function sumByPeriodAndFilters(
-        $dateFrom,
-        $dateTo,
-        array $filters = [],
-        array $bindValues = [],
-        $indicadorId = null
-    ) {
-        $bind = array_merge(['ini' => $dateFrom, 'fim' => $dateTo], $bindValues);
-        $where = $filters ? ' AND ' . implode(' AND ', $filters) : '';
-        $indicadorFilter = '';
-
-        if ($indicadorId !== null && $indicadorId !== '' && is_numeric($indicadorId)) {
-            $bind['indicador_id'] = (int)$indicadorId;
-            $indicadorFilter = ' AND m.id_indicador = :indicador_id';
-        }
-
-        $sql = "SELECT SUM(m.meta_mensal) AS total_meta
-                FROM f_meta m
-                JOIN d_calendario c ON c.data = m.data_meta
-                WHERE c.data BETWEEN :ini AND :fim{$indicadorFilter}{$where}";
-
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($bind);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return (float) (isset($result['total_meta']) ? $result['total_meta'] : 0);
-    }
-
     public function findAllAsArray(): array
     {
         $sql = "SELECT DISTINCT

@@ -133,13 +133,6 @@ function registerUseCases($container)
         );
     };
 
-    $container['App\Application\UseCase\ResumoUseCase'] = function ($c) {
-        return new \App\Application\UseCase\ResumoUseCase(
-            $c->get('App\Infrastructure\Persistence\RealizadoRepository'),
-            $c->get('App\Infrastructure\Persistence\MetaRepository')
-        );
-    };
-
     $container['App\Application\UseCase\StatusIndicadoresUseCase'] = function ($c) {
         return new \App\Application\UseCase\StatusIndicadoresUseCase(
             $c->get('App\Infrastructure\Persistence\StatusIndicadoresRepository')
@@ -310,12 +303,6 @@ function registerControllers($container)
     $container['App\Presentation\Controllers\ProdutosController'] = function ($c) {
         return new \App\Presentation\Controllers\ProdutosController(
             $c->get('App\Application\UseCase\ProdutoUseCase')
-        );
-    };
-
-    $container['App\Presentation\Controllers\ResumoController'] = function ($c) {
-        return new \App\Presentation\Controllers\ResumoController(
-            $c->get('App\Application\UseCase\ResumoUseCase')
         );
     };
 

@@ -16,33 +16,6 @@ class RealizadoRepository
         $this->pdo = $pdo;
     }
 
-    public function sumByPeriodAndFilters(
-        $dateFrom,
-        $dateTo,
-        array $filters = [],
-        array $bindValues = [],
-        $indicadorId = null
-    ) {
-        $bind = array_merge(['ini' => $dateFrom, 'fim' => $dateTo], $bindValues);
-        $where = $filters ? ' AND ' . implode(' AND ', $filters) : '';
-        $indicadorFilter = '';
-
-        if ($indicadorId !== null && $indicadorId !== '' && is_numeric($indicadorId)) {
-            $bind['indicador_id'] = (int)$indicadorId;
-            $indicadorFilter = ' AND r.indicador_id = :indicador_id';
-        }
-
-        $sql = "SELECT SUM(r.realizado) AS total_realizado
-                FROM f_realizados r
-                JOIN d_calendario c ON c.data = r.data_realizado
-                WHERE c.data BETWEEN :ini AND :fim{$indicadorFilter}{$where}";
-
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($bind);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return (float) (isset($result['total_realizado']) ? $result['total_realizado'] : 0);
-    }
-
     public function findAllAsArray(): array
     {
         $sql = "SELECT 
