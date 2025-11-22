@@ -2,28 +2,37 @@
 
 namespace App\Presentation\Controllers;
 
-use App\Application\UseCase\OmegaUsersUseCase;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Slim\Container;
 
 class OmegaUsersController
 {
-    private $omegaUsersUseCase;
+    protected $container;
 
-    public function __construct(OmegaUsersUseCase $omegaUsersUseCase)
+    public function __construct(Container $container)
     {
-        $this->omegaUsersUseCase = $omegaUsersUseCase;
+        $this->container = $container;
     }
 
     public function handle(Request $request, Response $response): Response
     {
         try {
-            $result = $this->omegaUsersUseCase->getAllUsers();
+            $service = $this->container->get('App\Application\UseCase\OmegaUsersService');
+            $result = $service->getAllUsers();
             
             $response = $response->withHeader('Content-Type', 'application/json; charset=utf-8');
             $response->getBody()->write(json_encode($result, JSON_UNESCAPED_UNICODE));
             return $response;
         } catch (\Throwable $e) {
+            if ($this->container->has('logger')) {
+                $logger = $this->container->get('logger');
+                $logger->error('Erro ao carregar usuários Omega', [
+                    'endpoint' => 'omega/users',
+                    'error' => $e->getMessage(),
+                ]);
+            }
+            
             $response = $response->withStatus(500)
                 ->withHeader('Content-Type', 'application/json; charset=utf-8');
             $response->getBody()->write(json_encode([

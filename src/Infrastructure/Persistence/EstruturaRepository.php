@@ -3,7 +3,7 @@
 namespace App\Infrastructure\Persistence;
 
 use PDO;
-use App\Domain\ValueObject\Cargo;
+use App\Domain\Enum\Cargo;
 
 class EstruturaRepository
 {

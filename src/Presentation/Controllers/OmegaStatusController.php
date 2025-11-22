@@ -2,28 +2,37 @@
 
 namespace App\Presentation\Controllers;
 
-use App\Application\UseCase\OmegaStatusUseCase;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Slim\Container;
 
 class OmegaStatusController
 {
-    private $omegaStatusUseCase;
+    protected $container;
 
-    public function __construct(OmegaStatusUseCase $omegaStatusUseCase)
+    public function __construct(Container $container)
     {
-        $this->omegaStatusUseCase = $omegaStatusUseCase;
+        $this->container = $container;
     }
 
     public function handle(Request $request, Response $response): Response
     {
         try {
-            $result = $this->omegaStatusUseCase->getAllStatus();
+            $service = $this->container->get('App\Application\UseCase\OmegaStatusService');
+            $result = $service->getAllStatus();
             
             $response = $response->withHeader('Content-Type', 'application/json; charset=utf-8');
             $response->getBody()->write(json_encode($result, JSON_UNESCAPED_UNICODE));
             return $response;
         } catch (\Throwable $e) {
+            if ($this->container->has('logger')) {
+                $logger = $this->container->get('logger');
+                $logger->error('Erro ao carregar status Omega', [
+                    'endpoint' => 'omega/statuses',
+                    'error' => $e->getMessage(),
+                ]);
+            }
+            
             $response = $response->withStatus(500)
                 ->withHeader('Content-Type', 'application/json; charset=utf-8');
             $response->getBody()->write(json_encode([

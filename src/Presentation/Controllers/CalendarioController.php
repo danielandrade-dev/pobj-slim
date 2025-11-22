@@ -2,22 +2,23 @@
 
 namespace App\Presentation\Controllers;
 
-use App\Application\UseCase\CalendarioUseCase;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Slim\Container;
 
 class CalendarioController
 {
-    private $calendarioUseCase;
+    protected $container;
 
-    public function __construct(CalendarioUseCase $calendarioUseCase)
+    public function __construct(Container $container)
     {
-        $this->calendarioUseCase = $calendarioUseCase;
+        $this->container = $container;
     }
 
     public function handle(Request $request, Response $response): Response
     {
-        $result = $this->calendarioUseCase->getAllCalendario();
+        $service = $this->container->get('App\Application\UseCase\CalendarioService');
+        $result = $service->getAllCalendario();
         
         $response = $response->withHeader('Content-Type', 'application/json; charset=utf-8');
         $response->getBody()->write(json_encode($result, JSON_UNESCAPED_UNICODE));

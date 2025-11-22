@@ -5,6 +5,7 @@ namespace App\Infrastructure\Persistence;
 // Removed Connection dependency
 use PDO;
 use App\Domain\DTO\OmegaMesuDTO;
+use App\Infrastructure\Helpers\RowMapper;
 
 class OmegaMesuRepository
 {
@@ -39,26 +40,19 @@ class OmegaMesuRepository
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         return array_map(function ($row) {
-            $segmentoId = isset($row['segmento_id']) ? $row['segmento_id'] : null;
-            $diretoriaId = isset($row['diretoria_id']) ? $row['diretoria_id'] : null;
-            $gerenciaRegionalId = isset($row['gerencia_regional_id']) ? $row['gerencia_regional_id'] : null;
-            $agenciaId = isset($row['agencia_id']) ? $row['agencia_id'] : null;
-            $gerenteGestaoId = isset($row['gerente_gestao_id']) ? $row['gerente_gestao_id'] : null;
-            $gerenteId = isset($row['gerente_id']) ? $row['gerente_id'] : null;
-            
             $dto = new OmegaMesuDTO(
                 isset($row['segmento']) ? $row['segmento'] : null,
-                $segmentoId !== null ? (string)$segmentoId : null,
+                RowMapper::toString(isset($row['segmento_id']) ? $row['segmento_id'] : null),
                 isset($row['diretoria']) ? $row['diretoria'] : null,
-                $diretoriaId !== null ? (string)$diretoriaId : null,
+                RowMapper::toString(isset($row['diretoria_id']) ? $row['diretoria_id'] : null),
                 isset($row['gerencia_regional']) ? $row['gerencia_regional'] : null,
-                $gerenciaRegionalId !== null ? (string)$gerenciaRegionalId : null,
+                RowMapper::toString(isset($row['gerencia_regional_id']) ? $row['gerencia_regional_id'] : null),
                 isset($row['agencia']) ? $row['agencia'] : null,
-                $agenciaId !== null ? (string)$agenciaId : null,
+                RowMapper::toString(isset($row['agencia_id']) ? $row['agencia_id'] : null),
                 isset($row['gerente_gestao']) ? $row['gerente_gestao'] : null,
-                $gerenteGestaoId !== null ? (string)$gerenteGestaoId : null,
+                RowMapper::toString(isset($row['gerente_gestao_id']) ? $row['gerente_gestao_id'] : null),
                 isset($row['gerente']) ? $row['gerente'] : null,
-                $gerenteId !== null ? (string)$gerenteId : null
+                RowMapper::toString(isset($row['gerente_id']) ? $row['gerente_id'] : null)
             );
             
             return $dto->toArray();

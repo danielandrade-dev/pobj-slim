@@ -2,22 +2,23 @@
 
 namespace App\Presentation\Controllers;
 
-use App\Application\UseCase\LeadsUseCase;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Slim\Container;
 
 class LeadsController
 {
-    private $leadsUseCase;
+    protected $container;
 
-    public function __construct(LeadsUseCase $leadsUseCase)
+    public function __construct(Container $container)
     {
-        $this->leadsUseCase = $leadsUseCase;
+        $this->container = $container;
     }
 
     public function handle(Request $request, Response $response): Response
     {
-        $result = $this->leadsUseCase->getAllLeads();
+        $service = $this->container->get('App\Application\UseCase\LeadsService');
+        $result = $service->getAllLeads();
         
         $response = $response->withHeader('Content-Type', 'application/json; charset=utf-8');
         $response->getBody()->write(json_encode($result, JSON_UNESCAPED_UNICODE));

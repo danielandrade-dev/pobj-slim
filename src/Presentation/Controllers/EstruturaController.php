@@ -2,22 +2,23 @@
 
 namespace App\Presentation\Controllers;
 
-use App\Application\UseCase\EstruturaUseCase;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Slim\Container;
 
 class EstruturaController
 {
-    private $estruturaUseCase;
+    protected $container;
 
-    public function __construct(EstruturaUseCase $estruturaUseCase)
+    public function __construct(Container $container)
     {
-        $this->estruturaUseCase = $estruturaUseCase;
+        $this->container = $container;
     }
 
     public function handle(Request $request, Response $response): Response
     {
-        $result = $this->estruturaUseCase->getAllEstrutura();
+        $service = $this->container->get('App\Application\UseCase\EstruturaService');
+        $result = $service->getAllEstrutura();
         
         $response = $response->withHeader('Content-Type', 'application/json; charset=utf-8');
         $response->getBody()->write(json_encode($result, JSON_UNESCAPED_UNICODE));
