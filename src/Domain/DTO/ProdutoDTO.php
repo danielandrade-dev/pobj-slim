@@ -11,9 +11,10 @@ class ProdutoDTO extends BaseFactDTO
     private $indicador;
     private $idSubindicador;
     private $subindicador;
+    private $metrica;
     private $peso;
 
-    public function __construct($id = null, $idFamilia = null, $familia = null, $idIndicador = null, $indicador = null, $idSubindicador = null, $subindicador = null, $peso = null)
+    public function __construct($id = null, $idFamilia = null, $familia = null, $idIndicador = null, $indicador = null, $idSubindicador = null, $subindicador = null, $metrica = null, $peso = null)
     {
         $this->id = $id;
         $this->idFamilia = $idFamilia;
@@ -22,6 +23,7 @@ class ProdutoDTO extends BaseFactDTO
         $this->indicador = $indicador;
         $this->idSubindicador = $idSubindicador;
         $this->subindicador = $subindicador;
+        $this->metrica = $metrica;
         $this->peso = $peso;
     }
 
@@ -31,14 +33,34 @@ class ProdutoDTO extends BaseFactDTO
             'id' => $this->id,
             'id_familia' => $this->idFamilia,
             'familia' => $this->familia,
-            'familia_nome' => $this->familia,
             'id_indicador' => $this->idIndicador,
             'indicador' => $this->indicador,
-            'ds_indicador' => $this->indicador,
             'id_subindicador' => $this->idSubindicador,
             'subindicador' => $this->subindicador,
+            'metrica' => $this->metrica,
             'peso' => $this->peso,
         ];
+    }
+
+    public static function fromRows(array $rows): array
+    {
+        return array_map(function ($produto) {
+            $peso = ($produto['peso'] !== null && $produto['peso'] !== '' && is_numeric($produto['peso'])) 
+                ? (float)$produto['peso'] 
+                : null;
+            
+            return (new self(
+                $produto['id'] ?? null,
+                $produto['id_familia'] !== null ? (string)$produto['id_familia'] : null,
+                $produto['familia'] ?? '',
+                $produto['id_indicador'] !== null ? (string)$produto['id_indicador'] : null,
+                $produto['indicador'] ?? '',
+                $produto['id_subindicador'] !== null ? (string)$produto['id_subindicador'] : null,
+                $produto['subindicador'] ?? '',
+                $produto['metrica'] ?? null,
+                $peso
+            ))->toArray();
+        }, $rows);
     }
 }
 

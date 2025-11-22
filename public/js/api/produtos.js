@@ -18,79 +18,54 @@ if (typeof window !== "undefined") {
   window.SEGMENT_SCENARIO_DEFAULT = SEGMENT_SCENARIO_DEFAULT;
 }
 
+/* ===== Função auxiliar para gerar ID ===== */
+function gerarId(codigo, nome, nomePadrao = "Indicador") {
+  const codigoLimpo = limparTexto(String(codigo || ""));
+  const nomeLimpo = limparTexto(nome || "") || nomePadrao;
+  
+  if (codigoLimpo && /[^0-9]/.test(codigoLimpo)) {
+    return codigoLimpo;
+  }
+  const slug = simplificarTexto(nomeLimpo);
+  return slug ? slug.replace(/\s+/g, "_") : codigoLimpo || "";
+}
+
 /* ===== Função para normalizar linhas de produtos ===== */
 function normalizarDimProdutos(rows){
   const list = Array.isArray(rows) ? rows : [];
   return list.map(raw => {
-    const familiaCodigoRaw = raw.id_familia || raw.familia_codigo || "";
-    const familiaNomeRaw = raw.familia || raw.familia_nome || "";
-    const indicadorCodigoRaw = raw.id_indicador || raw.indicador_codigo || "";
-    const indicadorNomeRaw = raw.indicador || raw.ds_indicador || "";
-    const subCodigoRaw = raw.id_subindicador || raw.subindicador_codigo || "";
+    const familiaCodigo = limparTexto(String(raw.id_familia || ""));
+    const familiaNome = limparTexto(raw.familia || "") || "Indicador";
+    const indicadorCodigo = limparTexto(String(raw.id_indicador || ""));
+    const indicadorNome = limparTexto(raw.indicador || "") || "Indicador";
+    const subCodigoRaw = raw.id_subindicador || "";
     const subNomeRaw = raw.subindicador || "";
-    const pesoRaw = raw.peso || 0;
-
-    const familiaNome = limparTexto(familiaNomeRaw) || "Indicador";
-    const familiaCodigo = limparTexto(String(familiaCodigoRaw));
-    let familiaId = "";
-    if (familiaCodigo && /[^0-9]/.test(familiaCodigo)) {
-      familiaId = familiaCodigo;
-    } else {
-      const slug = simplificarTexto(familiaNome);
-      familiaId = slug ? slug.replace(/\s+/g, "_") : String(familiaCodigo || "");
-    }
-
-    const indicadorNome = limparTexto(indicadorNomeRaw) || "Indicador";
-    const indicadorCodigo = limparTexto(String(indicadorCodigoRaw));
-    let indicadorId = "";
-    if (indicadorCodigo && /[^0-9]/.test(indicadorCodigo)) {
-      indicadorId = indicadorCodigo;
-    } else {
-      const slug = simplificarTexto(indicadorNome);
-      indicadorId = slug ? slug.replace(/\s+/g, "_") : String(indicadorCodigo || "");
-    }
-
-    const subNomeLimpo = limparTexto(subNomeRaw);
+    
     const subCodigo = limparTexto(String(subCodigoRaw));
     const subCodigoValido = subCodigo && subCodigo !== "-" && subCodigo !== "0" ? subCodigo : "";
+    const subNomeLimpo = limparTexto(subNomeRaw);
     const hasSub = Boolean(subCodigoValido) || Boolean(subNomeLimpo);
     
-    if (!hasSub) {
-      return {
-        familiaCodigo,
-        familiaId,
-        familiaNome,
-        indicadorCodigo,
-        indicadorId,
-        indicadorNome,
-        peso: toNumber(pesoRaw) || 0,
-        subCodigo: "",
-        subId: "",
-        subNome: ""
-      };
-    }
-
-    let subId = "";
-    if (subCodigoValido && /[^0-9]/.test(subCodigoValido) && !subNomeLimpo) {
-      subId = subCodigoValido;
-    } else {
-      const slug = subNomeLimpo ? simplificarTexto(subNomeLimpo) : simplificarTexto(subCodigoValido);
-      subId = slug ? slug.replace(/\s+/g, "_") : subCodigoValido;
-    }
-
-    const subNome = subNomeLimpo || subId || subCodigoValido || "";
-
-    return {
+    const base = {
       familiaCodigo,
-      familiaId,
+      familiaId: gerarId(familiaCodigo, familiaNome),
       familiaNome,
       indicadorCodigo,
-      indicadorId,
+      indicadorId: gerarId(indicadorCodigo, indicadorNome),
       indicadorNome,
-      peso: toNumber(pesoRaw) || 0,
+      peso: toNumber(raw.peso) || 0
+    };
+    
+    if (!hasSub) {
+      return { ...base, subCodigo: "", subId: "", subNome: "" };
+    }
+    
+    const subId = gerarId(subCodigoValido, subNomeLimpo);
+    return {
+      ...base,
       subCodigo: subCodigoValido,
       subId,
-      subNome
+      subNome: subNomeLimpo || subId || subCodigoValido || ""
     };
   }).filter(row => row.indicadorId);
 }
@@ -108,38 +83,30 @@ async function loadProdutosData(){
 
 /* ===== Função para processar dados de produtos ===== */
 function processProdutosData(produtosDimRaw = []) {
-  const produtosDimRows = Array.isArray(produtosDimRaw) ? produtosDimRaw : [];
-  const baseDimProdutos = normalizarDimProdutos(produtosDimRows);
+  const baseDimProdutos = normalizarDimProdutos(produtosDimRaw);
   const dimProdutosVarejo = baseDimProdutos.map(row => ({ ...row, scenario: SEGMENT_SCENARIO_DEFAULT }));
-
   const dimProdutosEmpresas = dimProdutosVarejo.map(row => ({ ...row, scenario: "empresas" }));
 
   SEGMENT_DIMENSION_MAP.clear();
   SEGMENT_DIMENSION_MAP.set(SEGMENT_SCENARIO_DEFAULT, dimProdutosVarejo);
   SEGMENT_DIMENSION_MAP.set("empresas", dimProdutosEmpresas);
-  const defaultDim = dimProdutosVarejo.slice();
-  const empresasDim = dimProdutosEmpresas.slice();
 
   const dimensionAliases = [
-    { key: SEGMENT_SCENARIO_DEFAULT, value: defaultDim },
-    { key: "default", value: defaultDim },
-    { key: "todos", value: defaultDim },
-    { key: "empresas", value: empresasDim }
+    { key: SEGMENT_SCENARIO_DEFAULT, value: dimProdutosVarejo },
+    { key: "default", value: dimProdutosVarejo },
+    { key: "todos", value: dimProdutosVarejo },
+    { key: "empresas", value: dimProdutosEmpresas }
   ];
 
-  const globalMaps = [];
-  if (typeof window !== "undefined") {
-    globalMaps.push(window.segMap, window.dirMap, window.regMap, window.ageMap, window.agMap);
-  } else {
-    globalMaps.push(segMap, dirMap, regMap, ageMap, agMap);
-  }
+  const globalMaps = typeof window !== "undefined" 
+    ? [window.segMap, window.dirMap, window.regMap, window.ageMap, window.agMap]
+    : [segMap, dirMap, regMap, ageMap, agMap];
 
   globalMaps.forEach(map => {
-    if (!(map instanceof Map)) return;
-    map.clear();
-    dimensionAliases.forEach(({ key, value }) => {
-      map.set(key, value);
-    });
+    if (map instanceof Map) {
+      map.clear();
+      dimensionAliases.forEach(({ key, value }) => map.set(key, value));
+    }
   });
   
   rebuildGlobalDimensionAliasIndex();
@@ -147,7 +114,7 @@ function processProdutosData(produtosDimRaw = []) {
   
   return {
     dimProdutos: DIM_PRODUTOS,
-    dimProdutosPorSegmento: Object.fromEntries(Array.from(SEGMENT_DIMENSION_MAP.entries()).map(([key, rows]) => [key, rows])),
+    dimProdutosPorSegmento: Object.fromEntries(SEGMENT_DIMENSION_MAP)
   };
 }
 
