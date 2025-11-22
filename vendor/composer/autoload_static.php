@@ -31,6 +31,7 @@ class ComposerStaticInit3b0766dbcef4dfb1a4a2012fef8611d8
         ),
         'P' => 
         array (
+            'Psr\\Log\\' => 8,
             'Psr\\Http\\Message\\' => 17,
             'Psr\\Container\\' => 14,
         ),
@@ -60,6 +61,10 @@ class ComposerStaticInit3b0766dbcef4dfb1a4a2012fef8611d8
         'Slim\\' => 
         array (
             0 => __DIR__ . '/..' . '/slim/slim/Slim',
+        ),
+        'Psr\\Log\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/psr/log/Psr/Log',
         ),
         'Psr\\Http\\Message\\' => 
         array (
