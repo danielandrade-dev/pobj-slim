@@ -50,6 +50,7 @@ class MetaRepository
                     AND u.id_diretoria = m.diretoria_id
                     AND u.id_regional = m.gerencia_regional_id
                     AND u.id_agencia = m.agencia_id
+                    AND u.funcional = m.funcional
                 LEFT JOIN d_produtos p ON p.id_indicador = m.id_indicador
                     AND (p.id_subindicador = m.id_subindicador OR (p.id_subindicador IS NULL AND m.id_subindicador IS NULL))
                 ORDER BY m.data_meta DESC, m.id";
