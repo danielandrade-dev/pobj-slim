@@ -2,69 +2,87 @@
 
 namespace App\Infrastructure\Persistence;
 
-use Doctrine\ORM\EntityManager;
+use PDO;
 use App\Domain\DTO\OmegaTicketDTO;
-use App\Domain\Entity\OmegaChamado;
 
 class OmegaTicketsRepository
 {
-    private $entityManager;
+    private $pdo;
 
-    public function __construct(EntityManager $entityManager)
+    public function __construct(PDO $pdo)
     {
-        $this->entityManager = $entityManager;
-    }
-
-    public function findAll(): array
-    {
-        return $this->entityManager
-            ->getRepository(OmegaChamado::class)
-            ->createQueryBuilder('c')
-            ->orderBy('c.updated', 'DESC')
-            ->addOrderBy('c.opened', 'DESC')
-            ->getQuery()
-            ->getResult();
+        $this->pdo = $pdo;
     }
 
     public function findAllAsArray(): array
     {
-        $entities = $this->findAll();
+        $sql = "SELECT 
+                    id,
+                    subject,
+                    company,
+                    product_id,
+                    product_label,
+                    family,
+                    section,
+                    queue,
+                    category,
+                    status,
+                    priority,
+                    opened,
+                    updated,
+                    due_date,
+                    requester_id,
+                    owner_id,
+                    team_id,
+                    history,
+                    diretoria,
+                    gerencia,
+                    agencia,
+                    gerente_gestao,
+                    gerente,
+                    credit,
+                    attachment
+                FROM omega_chamados
+                ORDER BY updated DESC, opened DESC";
         
-        return array_map(function (OmegaChamado $entity) {
-            $opened = $entity->getOpened() ? $entity->getOpened()->format('Y-m-d H:i:s') : null;
-            $updated = $entity->getUpdated() ? $entity->getUpdated()->format('Y-m-d H:i:s') : null;
-            $dueDate = $entity->getDueDate() ? $entity->getDueDate()->format('Y-m-d H:i:s') : null;
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        return array_map(function ($row) {
+            $opened = isset($row['opened']) && $row['opened'] ? date('Y-m-d H:i:s', strtotime($row['opened'])) : null;
+            $updated = isset($row['updated']) && $row['updated'] ? date('Y-m-d H:i:s', strtotime($row['updated'])) : null;
+            $dueDate = isset($row['due_date']) && $row['due_date'] ? date('Y-m-d H:i:s', strtotime($row['due_date'])) : null;
             
             $dto = new OmegaTicketDTO(
-                $entity->getId(),
-                $entity->getSubject(),
-                $entity->getCompany(),
-                $entity->getProductId(),
-                $entity->getProductLabel(),
-                $entity->getFamily(),
-                $entity->getSection(),
-                $entity->getQueue(),
-                $entity->getCategory(),
-                $entity->getStatus(),
-                $entity->getPriority(),
+                isset($row['id']) ? $row['id'] : null,
+                isset($row['subject']) ? $row['subject'] : null,
+                isset($row['company']) ? $row['company'] : null,
+                isset($row['product_id']) ? $row['product_id'] : null,
+                isset($row['product_label']) ? $row['product_label'] : null,
+                isset($row['family']) ? $row['family'] : null,
+                isset($row['section']) ? $row['section'] : null,
+                isset($row['queue']) ? $row['queue'] : null,
+                isset($row['category']) ? $row['category'] : null,
+                isset($row['status']) ? $row['status'] : null,
+                isset($row['priority']) ? $row['priority'] : null,
                 $opened,
                 $updated,
                 $dueDate,
-                $entity->getRequesterId(),
-                $entity->getOwnerId(),
-                $entity->getTeamId(),
-                $entity->getHistory(),
-                $entity->getDiretoria(),
-                $entity->getGerencia(),
-                $entity->getAgencia(),
-                $entity->getGerenteGestao(),
-                $entity->getGerente(),
-                $entity->getCredit(),
-                $entity->getAttachment()
+                isset($row['requester_id']) ? $row['requester_id'] : null,
+                isset($row['owner_id']) ? $row['owner_id'] : null,
+                isset($row['team_id']) ? $row['team_id'] : null,
+                isset($row['history']) ? $row['history'] : null,
+                isset($row['diretoria']) ? $row['diretoria'] : null,
+                isset($row['gerencia']) ? $row['gerencia'] : null,
+                isset($row['agencia']) ? $row['agencia'] : null,
+                isset($row['gerente_gestao']) ? $row['gerente_gestao'] : null,
+                isset($row['gerente']) ? $row['gerente'] : null,
+                isset($row['credit']) ? $row['credit'] : null,
+                isset($row['attachment']) ? $row['attachment'] : null
             );
             
             return $dto->toArray();
-        }, $entities);
+        }, $results);
     }
 }
-

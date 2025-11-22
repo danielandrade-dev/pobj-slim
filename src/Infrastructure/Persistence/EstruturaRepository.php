@@ -2,133 +2,127 @@
 
 namespace App\Infrastructure\Persistence;
 
-use Doctrine\ORM\EntityManager;
-use App\Domain\Entity\DEstrutura;
+use PDO;
 use App\Domain\ValueObject\Cargo;
 
 class EstruturaRepository
 {
-    private $entityManager;
+    private $pdo;
 
-    public function __construct(EntityManager $entityManager)
+    public function __construct(PDO $pdo)
     {
-        $this->entityManager = $entityManager;
+        $this->pdo = $pdo;
     }
 
     public function findAllSegmentos(): array
     {
-        $qb = $this->entityManager->createQueryBuilder();
+        $sql = "SELECT DISTINCT id_segmento AS id, segmento AS label
+                FROM d_estrutura
+                WHERE id_segmento IS NOT NULL
+                  AND segmento IS NOT NULL
+                ORDER BY segmento ASC";
         
-        return $qb->select('DISTINCT e.idSegmento AS id, e.segmento AS label')
-            ->from(DEstrutura::class, 'e')
-            ->where('e.idSegmento IS NOT NULL')
-            ->andWhere('e.segmento IS NOT NULL')
-            ->orderBy('e.segmento', 'ASC')
-            ->getQuery()
-            ->getArrayResult();
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function findAllDiretorias(): array
     {
-        $qb = $this->entityManager->createQueryBuilder();
+        $sql = "SELECT DISTINCT id_diretoria AS id, diretoria AS label
+                FROM d_estrutura
+                WHERE id_diretoria IS NOT NULL
+                  AND diretoria IS NOT NULL
+                ORDER BY diretoria ASC";
         
-        return $qb->select('DISTINCT e.idDiretoria AS id, e.diretoria AS label')
-            ->from(DEstrutura::class, 'e')
-            ->where('e.idDiretoria IS NOT NULL')
-            ->andWhere('e.diretoria IS NOT NULL')
-            ->orderBy('e.diretoria', 'ASC')
-            ->getQuery()
-            ->getArrayResult();
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function findAllRegionais(): array
     {
-        $qb = $this->entityManager->createQueryBuilder();
+        $sql = "SELECT DISTINCT id_regional AS id, regional AS label
+                FROM d_estrutura
+                WHERE id_regional IS NOT NULL
+                  AND regional IS NOT NULL
+                ORDER BY regional ASC";
         
-        return $qb->select('DISTINCT e.idRegional AS id, e.regional AS label')
-            ->from(DEstrutura::class, 'e')
-            ->where('e.idRegional IS NOT NULL')
-            ->andWhere('e.regional IS NOT NULL')
-            ->orderBy('e.regional', 'ASC')
-            ->getQuery()
-            ->getArrayResult();
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function findAllAgencias(): array
     {
-        $qb = $this->entityManager->createQueryBuilder();
+        $sql = "SELECT DISTINCT id_agencia AS id, agencia AS label, porte
+                FROM d_estrutura
+                WHERE id_agencia IS NOT NULL
+                  AND agencia IS NOT NULL
+                ORDER BY agencia ASC";
         
-        return $qb->select('DISTINCT e.idAgencia AS id, e.agencia AS label, e.porte')
-            ->from(DEstrutura::class, 'e')
-            ->where('e.idAgencia IS NOT NULL')
-            ->andWhere('e.agencia IS NOT NULL')
-            ->orderBy('e.agencia', 'ASC')
-            ->getQuery()
-            ->getArrayResult();
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function findAllGGestoes(): array
     {
-        $qb = $this->entityManager->createQueryBuilder();
+        $sql = "SELECT DISTINCT funcional AS id, nome AS label
+                FROM d_estrutura
+                WHERE id_cargo = :idCargo
+                  AND funcional IS NOT NULL
+                  AND nome IS NOT NULL
+                  AND funcional != ''
+                  AND nome != ''
+                ORDER BY nome ASC";
         
-        return $qb->select('DISTINCT e.funcional AS id, e.nome AS label')
-            ->from(DEstrutura::class, 'e')
-            ->where('e.idCargo = :idCargo')
-            ->andWhere('e.funcional IS NOT NULL')
-            ->andWhere('e.nome IS NOT NULL')
-            ->andWhere("e.funcional != ''")
-            ->andWhere("e.nome != ''")
-            ->setParameter('idCargo', Cargo::GERENTE_GESTAO)
-            ->orderBy('e.nome', 'ASC')
-            ->getQuery()
-            ->getArrayResult();
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute(['idCargo' => Cargo::GERENTE_GESTAO]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function findAllGerentes(): array
     {
-        $qb = $this->entityManager->createQueryBuilder();
+        $sql = "SELECT DISTINCT funcional AS id, nome AS label
+                FROM d_estrutura
+                WHERE id_cargo = :idCargo
+                  AND funcional IS NOT NULL
+                  AND nome IS NOT NULL
+                  AND funcional != ''
+                  AND nome != ''
+                ORDER BY nome ASC";
         
-        return $qb->select('DISTINCT e.funcional AS id, e.nome AS label')
-            ->from(DEstrutura::class, 'e')
-            ->where('e.idCargo = :idCargo')
-            ->andWhere('e.funcional IS NOT NULL')
-            ->andWhere('e.nome IS NOT NULL')
-            ->andWhere("e.funcional != ''")
-            ->andWhere("e.nome != ''")
-            ->setParameter('idCargo', Cargo::GERENTE)
-            ->orderBy('e.nome', 'ASC')
-            ->getQuery()
-            ->getArrayResult();
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute(['idCargo' => Cargo::GERENTE]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function findGGestoesForFilter(): array
     {
-        $qb = $this->entityManager->createQueryBuilder();
+        $sql = "SELECT DISTINCT funcional AS id, nome AS label, cargo, id_cargo
+                FROM d_estrutura
+                WHERE id_cargo = :idCargo
+                  AND funcional IS NOT NULL
+                  AND nome IS NOT NULL
+                ORDER BY nome ASC";
         
-        return $qb->select('DISTINCT e.funcional AS id, e.nome AS label, e.cargo, id_cargo')
-            ->from(DEstrutura::class, 'e')
-            ->where('e.idCargo = :idCargo')
-            ->andWhere('e.funcional IS NOT NULL')
-            ->andWhere('e.nome IS NOT NULL')
-            ->setParameter('idCargo', Cargo::GERENTE_GESTAO)
-            ->orderBy('e.nome', 'ASC')
-            ->getQuery()
-            ->getArrayResult();
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute(['idCargo' => Cargo::GERENTE_GESTAO]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     public function findGerentesForFilter(): array
     {
-        $qb = $this->entityManager->createQueryBuilder();
+        $sql = "SELECT DISTINCT funcional AS id, nome AS label, cargo, id_cargo
+                FROM d_estrutura
+                WHERE id_cargo = :idCargo
+                  AND funcional IS NOT NULL
+                  AND nome IS NOT NULL
+                ORDER BY nome ASC";
         
-        return $qb->select('DISTINCT e.funcional AS id, e.nome AS label, e.cargo, e.id_cargo')
-            ->from(DEstrutura::class, 'e')
-            ->where('e.idCargo = :idCargo')
-            ->andWhere('e.funcional IS NOT NULL')
-            ->andWhere('e.nome IS NOT NULL')
-            ->setParameter('idCargo', Cargo::GERENTE)
-            ->orderBy('e.nome', 'ASC')
-            ->getQuery()
-            ->getArrayResult();
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute(['idCargo' => Cargo::GERENTE]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
-

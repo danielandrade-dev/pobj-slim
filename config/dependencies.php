@@ -1,8 +1,5 @@
 <?php
 
-use PDO;
-use Doctrine\ORM\EntityManager;
-
 return function ($container) {
     // Database Connection
     $container[PDO::class] = function ($c) {
@@ -20,74 +17,69 @@ return function ($container) {
         ]);
     };
 
-    // EntityManager (se estiver usando Doctrine)
-    // $container[EntityManager::class] = function ($c) {
-    //     return DoctrineManager::getEntityManager();
-    // };
-
     // Repositories
     $container['App\Infrastructure\Persistence\EstruturaRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\EstruturaRepository($c->get(EntityManager::class));
+        return new \App\Infrastructure\Persistence\EstruturaRepository($c->get(PDO::class));
     };
 
     $container['App\Infrastructure\Persistence\StatusIndicadoresRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\StatusIndicadoresRepository($c->get(EntityManager::class));
+        return new \App\Infrastructure\Persistence\StatusIndicadoresRepository($c->get(PDO::class));
     };
 
     $container['App\Infrastructure\Persistence\RealizadoRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\RealizadoRepository($c->get(EntityManager::class));
+        return new \App\Infrastructure\Persistence\RealizadoRepository($c->get(PDO::class));
     };
 
     $container['App\Infrastructure\Persistence\MetaRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\MetaRepository($c->get(EntityManager::class));
+        return new \App\Infrastructure\Persistence\MetaRepository($c->get(PDO::class));
     };
 
     $container['App\Infrastructure\Persistence\VariavelRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\VariavelRepository($c->get(EntityManager::class));
+        return new \App\Infrastructure\Persistence\VariavelRepository($c->get(PDO::class));
     };
 
     $container['App\Infrastructure\Persistence\ProdutoRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\ProdutoRepository($c->get(EntityManager::class));
+        return new \App\Infrastructure\Persistence\ProdutoRepository($c->get(PDO::class));
     };
 
     $container['App\Infrastructure\Persistence\CalendarioRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\CalendarioRepository($c->get(EntityManager::class));
+        return new \App\Infrastructure\Persistence\CalendarioRepository($c->get(PDO::class));
     };
 
     $container['App\Infrastructure\Persistence\CampanhasRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\CampanhasRepository($c->get(EntityManager::class));
+        return new \App\Infrastructure\Persistence\CampanhasRepository($c->get(PDO::class));
     };
 
     $container['App\Infrastructure\Persistence\DetalhesRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\DetalhesRepository($c->get(EntityManager::class));
+        return new \App\Infrastructure\Persistence\DetalhesRepository($c->get(PDO::class));
     };
 
     $container['App\Infrastructure\Persistence\HistoricoRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\HistoricoRepository($c->get(EntityManager::class));
+        return new \App\Infrastructure\Persistence\HistoricoRepository($c->get(PDO::class));
     };
 
     $container['App\Infrastructure\Persistence\LeadsRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\LeadsRepository($c->get(EntityManager::class));
+        return new \App\Infrastructure\Persistence\LeadsRepository($c->get(PDO::class));
     };
 
     $container['App\Infrastructure\Persistence\OmegaUsersRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\OmegaUsersRepository($c->get(EntityManager::class));
+        return new \App\Infrastructure\Persistence\OmegaUsersRepository($c->get(PDO::class));
     };
 
     $container['App\Infrastructure\Persistence\OmegaStatusRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\OmegaStatusRepository($c->get(EntityManager::class));
+        return new \App\Infrastructure\Persistence\OmegaStatusRepository($c->get(PDO::class));
     };
 
     $container['App\Infrastructure\Persistence\OmegaStructureRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\OmegaStructureRepository($c->get(EntityManager::class));
+        return new \App\Infrastructure\Persistence\OmegaStructureRepository($c->get(PDO::class));
     };
 
     $container['App\Infrastructure\Persistence\OmegaTicketsRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\OmegaTicketsRepository($c->get(EntityManager::class));
+        return new \App\Infrastructure\Persistence\OmegaTicketsRepository($c->get(PDO::class));
     };
 
     $container['App\Infrastructure\Persistence\OmegaMesuRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\OmegaMesuRepository($c->get(EntityManager::class));
+        return new \App\Infrastructure\Persistence\OmegaMesuRepository($c->get(PDO::class));
     };
 
     // Use Cases (Services)

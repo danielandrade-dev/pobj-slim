@@ -2,77 +2,104 @@
 
 namespace App\Infrastructure\Persistence;
 
-use Doctrine\ORM\EntityManager;
+use PDO;
 use App\Domain\DTO\DetalhesDTO;
-use App\Domain\Entity\FDetalhes;
 use App\Infrastructure\Helpers\DateFormatter;
 use App\Infrastructure\Helpers\RowMapper;
 
 class DetalhesRepository
 {
-    private $entityManager;
+    private $pdo;
 
-    public function __construct(EntityManager $entityManager)
+    public function __construct(PDO $pdo)
     {
-        $this->entityManager = $entityManager;
-    }
-
-    public function findAll(): array
-    {
-        return $this->entityManager
-            ->getRepository(FDetalhes::class)
-            ->createQueryBuilder('d')
-            ->orderBy('d.data', 'DESC')
-            ->getQuery()
-            ->getResult();
+        $this->pdo = $pdo;
     }
 
     public function findAllAsArray(): array
     {
-        $entities = $this->findAll();
+        $sql = "SELECT 
+                    registro_id,
+                    segmento,
+                    segmento_id,
+                    diretoria_id,
+                    diretoria_nome,
+                    gerencia_regional_id,
+                    gerencia_regional_nome,
+                    agencia_id,
+                    agencia_nome,
+                    gerente_gestao_id,
+                    gerente_gestao_nome,
+                    gerente_id,
+                    gerente_nome,
+                    familia_id,
+                    familia_nome,
+                    id_indicador,
+                    ds_indicador,
+                    subindicador,
+                    id_subindicador,
+                    carteira,
+                    canal_venda,
+                    tipo_venda,
+                    modalidade_pagamento,
+                    data,
+                    competencia,
+                    valor_meta,
+                    valor_realizado,
+                    quantidade,
+                    peso,
+                    pontos,
+                    status_id
+                FROM f_detalhes
+                ORDER BY data DESC";
         
-        return array_map(function (FDetalhes $entity) {
-            $dataIso = DateFormatter::toIsoDate($entity->getData());
-            $competenciaIso = DateFormatter::toIsoDate($entity->getCompetencia());
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        return array_map(function ($row) {
+            $dataIso = DateFormatter::toIsoDate(isset($row['data']) ? $row['data'] : null);
+            $competenciaIso = DateFormatter::toIsoDate(isset($row['competencia']) ? $row['competencia'] : null);
             
             $dto = new DetalhesDTO(
-                $entity->getRegistroId(),
-                $entity->getSegmento(),
-                $entity->getSegmentoId(),
-                $entity->getDiretoriaId(),
-                $entity->getDiretoriaNome(),
-                $entity->getGerenciaRegionalId(),
-                $entity->getGerenciaRegionalNome(),
-                $entity->getAgenciaId(),
-                $entity->getAgenciaNome(),
-                $entity->getGerenteGestaoId(),
-                $entity->getGerenteGestaoNome(),
-                $entity->getGerenteId(),
-                $entity->getGerenteNome(),
-                $entity->getFamiliaId(),
-                $entity->getFamiliaNome(),
-                $entity->getIdIndicador(),
-                $entity->getDsIndicador(),
-                $entity->getSubindicador(),
-                $entity->getIdSubindicador(),
-                $entity->getFamiliaId(),
-                $entity->getIdIndicador(),
-                $entity->getCarteira(),
-                $entity->getCanalVenda(),
-                $entity->getTipoVenda(),
-                $entity->getModalidadePagamento(),
+                isset($row['registro_id']) ? $row['registro_id'] : null,
+                isset($row['segmento']) ? $row['segmento'] : null,
+                isset($row['segmento_id']) ? $row['segmento_id'] : null,
+                isset($row['diretoria_id']) ? $row['diretoria_id'] : null,
+                isset($row['diretoria_nome']) ? $row['diretoria_nome'] : null,
+                isset($row['gerencia_regional_id']) ? $row['gerencia_regional_id'] : null,
+                isset($row['gerencia_regional_nome']) ? $row['gerencia_regional_nome'] : null,
+                isset($row['agencia_id']) ? $row['agencia_id'] : null,
+                isset($row['agencia_nome']) ? $row['agencia_nome'] : null,
+                isset($row['gerente_gestao_id']) ? $row['gerente_gestao_id'] : null,
+                isset($row['gerente_gestao_nome']) ? $row['gerente_gestao_nome'] : null,
+                isset($row['gerente_id']) ? $row['gerente_id'] : null,
+                isset($row['gerente_nome']) ? $row['gerente_nome'] : null,
+                isset($row['familia_id']) ? $row['familia_id'] : null,
+                isset($row['familia_nome']) ? $row['familia_nome'] : null,
+                isset($row['id_indicador']) ? $row['id_indicador'] : null,
+                isset($row['ds_indicador']) ? $row['ds_indicador'] : null,
+                isset($row['subindicador']) ? $row['subindicador'] : null,
+                isset($row['id_subindicador']) ? $row['id_subindicador'] : null,
+                isset($row['subindicador']) ? $row['subindicador'] : null,
+                isset($row['id_subindicador']) ? $row['id_subindicador'] : null,
+                isset($row['familia_id']) ? $row['familia_id'] : null,
+                isset($row['id_indicador']) ? $row['id_indicador'] : null,
+                isset($row['carteira']) ? $row['carteira'] : null,
+                isset($row['canal_venda']) ? $row['canal_venda'] : null,
+                isset($row['tipo_venda']) ? $row['tipo_venda'] : null,
+                isset($row['modalidade_pagamento']) ? $row['modalidade_pagamento'] : null,
                 $dataIso,
                 $competenciaIso,
-                RowMapper::toFloat($entity->getValorMeta()),
-                RowMapper::toFloat($entity->getValorRealizado()),
-                RowMapper::toFloat($entity->getQuantidade()),
-                RowMapper::toFloat($entity->getPeso()),
-                RowMapper::toFloat($entity->getPontos()),
-                $entity->getStatusId()
+                RowMapper::toFloat(isset($row['valor_meta']) ? $row['valor_meta'] : null),
+                RowMapper::toFloat(isset($row['valor_realizado']) ? $row['valor_realizado'] : null),
+                RowMapper::toFloat(isset($row['quantidade']) ? $row['quantidade'] : null),
+                RowMapper::toFloat(isset($row['peso']) ? $row['peso'] : null),
+                RowMapper::toFloat(isset($row['pontos']) ? $row['pontos'] : null),
+                isset($row['status_id']) ? $row['status_id'] : null
             );
             
             return $dto->toArray();
-        }, $entities);
+        }, $results);
     }
 }
-

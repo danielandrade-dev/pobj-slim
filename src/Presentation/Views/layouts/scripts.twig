@@ -1,6 +1,6 @@
   <script>
-    window.API_URL = {{ API_URL|default('null') }};
-    window.API_HTTP_BASE = {{ API_HTTP_BASE|default('null') }};
+    window.API_URL = {{ API_URL|default(null)|json_encode|raw }};
+    window.API_HTTP_BASE = {{ API_HTTP_BASE|default(null)|json_encode|raw }};
   </script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
   <script src="https://unpkg.com/gridjs/dist/gridjs.umd.js"></script>

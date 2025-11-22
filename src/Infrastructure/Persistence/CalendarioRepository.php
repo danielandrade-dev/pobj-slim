@@ -2,18 +2,17 @@
 
 namespace App\Infrastructure\Persistence;
 
-use Doctrine\DBAL\Connection;
-use Doctrine\ORM\EntityManager;
+use PDO;
 use App\Domain\DTO\CalendarioDTO;
 use App\Infrastructure\Helpers\DateFormatter;
 
 class CalendarioRepository
 {
-    private $connection;
+    private $pdo;
 
-    public function __construct(EntityManager $entityManager)
+    public function __construct(PDO $pdo)
     {
-        $this->connection = $entityManager->getConnection();
+        $this->pdo = $pdo;
     }
 
     public function findAllAsArray(): array
@@ -32,7 +31,9 @@ class CalendarioRepository
                 FROM d_calendario
                 ORDER BY data";
         
-        $results = $this->connection->executeQuery($sql)->fetchAll(\PDO::FETCH_ASSOC);
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         return array_map(function ($row) {
             $dataIso = DateFormatter::toIsoDate(isset($row['data']) ? $row['data'] : null);

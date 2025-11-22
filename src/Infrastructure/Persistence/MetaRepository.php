@@ -2,19 +2,19 @@
 
 namespace App\Infrastructure\Persistence;
 
-use Doctrine\DBAL\Connection;
-use Doctrine\ORM\EntityManager;
+// Removed Connection dependency
+use PDO;
 use App\Domain\DTO\MetaDTO;
 use App\Infrastructure\Helpers\DateFormatter;
 use App\Infrastructure\Helpers\RowMapper;
 
 class MetaRepository
 {
-    private $connection;
+    private $pdo;
 
-    public function __construct(EntityManager $entityManager)
+    public function __construct(PDO $pdo)
     {
-        $this->connection = $entityManager->getConnection();
+        $this->pdo = $pdo;
     }
 
     public function sumByPeriodAndFilters(
@@ -38,7 +38,9 @@ class MetaRepository
                 JOIN d_calendario c ON c.data = m.data_meta
                 WHERE c.data BETWEEN :ini AND :fim{$indicadorFilter}{$where}";
 
-        $result = $this->connection->executeQuery($sql, $bind)->fetch(\PDO::FETCH_ASSOC);
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($bind);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return (float) (isset($result['total_meta']) ? $result['total_meta'] : 0);
     }
 
@@ -80,7 +82,9 @@ class MetaRepository
                     AND (p.id_subindicador = m.id_subindicador OR (p.id_subindicador IS NULL AND m.id_subindicador IS NULL))
                 ORDER BY m.data_meta DESC, m.id";
         
-        $results = $this->connection->executeQuery($sql)->fetchAll(\PDO::FETCH_ASSOC);
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         return array_map(function ($row) {
             $dataIso = DateFormatter::toIsoDate(isset($row['data']) ? $row['data'] : null);

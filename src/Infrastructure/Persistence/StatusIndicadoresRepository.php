@@ -2,71 +2,49 @@
 
 namespace App\Infrastructure\Persistence;
 
-use Doctrine\ORM\EntityManager;
-use App\Domain\Entity\DStatusIndicador;
+use PDO;
 use App\Domain\ValueObject\StatusIndicador;
 
 class StatusIndicadoresRepository
 {
-    private $entityManager;
+    private $pdo;
 
-    public function __construct(EntityManager $entityManager)
+    public function __construct(PDO $pdo)
     {
-        $this->entityManager = $entityManager;
-    }
-
-    public function findAll(): array
-    {
-        $entities = $this->entityManager
-            ->getRepository(DStatusIndicador::class)
-            ->createQueryBuilder('s')
-            ->orderBy('s.id', 'ASC')
-            ->getQuery()
-            ->getResult();
-
-        if (empty($entities)) {
-            return [];
-        }
-
-        return $entities;
+        $this->pdo = $pdo;
     }
 
     public function findAllAsArray(): array
     {
-        $entities = $this->findAll();
+        $sql = "SELECT id, status AS label
+                FROM d_status_indicadores
+                ORDER BY id ASC";
         
-        if (empty($entities)) {
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        if (empty($results)) {
             return StatusIndicador::getDefaults();
         }
 
-        $result = [];
-        foreach ($entities as $entity) {
-            $result[] = [
-                'id' => $entity->getId(),
-                'label' => $entity->getStatus(),
-            ];
-        }
-
-        return $result;
+        return $results;
     }
 
     public function findAllForFilter(): array
     {
-        $entities = $this->findAll();
+        $sql = "SELECT id, status AS label
+                FROM d_status_indicadores
+                ORDER BY id ASC";
         
-        if (empty($entities)) {
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        if (empty($results)) {
             return StatusIndicador::getDefaultsForFilter();
         }
 
-        $result = [];
-        foreach ($entities as $entity) {
-            $result[] = [
-                'id' => $entity->getId(),
-                'label' => $entity->getStatus(),
-            ];
-        }
-
-        return $result;
+        return $results;
     }
 }
-

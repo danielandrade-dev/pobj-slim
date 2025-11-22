@@ -37,11 +37,11 @@ class __TwigTemplate_4027f91da9c4608afa5e2f1546bf3a81648cdddd70307eda3e805679703
         echo "  <script>
     window.API_URL = ";
         // line 2
-        echo twig_escape_filter($this->env, (((isset($context["API_URL"]) || array_key_exists("API_URL", $context))) ? (_twig_default_filter(($context["API_URL"] ?? null), "null")) : ("null")), "html", null, true);
+        echo json_encode((((isset($context["API_URL"]) || array_key_exists("API_URL", $context))) ? (_twig_default_filter(($context["API_URL"] ?? null), null)) : (null)));
         echo ";
     window.API_HTTP_BASE = ";
         // line 3
-        echo twig_escape_filter($this->env, (((isset($context["API_HTTP_BASE"]) || array_key_exists("API_HTTP_BASE", $context))) ? (_twig_default_filter(($context["API_HTTP_BASE"] ?? null), "null")) : ("null")), "html", null, true);
+        echo json_encode((((isset($context["API_HTTP_BASE"]) || array_key_exists("API_HTTP_BASE", $context))) ? (_twig_default_filter(($context["API_HTTP_BASE"] ?? null), null)) : (null)));
         echo ";
   </script>
   <script src=\"https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js\"></script>
@@ -88,8 +88,8 @@ class __TwigTemplate_4027f91da9c4608afa5e2f1546bf3a81648cdddd70307eda3e805679703
     public function getSourceContext()
     {
         return new Source("  <script>
-    window.API_URL = {{ API_URL|default('null') }};
-    window.API_HTTP_BASE = {{ API_HTTP_BASE|default('null') }};
+    window.API_URL = {{ API_URL|default(null)|json_encode|raw }};
+    window.API_HTTP_BASE = {{ API_HTTP_BASE|default(null)|json_encode|raw }};
   </script>
   <script src=\"https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js\"></script>
   <script src=\"https://unpkg.com/gridjs/dist/gridjs.umd.js\"></script>

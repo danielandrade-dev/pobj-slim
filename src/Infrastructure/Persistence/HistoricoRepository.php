@@ -2,19 +2,19 @@
 
 namespace App\Infrastructure\Persistence;
 
-use Doctrine\DBAL\Connection;
-use Doctrine\ORM\EntityManager;
+// Removed Connection dependency
+use PDO;
 use App\Domain\DTO\HistoricoDTO;
 use App\Infrastructure\Helpers\DateFormatter;
 use App\Infrastructure\Helpers\RowMapper;
 
 class HistoricoRepository
 {
-    private $connection;
+    private $pdo;
 
-    public function __construct(EntityManager $entityManager)
+    public function __construct(PDO $pdo)
     {
-        $this->connection = $entityManager->getConnection();
+        $this->pdo = $pdo;
     }
 
     public function findAllAsArray(): array
@@ -43,7 +43,9 @@ class HistoricoRepository
                 FROM f_historico_ranking_pobj
                 ORDER BY `database` DESC, nivel, ano";
         
-        $results = $this->connection->executeQuery($sql)->fetchAll(\PDO::FETCH_ASSOC);
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         return array_map(function ($row) {
             $dataIso = DateFormatter::toIsoDate(isset($row['data']) ? $row['data'] : null);

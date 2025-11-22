@@ -2,50 +2,50 @@
 
 namespace App\Infrastructure\Persistence;
 
-use Doctrine\ORM\EntityManager;
+use PDO;
 use App\Domain\DTO\ProdutoDTO;
-use App\Domain\Entity\DProduto;
 use App\Infrastructure\Helpers\RowMapper;
 
 class ProdutoRepository
 {
-    private $entityManager;
+    private $pdo;
 
-    public function __construct(EntityManager $entityManager)
+    public function __construct(PDO $pdo)
     {
-        $this->entityManager = $entityManager;
-    }
-
-    public function findAll(): array
-    {
-        return $this->entityManager
-            ->getRepository(DProduto::class)
-            ->createQueryBuilder('p')
-            ->orderBy('p.familia', 'ASC')
-            ->addOrderBy('p.indicador', 'ASC')
-            ->addOrderBy('p.subindicador', 'ASC')
-            ->getQuery()
-            ->getResult();
+        $this->pdo = $pdo;
     }
 
     public function findAllAsArray(): array
     {
-        $entities = $this->findAll();
+        $sql = "SELECT 
+                    id,
+                    id_familia,
+                    familia,
+                    id_indicador,
+                    indicador,
+                    id_subindicador,
+                    subindicador,
+                    peso
+                FROM d_produtos
+                ORDER BY familia ASC, indicador ASC, subindicador ASC";
         
-        return array_map(function (DProduto $entity) {
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        return array_map(function ($row) {
             $dto = new ProdutoDTO(
-                $entity->getId(),
-                (string)$entity->getIdFamilia(),
-                $entity->getFamilia(),
-                RowMapper::toString($entity->getIdIndicador()),
-                $entity->getIndicador(),
-                RowMapper::toString($entity->getIdSubindicador()),
-                $entity->getSubindicador(),
-                RowMapper::toFloat($entity->getPeso())
+                isset($row['id']) ? $row['id'] : null,
+                RowMapper::toString(isset($row['id_familia']) ? $row['id_familia'] : null),
+                isset($row['familia']) ? $row['familia'] : '',
+                RowMapper::toString(isset($row['id_indicador']) ? $row['id_indicador'] : null),
+                isset($row['indicador']) ? $row['indicador'] : '',
+                RowMapper::toString(isset($row['id_subindicador']) ? $row['id_subindicador'] : null),
+                isset($row['subindicador']) ? $row['subindicador'] : '',
+                RowMapper::toFloat(isset($row['peso']) ? $row['peso'] : null)
             );
             
             return $dto->toArray();
-        }, $entities);
+        }, $results);
     }
 }
-

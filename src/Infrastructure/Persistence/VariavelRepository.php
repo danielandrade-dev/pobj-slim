@@ -2,16 +2,16 @@
 
 namespace App\Infrastructure\Persistence;
 
-use Doctrine\DBAL\Connection;
-use Doctrine\ORM\EntityManager;
+// Removed Connection dependency
+use PDO;
 
 class VariavelRepository
 {
-    private $connection;
+    private $pdo;
 
-    public function __construct(EntityManager $entityManager)
+    public function __construct(PDO $pdo)
     {
-        $this->connection = $entityManager->getConnection();
+        $this->pdo = $pdo;
     }
 
     public function findAllAsArray(): array
@@ -32,10 +32,12 @@ class VariavelRepository
                     COALESCE(e.agencia, '') AS agencia_nome,
                     COALESCE(CAST(e.id_agencia AS CHAR), '') AS agencia_id
                 FROM f_variavel v
-                LEFT JOIN d_estrutura e ON e.funcional COLLATE utf8mb4_unicode_ci = CAST(v.funcional AS CHAR) COLLATE utf8mb4_unicode_ci
+                LEFT JOIN d_estrutura e ON e.funcional = CAST(v.funcional AS CHAR)
                 ORDER BY v.dt_atualizacao DESC";
         
-        return $this->connection->executeQuery($sql)->fetchAll(\PDO::FETCH_ASSOC);
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
 

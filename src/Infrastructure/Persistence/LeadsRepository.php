@@ -2,19 +2,19 @@
 
 namespace App\Infrastructure\Persistence;
 
-use Doctrine\DBAL\Connection;
-use Doctrine\ORM\EntityManager;
+// Removed Connection dependency
+use PDO;
 use App\Domain\DTO\LeadsDTO;
 use App\Infrastructure\Helpers\DateFormatter;
 use App\Infrastructure\Helpers\RowMapper;
 
 class LeadsRepository
 {
-    private $connection;
+    private $pdo;
 
-    public function __construct(EntityManager $entityManager)
+    public function __construct(PDO $pdo)
     {
-        $this->connection = $entityManager->getConnection();
+        $this->pdo = $pdo;
     }
 
     public function findAllAsArray(): array
@@ -48,7 +48,9 @@ class LeadsRepository
                 FROM f_leads_propensos
                 ORDER BY `database` DESC, nome_empresa";
         
-        $results = $this->connection->executeQuery($sql)->fetchAll(\PDO::FETCH_ASSOC);
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         return array_map(function ($row) {
             $dataIso = DateFormatter::toIsoDate(isset($row['data']) ? $row['data'] : null);

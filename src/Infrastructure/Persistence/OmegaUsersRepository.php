@@ -2,54 +2,63 @@
 
 namespace App\Infrastructure\Persistence;
 
-use Doctrine\ORM\EntityManager;
+use PDO;
 use App\Domain\DTO\OmegaUserDTO;
-use App\Domain\Entity\OmegaUsuario;
 
 class OmegaUsersRepository
 {
-    private $entityManager;
+    private $pdo;
 
-    public function __construct(EntityManager $entityManager)
+    public function __construct(PDO $pdo)
     {
-        $this->entityManager = $entityManager;
-    }
-
-    public function findAll(): array
-    {
-        return $this->entityManager
-            ->getRepository(OmegaUsuario::class)
-            ->createQueryBuilder('u')
-            ->orderBy('u.nome', 'ASC')
-            ->getQuery()
-            ->getResult();
+        $this->pdo = $pdo;
     }
 
     public function findAllAsArray(): array
     {
-        $entities = $this->findAll();
+        $sql = "SELECT 
+                    id,
+                    nome,
+                    funcional,
+                    matricula,
+                    cargo,
+                    usuario,
+                    analista,
+                    supervisor,
+                    admin,
+                    encarteiramento,
+                    meta,
+                    orcamento,
+                    pobj,
+                    matriz,
+                    outros
+                FROM omega_usuarios
+                ORDER BY nome ASC";
         
-        return array_map(function (OmegaUsuario $entity) {
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        return array_map(function ($row) {
             $dto = new OmegaUserDTO(
-                $entity->getId(),
-                $entity->getNome(),
-                $entity->getFuncional(),
-                $entity->getMatricula(),
-                $entity->getCargo(),
-                $entity->isUsuario(),
-                $entity->isAnalista(),
-                $entity->isSupervisor(),
-                $entity->isAdmin(),
-                $entity->isEncarteiramento(),
-                $entity->isMeta(),
-                $entity->isOrcamento(),
-                $entity->isPobj(),
-                $entity->isMatriz(),
-                $entity->isOutros()
+                isset($row['id']) ? $row['id'] : null,
+                isset($row['nome']) ? $row['nome'] : null,
+                isset($row['funcional']) ? $row['funcional'] : null,
+                isset($row['matricula']) ? $row['matricula'] : null,
+                isset($row['cargo']) ? $row['cargo'] : null,
+                isset($row['usuario']) ? (bool)$row['usuario'] : false,
+                isset($row['analista']) ? (bool)$row['analista'] : false,
+                isset($row['supervisor']) ? (bool)$row['supervisor'] : false,
+                isset($row['admin']) ? (bool)$row['admin'] : false,
+                isset($row['encarteiramento']) ? (bool)$row['encarteiramento'] : false,
+                isset($row['meta']) ? (bool)$row['meta'] : false,
+                isset($row['orcamento']) ? (bool)$row['orcamento'] : false,
+                isset($row['pobj']) ? (bool)$row['pobj'] : false,
+                isset($row['matriz']) ? (bool)$row['matriz'] : false,
+                isset($row['outros']) ? (bool)$row['outros'] : false
             );
             
             return $dto->toArray();
-        }, $entities);
+        }, $results);
     }
 }
-

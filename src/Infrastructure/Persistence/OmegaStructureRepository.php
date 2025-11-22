@@ -2,47 +2,43 @@
 
 namespace App\Infrastructure\Persistence;
 
-use Doctrine\ORM\EntityManager;
+use PDO;
 use App\Domain\DTO\OmegaStructureDTO;
-use App\Domain\Entity\OmegaDepartamento;
 
 class OmegaStructureRepository
 {
-    private $entityManager;
+    private $pdo;
 
-    public function __construct(EntityManager $entityManager)
+    public function __construct(PDO $pdo)
     {
-        $this->entityManager = $entityManager;
-    }
-
-    public function findAll(): array
-    {
-        return $this->entityManager
-            ->getRepository(OmegaDepartamento::class)
-            ->createQueryBuilder('d')
-            ->orderBy('d.ordemDepartamento', 'ASC')
-            ->addOrderBy('d.ordemTipo', 'ASC')
-            ->addOrderBy('d.departamento', 'ASC')
-            ->addOrderBy('d.tipo', 'ASC')
-            ->getQuery()
-            ->getResult();
+        $this->pdo = $pdo;
     }
 
     public function findAllAsArray(): array
     {
-        $entities = $this->findAll();
+        $sql = "SELECT 
+                    departamento,
+                    tipo,
+                    departamento_id,
+                    ordem_departamento,
+                    ordem_tipo
+                FROM omega_departamentos
+                ORDER BY ordem_departamento ASC, ordem_tipo ASC, departamento ASC, tipo ASC";
         
-        return array_map(function (OmegaDepartamento $entity) {
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        return array_map(function ($row) {
             $dto = new OmegaStructureDTO(
-                $entity->getDepartamento(),
-                $entity->getTipo(),
-                $entity->getDepartamentoId(),
-                $entity->getOrdemDepartamento(),
-                $entity->getOrdemTipo()
+                isset($row['departamento']) ? $row['departamento'] : null,
+                isset($row['tipo']) ? $row['tipo'] : null,
+                isset($row['departamento_id']) ? $row['departamento_id'] : null,
+                isset($row['ordem_departamento']) ? $row['ordem_departamento'] : null,
+                isset($row['ordem_tipo']) ? $row['ordem_tipo'] : null
             );
             
             return $dto->toArray();
-        }, $entities);
+        }, $results);
     }
 }
-

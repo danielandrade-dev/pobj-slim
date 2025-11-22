@@ -2,20 +2,18 @@
 
 namespace App\Infrastructure\Persistence;
 
-use Doctrine\DBAL\Connection;
-use Doctrine\ORM\EntityManager;
+// Removed Connection dependency
+use PDO;
 use App\Domain\DTO\OmegaMesuDTO;
 use App\Infrastructure\Helpers\RowMapper;
 
 class OmegaMesuRepository
 {
-    private $entityManager;
-    private $connection;
+    private $pdo;
 
-    public function __construct(EntityManager $entityManager)
+    public function __construct(PDO $pdo)
     {
-        $this->entityManager = $entityManager;
-        $this->connection = $entityManager->getConnection();
+        $this->pdo = $pdo;
     }
 
     public function findAll(): array
@@ -37,7 +35,9 @@ class OmegaMesuRepository
                 WHERE segmento IS NOT NULL
                 ORDER BY segmento, diretoria, regional, agencia";
 
-        $results = $this->connection->executeQuery($sql)->fetchAll(\PDO::FETCH_ASSOC);
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         return array_map(function ($row) {
             $dto = new OmegaMesuDTO(

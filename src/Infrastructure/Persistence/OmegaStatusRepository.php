@@ -2,46 +2,45 @@
 
 namespace App\Infrastructure\Persistence;
 
-use Doctrine\ORM\EntityManager;
+use PDO;
 use App\Domain\DTO\OmegaStatusDTO;
-use App\Domain\Entity\OmegaStatus;
 
 class OmegaStatusRepository
 {
-    private $entityManager;
+    private $pdo;
 
-    public function __construct(EntityManager $entityManager)
+    public function __construct(PDO $pdo)
     {
-        $this->entityManager = $entityManager;
-    }
-
-    public function findAll(): array
-    {
-        return $this->entityManager
-            ->getRepository(OmegaStatus::class)
-            ->createQueryBuilder('s')
-            ->orderBy('s.ordem', 'ASC')
-            ->addOrderBy('s.label', 'ASC')
-            ->getQuery()
-            ->getResult();
+        $this->pdo = $pdo;
     }
 
     public function findAllAsArray(): array
     {
-        $entities = $this->findAll();
+        $sql = "SELECT 
+                    id,
+                    label,
+                    tone,
+                    descricao,
+                    ordem,
+                    departamento_id
+                FROM omega_status
+                ORDER BY ordem ASC, label ASC";
         
-        return array_map(function (OmegaStatus $entity) {
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        return array_map(function ($row) {
             $dto = new OmegaStatusDTO(
-                $entity->getId(),
-                $entity->getLabel(),
-                $entity->getTone(),
-                $entity->getDescricao(),
-                $entity->getOrdem(),
-                $entity->getDepartamentoId()
+                isset($row['id']) ? $row['id'] : null,
+                isset($row['label']) ? $row['label'] : null,
+                isset($row['tone']) ? $row['tone'] : null,
+                isset($row['descricao']) ? $row['descricao'] : null,
+                isset($row['ordem']) ? $row['ordem'] : null,
+                isset($row['departamento_id']) ? $row['departamento_id'] : null
             );
             
             return $dto->toArray();
-        }, $entities);
+        }, $results);
     }
 }
-

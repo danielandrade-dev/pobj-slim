@@ -2,19 +2,19 @@
 
 namespace App\Infrastructure\Persistence;
 
-use Doctrine\DBAL\Connection;
-use Doctrine\ORM\EntityManager;
+// Removed Connection dependency
+use PDO;
 use App\Domain\DTO\RealizadoDTO;
 use App\Infrastructure\Helpers\DateFormatter;
 use App\Infrastructure\Helpers\RowMapper;
 
 class RealizadoRepository
 {
-    private $connection;
+    private $pdo;
 
-    public function __construct(EntityManager $entityManager)
+    public function __construct(PDO $pdo)
     {
-        $this->connection = $entityManager->getConnection();
+        $this->pdo = $pdo;
     }
 
     public function sumByPeriodAndFilters(
@@ -38,7 +38,9 @@ class RealizadoRepository
                 JOIN d_calendario c ON c.data = r.data_realizado
                 WHERE c.data BETWEEN :ini AND :fim{$indicadorFilter}{$where}";
 
-        $result = $this->connection->executeQuery($sql, $bind)->fetch(\PDO::FETCH_ASSOC);
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute($bind);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return (float) (isset($result['total_realizado']) ? $result['total_realizado'] : 0);
     }
 
@@ -81,7 +83,9 @@ class RealizadoRepository
                     AND (p.id_subindicador = r.subindicador_id OR (p.id_subindicador IS NULL AND r.subindicador_id IS NULL))
                 ORDER BY r.data_realizado DESC, r.id";
         
-        $results = $this->connection->executeQuery($sql)->fetchAll(\PDO::FETCH_ASSOC);
+        $stmt = $this->pdo->prepare($sql);
+        $stmt->execute();
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         return array_map(function ($row) {
             $dataIso = DateFormatter::toIsoDate(isset($row['data']) ? $row['data'] : null);
