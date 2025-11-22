@@ -11484,7 +11484,10 @@ function buildDashboardDatasetFromRows(rows = [], period = state.period || {}) {
       const pontosMeta = Number(item.peso) || 0;
       const pontosBrutos = Number.isFinite(agg.pontos) ? agg.pontos : 0;
       const pontosCumpridos = Math.max(0, Math.min(pontosMeta, pontosBrutos));
-      const ultimaISO = agg.ultimaAtualizacao || period.end || period.start || todayISO();
+      // Se não houver data real de atualização, usa "Indisponível"
+      const ultimaAtualizacaoTexto = agg.ultimaAtualizacao 
+        ? formatBRDate(agg.ultimaAtualizacao) 
+        : "Indisponível";
       const cardBase = {
         id: agg.id,
         nome: agg.nome,
@@ -11505,7 +11508,7 @@ function buildDashboardDatasetFromRows(rows = [], period = state.period || {}) {
         pontos: pontosCumpridos,
         pontosMeta,
         pontosBrutos,
-        ultimaAtualizacao: formatBRDate(ultimaISO)
+        ultimaAtualizacao: ultimaAtualizacaoTexto
       };
       aplicarIndicadorAliases(cardBase, agg.id, agg.nome);
       cardBase.prodOrSub = agg.produtoNome || agg.nome || agg.id;
@@ -11840,7 +11843,7 @@ function renderFamilias(sections, summary){
             </div>
           </div>
 
-          <div class="prod-card__foot">Atualizado em ${f.ultimaAtualizacao}</div>
+          <div class="prod-card__foot">${f.ultimaAtualizacao === "Indisponível" ? "Indisponível" : `Atualizado em ${f.ultimaAtualizacao}`}</div>
           ${buildCardTooltipHTML(f)}
         </article>
       `);
