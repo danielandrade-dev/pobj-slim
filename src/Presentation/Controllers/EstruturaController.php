@@ -6,7 +6,10 @@ use App\Application\UseCase\EstruturaUseCase;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
-class EstruturaController
+/**
+ * Controller para operações relacionadas à estrutura organizacional
+ */
+class EstruturaController extends ControllerBase
 {
     private $estruturaUseCase;
 
@@ -17,11 +20,9 @@ class EstruturaController
 
     public function handle(Request $request, Response $response): Response
     {
-        $result = $this->estruturaUseCase->getAllEstrutura();
+        $result = $this->estruturaUseCase->handle();
         
-        $response = $response->withHeader('Content-Type', 'application/json; charset=utf-8');
-        $response->getBody()->write(json_encode($result, JSON_UNESCAPED_UNICODE));
-        return $response;
+        return $this->success($response, $result);
     }
 }
 

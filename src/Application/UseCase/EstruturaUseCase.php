@@ -13,7 +13,7 @@ class EstruturaUseCase
         $this->repository = $repository;
     }
 
-    public function getAllEstrutura(): array
+    public function handle(): array
     {
         return [
             'segmentos'       => $this->repository->findAllSegmentos(),
