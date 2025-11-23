@@ -2,7 +2,7 @@
 
 namespace App\Application\UseCase;
 
-use App\Infrastructure\Persistence\Interface\UseCaseInterface;
+use App\Infrastructure\Persistence\Contracts\UseCaseInterface;
 use App\Infrastructure\Persistence\BaseRepository;
 use App\Domain\DTO\FilterDTO;
 

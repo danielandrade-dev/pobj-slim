@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Infrastructure\Persistence\Interface;
+namespace App\Infrastructure\Persistence\Contracts;
 
 use App\Domain\DTO\FilterDTO;
 

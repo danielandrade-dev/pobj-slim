@@ -4,7 +4,7 @@ namespace App\Infrastructure\Persistence;
 
 use PDO;
 use App\Domain\DTO\FilterDTO;
-use App\Infrastructure\Persistence\Interface\BaseRepositoryInterface;
+use App\Infrastructure\Persistence\Contracts\BaseRepositoryInterface;
 
 abstract class BaseRepository implements BaseRepositoryInterface
 {
