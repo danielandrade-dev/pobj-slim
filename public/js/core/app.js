@@ -2685,8 +2685,6 @@ function processBaseDataSources({
   processVariavelData(variavelRaw);
   // Processa dados de pontos usando função de pontos.js
   processPontosData(pontosRaw);
-  // Cria mapa de pontos por indicador para acesso rápido
-  buildPontosByIndicadorMap();
   // Processa dados de campanhas usando função de campanhas.js
   processCampanhasData(campanhasRaw);
   // Processa dados de calendário usando função de calendario.js
@@ -3308,11 +3306,21 @@ let PRODUCT_INDEX = new Map();
 let PONTOS_BY_INDICADOR = new Map();
 let INDICADOR_CODE_TO_CARD_ID = new Map(); // Mapa código numérico -> ID do card
 
-function buildPontosByIndicadorMap() {
+function buildPontosByIndicadorMap(period = state.period || {}) {
   PONTOS_BY_INDICADOR.clear();
   const pontosArray = typeof FACT_PONTOS !== "undefined" ? FACT_PONTOS : [];
+  const startISO = period.start || "";
+  const endISO = period.end || "";
+  
   pontosArray.forEach(ponto => {
     if (ponto && ponto.idIndicador) {
+      // Filtra por data se o período estiver definido
+      if (startISO || endISO) {
+        const pontoData = ponto.dataRealizado || "";
+        if (startISO && pontoData && pontoData < startISO) return;
+        if (endISO && pontoData && pontoData > endISO) return;
+      }
+      
       // Busca o ID do card usando o código numérico do indicador
       const cardId = INDICADOR_CODE_TO_CARD_ID.get(String(ponto.idIndicador)) || String(ponto.idIndicador);
       // Se já existe, mantém o mais recente (compara por data)
@@ -5077,6 +5085,9 @@ async function getData(){
 
     const campanhaFacts = buildCampanhaFacts();
     fCampanhas = campanhaFacts;
+
+    // Cria mapa de pontos por indicador para acesso rápido (com filtro de data)
+    buildPontosByIndicadorMap(period);
 
     const baseDashboard = buildDashboardDatasetFromRows(factRows, period);
     const ranking = factRows.map(row => ({ ...row }));
@@ -8902,6 +8913,8 @@ function bindEvents() {
       state.accumulatedView = nextView;
       syncPeriodFromAccumulatedView(nextView);
       await withSpinner(async () => {
+        // Reconstroi mapa de pontos com filtro de data atualizado
+        buildPontosByIndicadorMap(state.period);
         autoSnapViewToFilters();
         applyFiltersAndRender();
         renderAppliedFilters();
@@ -15145,6 +15158,8 @@ function renderTreeTable() {
 function applyFiltersAndRender(){
   ensureSegmentScenarioFromFilters();
   updatePeriodLabels();
+  // Reconstroi mapa de pontos com filtro de data atualizado
+  buildPontosByIndicadorMap(state.period);
   updateDashboardCards();
   if(state.tableRendered) renderTreeTable();
   if (state.activeView === "campanhas") renderCampanhasView();
@@ -15267,6 +15282,9 @@ async function refresh(){
       document.getElementById("btn-alterar-data")?.addEventListener("click", (e)=> openDatePopover(e.currentTarget));
       updatePeriodLabels();
     }
+
+    // Reconstroi mapa de pontos com filtro de data atualizado
+    buildPontosByIndicadorMap(state.period);
 
     updateDashboardCards();
     reorderFiltersUI();
