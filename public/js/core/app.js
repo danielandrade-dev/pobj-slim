@@ -2681,13 +2681,409 @@ function processBaseDataSources({
   return state._raw;
 }
 
-// Carrega os dados da pasta "Bases" ou via API (sem cache)
+// Carrega apenas dados iniciais necessários para filtros (estrutura, produtos, status, calendário, MESU)
+async function loadInitialData(){
+  showLoader("Carregando dados iniciais…");
+  try {
+    if (DATA_SOURCE === "sql") {
+      const [
+        estruturaData,
+        status,
+        produtos,
+        calendario,
+        mesu
+      ] = await Promise.all([
+        loadEstruturaData(),
+        loadStatusData(),
+        loadProdutosData(),
+        loadCalendarioData(),
+        loadMesuData()
+      ]);
+
+      return processInitialData({
+        mesuRaw: mesu || [],
+        statusRaw: status || [],
+        produtosDimRaw: produtos || [],
+        calendarioRaw: calendario || [],
+        dimSegmentosRaw: estruturaData.segmentos || [],
+        dimDiretoriasRaw: estruturaData.diretorias || [],
+        dimRegionaisRaw: estruturaData.regionais || [],
+        dimAgenciasRaw: estruturaData.agencias || [],
+        dimGerentesGestaoRaw: estruturaData.gerentesGestao || [],
+        dimGerentesRaw: estruturaData.gerentes || [],
+      });
+    }
+
+    throw new Error('CSV não suportado. Use DATA_SOURCE="sql" para carregar dados via API.');
+  } finally {
+    hideLoader();
+  }
+}
+
+// Carrega dados que dependem de período/filtros (realizados, metas, variável, campanhas, detalhes, histórico, leads, pontos)
+// Função auxiliar para converter filtros do frontend para o formato do backend
+function buildApiFilterParams() {
+  const filters = getFilterValues();
+  const period = state.period || getDefaultPeriodRange();
+  const params = {};
+  
+  // Filtros de hierarquia
+  if (filters.segmento && filters.segmento !== "" && filters.segmento !== "Todos" && filters.segmento !== "Todas") {
+    params.segmento = filters.segmento;
+  }
+  if (filters.diretoria && filters.diretoria !== "" && filters.diretoria !== "Todos" && filters.diretoria !== "Todas") {
+    params.diretoria = filters.diretoria;
+  }
+  if (filters.gerencia && filters.gerencia !== "" && filters.gerencia !== "Todos" && filters.gerencia !== "Todas") {
+    params.gerencia = filters.gerencia;
+  }
+  if (filters.agencia && filters.agencia !== "" && filters.agencia !== "Todos" && filters.agencia !== "Todas") {
+    params.agencia = filters.agencia;
+  }
+  if (filters.ggestao && filters.ggestao !== "" && filters.ggestao !== "Todos" && filters.ggestao !== "Todas") {
+    params.gerenteGestao = filters.ggestao;
+  }
+  if (filters.gerente && filters.gerente !== "" && filters.gerente !== "Todos" && filters.gerente !== "Todas") {
+    params.gerente = filters.gerente;
+  }
+  
+  // Filtros de produto
+  if (filters.secaoId && filters.secaoId !== "" && filters.secaoId !== "Todos" && filters.secaoId !== "Todas") {
+    params.secao = filters.secaoId;
+  }
+  if (filters.familiaId && filters.familiaId !== "" && filters.familiaId !== "Todos" && filters.familiaId !== "Todas") {
+    params.familia = filters.familiaId;
+  }
+  if (filters.produtoId && filters.produtoId !== "" && filters.produtoId !== "Todos" && filters.produtoId !== "Todas") {
+    params.produto = filters.produtoId;
+  }
+  
+  // Filtro de status
+  if (filters.status && filters.status !== "" && filters.status !== "todos") {
+    params.status = filters.status;
+  }
+  
+  // Período
+  if (period.start) {
+    params.dataInicio = period.start;
+  }
+  if (period.end) {
+    params.dataFim = period.end;
+  }
+  
+  return params;
+}
+
+async function loadPeriodData(){
+  showLoader("Carregando dados…");
+  try {
+    if (DATA_SOURCE === "sql") {
+      // Limpa o cache de meta do card antes de carregar novos dados
+      GLOBAL_INDICATOR_META.clear();
+      
+      // Obtém os filtros para passar para as APIs
+      const filterParams = buildApiFilterParams();
+      
+      const [
+        realizados,
+        metas,
+        variavel,
+        campanhas,
+        detalhes,
+        historico,
+        leads,
+        pontos
+      ] = await Promise.all([
+        loadRealizadosData(filterParams),
+        loadMetasData(filterParams),
+        loadVariavelData(filterParams),
+        loadCampanhasData(filterParams),
+        loadDetalhesData(filterParams),
+        loadHistoricoData(filterParams),
+        loadLeadsData(filterParams),
+        loadPontosData(filterParams)
+      ]);
+
+      return processPeriodData({
+        realizadosRaw: realizados || [],
+        metasRaw: metas || [],
+        variavelRaw: variavel || [],
+        campanhasRaw: campanhas || [],
+        detalhesRaw: detalhes || [],
+        historicoRaw: historico || [],
+        leadsRaw: leads || [],
+        pontosRaw: pontos || [],
+      });
+    }
+
+    throw new Error('CSV não suportado. Use DATA_SOURCE="sql" para carregar dados via API.');
+  } finally {
+    hideLoader();
+  }
+}
+
+// Processa apenas dados iniciais (estrutura, produtos, status, calendário, MESU)
+function processInitialData({
+  mesuRaw = [],
+  statusRaw = [],
+  produtosDimRaw = [],
+  calendarioRaw = [],
+  dimSegmentosRaw = [],
+  dimDiretoriasRaw = [],
+  dimRegionaisRaw = [],
+  dimAgenciasRaw = [],
+  dimGerentesGestaoRaw = [],
+  dimGerentesRaw = [],
+} = {}) {
+  // Processa dados de estrutura usando função de estrutura.js
+  const estruturaProcessed = processEstruturaData({
+    dimSegmentosRaw,
+    dimDiretoriasRaw,
+    dimRegionaisRaw,
+    dimAgenciasRaw,
+    dimGerentesGestaoRaw,
+    dimGerentesRaw,
+  });
+  const segmentosDim = estruturaProcessed.dimSegmentos;
+  const diretoriasDim = estruturaProcessed.dimDiretorias;
+  const regionaisDim = estruturaProcessed.dimRegionais;
+  const agenciasDim = estruturaProcessed.dimAgencias;
+  const gerentesGestaoDim = estruturaProcessed.dimGerentesGestao;
+  const gerentesDim = estruturaProcessed.dimGerentes;
+
+  // Processa dados de status usando função de status.js
+  processStatusData(statusRaw);
+
+  // Processa dados de produtos usando função de produtos.js
+  const produtosProcessed = processProdutosData(produtosDimRaw);
+  // Processa dados de MESU usando função de mesu.js
+  const mesuRows = processMesuData(mesuRaw);
+  montarHierarquiaMesu(mesuRows);
+
+  // Processa dados de calendário usando função de calendario.js
+  processCalendarioData(calendarioRaw);
+
+  const calendarioArray = typeof DIM_CALENDARIO !== "undefined" ? DIM_CALENDARIO : [];
+  const availableDatesSource = calendarioArray.length
+    ? calendarioArray.map(row => row.data)
+    : [];
+  const availableDates = availableDatesSource.filter(Boolean).sort();
+  AVAILABLE_DATE_MIN = availableDates[0] || "";
+  AVAILABLE_DATE_MAX = availableDates[availableDates.length - 1] || "";
+  if (typeof window !== "undefined") {
+    window.calendarCapISO = AVAILABLE_DATE_MAX || "";
+  }
+  state.period = getDefaultPeriodRange();
+  updatePeriodLabels();
+
+  // Garante que os combos sejam atualizados após processar os dados
+  if (typeof refreshHierarchyCombos === "function") {
+    refreshHierarchyCombos();
+  }
+
+  // Inicializa state._raw com dados iniciais
+  state._raw = {
+    mesu: mesuRows,
+    dimSegmentos: segmentosDim,
+    dimDiretorias: diretoriasDim,
+    dimRegionais: regionaisDim,
+    dimAgencias: agenciasDim,
+    dimGerentesGestao: gerentesGestaoDim,
+    dimGerentes: gerentesDim,
+    dimProdutos: typeof DIM_PRODUTOS !== "undefined" ? DIM_PRODUTOS : [],
+    dimProdutosPorSegmento: produtosProcessed.dimProdutosPorSegmento || {},
+    status: typeof STATUS_INDICADORES_DATA !== "undefined" ? STATUS_INDICADORES_DATA : [],
+    calendario: typeof DIM_CALENDARIO !== "undefined" ? DIM_CALENDARIO : [],
+    dados: [],
+    metas: [],
+    variavel: [],
+    campanhas: [],
+    detalhes: [],
+    historico: [],
+  };
+
+  return state._raw;
+}
+
+// Limpa todos os dados de período/filtros
+function clearPeriodData() {
+  // Limpa arrays de dados
+  if (typeof FACT_REALIZADOS !== "undefined") {
+    FACT_REALIZADOS.length = 0;
+    if (typeof window !== "undefined") window.FACT_REALIZADOS = FACT_REALIZADOS;
+  }
+  if (typeof FACT_METAS !== "undefined") {
+    FACT_METAS.length = 0;
+    if (typeof window !== "undefined") window.FACT_METAS = FACT_METAS;
+  }
+  if (typeof FACT_VARIAVEL !== "undefined") {
+    FACT_VARIAVEL.length = 0;
+    if (typeof window !== "undefined") window.FACT_VARIAVEL = FACT_VARIAVEL;
+  }
+  if (typeof FACT_CAMPANHAS !== "undefined") {
+    FACT_CAMPANHAS.length = 0;
+    if (typeof window !== "undefined") window.FACT_CAMPANHAS = FACT_CAMPANHAS;
+  }
+  if (typeof FACT_DETALHES !== "undefined") {
+    FACT_DETALHES.length = 0;
+    if (typeof window !== "undefined") window.FACT_DETALHES = FACT_DETALHES;
+  }
+  if (typeof FACT_HISTORICO_RANKING_POBJ !== "undefined") {
+    FACT_HISTORICO_RANKING_POBJ.length = 0;
+    if (typeof window !== "undefined") window.FACT_HISTORICO_RANKING_POBJ = FACT_HISTORICO_RANKING_POBJ;
+  }
+  if (typeof FACT_PONTOS !== "undefined") {
+    FACT_PONTOS.length = 0;
+    if (typeof window !== "undefined") window.FACT_PONTOS = FACT_PONTOS;
+  }
+  if (typeof OPPORTUNITY_LEADS_RAW !== "undefined") {
+    OPPORTUNITY_LEADS_RAW.length = 0;
+    if (typeof window !== "undefined" && typeof window.OPPORTUNITY_LEADS_RAW !== "undefined") {
+      window.OPPORTUNITY_LEADS_RAW = OPPORTUNITY_LEADS_RAW;
+    }
+  }
+  
+  // Limpa fDados e outras variáveis globais
+  if (typeof fDados !== "undefined") {
+    fDados.length = 0;
+  }
+  if (typeof fCampanhas !== "undefined") {
+    fCampanhas.length = 0;
+  }
+  if (typeof fVariavel !== "undefined") {
+    fVariavel.length = 0;
+  }
+  
+  // Limpa índices e mapas
+  if (typeof DETAIL_BY_REGISTRO !== "undefined" && DETAIL_BY_REGISTRO instanceof Map) {
+    DETAIL_BY_REGISTRO.clear();
+    if (typeof window !== "undefined") window.DETAIL_BY_REGISTRO = DETAIL_BY_REGISTRO;
+  }
+  if (typeof DETAIL_CONTRACT_IDS !== "undefined" && DETAIL_CONTRACT_IDS instanceof Set) {
+    DETAIL_CONTRACT_IDS.clear();
+    if (typeof window !== "undefined") window.DETAIL_CONTRACT_IDS = DETAIL_CONTRACT_IDS;
+  }
+  
+  // Limpa state._raw
+  if (state._raw) {
+    state._raw.dados = [];
+    state._raw.metas = [];
+    state._raw.variavel = [];
+    state._raw.campanhas = [];
+    state._raw.detalhes = [];
+    state._raw.historico = [];
+  }
+  
+  // Limpa state._dataset
+  if (state._dataset) {
+    state._dataset = null;
+  }
+  
+  // Limpa state.facts
+  if (state.facts) {
+    state.facts = null;
+  }
+  
+  // Limpa state._rankingRaw
+  if (state._rankingRaw) {
+    state._rankingRaw = [];
+  }
+  
+  // Limpa state.dashboard
+  if (state.dashboard) {
+    state.dashboard = null;
+  }
+  
+  // Limpa cache de meta do card
+  if (typeof GLOBAL_INDICATOR_META !== "undefined" && GLOBAL_INDICATOR_META instanceof Map) {
+    GLOBAL_INDICATOR_META.clear();
+  }
+}
+
+// Processa dados que dependem de período/filtros
+function processPeriodData({
+  realizadosRaw = [],
+  metasRaw = [],
+  variavelRaw = [],
+  campanhasRaw = [],
+  detalhesRaw = [],
+  historicoRaw = [],
+  leadsRaw = [],
+  pontosRaw = [],
+} = {}) {
+  // Processa dados de realizados usando função de realizados.js
+  processRealizadosData(realizadosRaw);
+  // Processa dados de metas usando função de metas.js
+  processMetasData(metasRaw);
+  // Processa dados de variável usando função de variavel.js
+  processVariavelData(variavelRaw);
+  // Processa dados de pontos usando função de pontos.js
+  processPontosData(pontosRaw);
+  // Processa dados de campanhas usando função de campanhas.js
+  processCampanhasData(campanhasRaw);
+  updateCampaignSprintsUnits();
+
+  // Processa dados de leads usando função de api/leads.js
+  processLeadsData(leadsRaw);
+
+  // Processa dados de histórico usando função de historico.js
+  processHistoricoData(historicoRaw);
+  // Processa dados de detalhes usando função de detalhes.js
+  processDetalhesData(detalhesRaw);
+  
+  if (typeof FACT_REALIZADOS !== "undefined" && FACT_REALIZADOS.length) {
+    applyHierarchyFallback(FACT_REALIZADOS);
+  }
+  if (typeof FACT_METAS !== "undefined" && FACT_METAS.length) {
+    applyHierarchyFallback(FACT_METAS);
+  }
+  if (typeof FACT_VARIAVEL !== "undefined" && FACT_VARIAVEL.length) {
+    applyHierarchyFallback(FACT_VARIAVEL);
+  }
+
+  // Atualiza available dates com dados de período
+  const calendarioArray = typeof DIM_CALENDARIO !== "undefined" ? DIM_CALENDARIO : [];
+  const availableDatesSource = (calendarioArray.length
+    ? calendarioArray.map(row => row.data)
+    : [
+        ...(typeof FACT_REALIZADOS !== "undefined" ? FACT_REALIZADOS : []).flatMap(row => [row.data, row.competencia]),
+        ...(typeof FACT_METAS !== "undefined" ? FACT_METAS : []).flatMap(row => [row.data, row.competencia]),
+        ...(typeof FACT_VARIAVEL !== "undefined" ? FACT_VARIAVEL : []).flatMap(row => [row.data, row.competencia]),
+      ]
+  );
+  const availableDates = availableDatesSource.filter(Boolean).sort();
+  AVAILABLE_DATE_MIN = availableDates[0] || "";
+  AVAILABLE_DATE_MAX = availableDates[availableDates.length - 1] || "";
+  if (typeof window !== "undefined") {
+    window.calendarCapISO = AVAILABLE_DATE_MAX || "";
+  }
+
+  // Atualiza state._raw com dados de período
+  if (!state._raw) state._raw = {};
+  state._raw.dados = typeof FACT_REALIZADOS !== "undefined" ? FACT_REALIZADOS : [];
+  state._raw.metas = typeof FACT_METAS !== "undefined" ? FACT_METAS : [];
+  state._raw.variavel = typeof FACT_VARIAVEL !== "undefined" ? FACT_VARIAVEL : [];
+  state._raw.campanhas = typeof FACT_CAMPANHAS !== "undefined" ? FACT_CAMPANHAS : [];
+  state._raw.detalhes = typeof FACT_DETALHES !== "undefined" ? FACT_DETALHES : [];
+  state._raw.historico = typeof FACT_HISTORICO_RANKING_POBJ !== "undefined" ? FACT_HISTORICO_RANKING_POBJ : [];
+
+  if (typeof DETAIL_CONTRACT_IDS !== "undefined" && DETAIL_CONTRACT_IDS.size) {
+    state.contractIndex = [...DETAIL_CONTRACT_IDS].sort();
+  }
+
+  return state._raw;
+}
+
+// Função de compatibilidade - carrega todos os dados (mantida para casos especiais)
 async function loadBaseData(){
   showLoader("Carregando dados…");
   try {
     if (DATA_SOURCE === "sql") {
       // Limpa o cache de meta do card antes de carregar novos dados
       GLOBAL_INDICATOR_META.clear();
+      
+      // Obtém os filtros para passar para as APIs
+      const filterParams = buildApiFilterParams();
       
       const [
         estruturaData,
@@ -2708,15 +3104,15 @@ async function loadBaseData(){
         loadStatusData(),
         loadProdutosData(),
         loadCalendarioData(),
-        loadRealizadosData(),
-        loadMetasData(),
-        loadVariavelData(),
+        loadRealizadosData(filterParams),
+        loadMetasData(filterParams),
+        loadVariavelData(filterParams),
         loadMesuData(),
-        loadCampanhasData(),
-        loadDetalhesData(),
-        loadHistoricoData(),
-        loadLeadsData(),
-        loadPontosData()
+        loadCampanhasData(filterParams),
+        loadDetalhesData(filterParams),
+        loadHistoricoData(filterParams),
+        loadLeadsData(filterParams),
+        loadPontosData(filterParams)
       ]);
 
       return processBaseDataSources({
@@ -6045,7 +6441,7 @@ function openDatePopover(anchor){
   pop.style.left = `${left}px`;
 
   pop.querySelector("#btn-cancelar").addEventListener("click", closeDatePopover);
-  pop.querySelector("#btn-salvar").addEventListener("click", ()=>{
+  pop.querySelector("#btn-salvar").addEventListener("click", async ()=>{
     const s = document.getElementById("inp-start").value;
     const e = document.getElementById("inp-end").value;
     if(!s || !e || new Date(s) > new Date(e)){ alert("Período inválido."); return; }
@@ -6057,7 +6453,22 @@ function openDatePopover(anchor){
     document.getElementById("lbl-periodo-inicio").textContent = formatBRDate(s);
     document.getElementById("lbl-periodo-fim").textContent    = formatBRDate(e);
     closeDatePopover();
-    refresh().catch(handleInitDataError);
+    // Recarrega dados de período quando data muda
+    try {
+      await loadPeriodData();
+      // Processa os dados e popula state.facts e fDados para exibir os cards
+      const dataset = await getData();
+      state._dataset = dataset;
+      state.facts = dataset.facts || state.facts;
+      state._rankingRaw = (state.facts?.dados && state.facts.dados.length)
+        ? state.facts.dados
+        : (dataset.ranking || []);
+      // Atualiza os cards do dashboard com os novos dados
+      updateDashboardCards();
+      await refresh();
+    } catch (error) {
+      handleInitDataError(error);
+    }
   });
 
   const outside = (ev)=>{ if(ev.target===pop || pop.contains(ev.target) || ev.target===anchor) return; closeDatePopover(); };
@@ -6084,51 +6495,110 @@ function wireClearFiltersButton() {
   });
 }
 async function clearFilters() {
-  [
-    "#f-segmento","#f-diretoria","#f-gerencia","#f-gerente",
-    "#f-agencia","#f-gerente-gestao","#f-secao","#f-familia","#f-produto",
-    "#f-status-kpi","#f-visao"
-  ].forEach(sel => {
-    const el = $(sel);
-    if (!el) return;
-    if (el.tagName === "SELECT") el.selectedIndex = 0;
-    if (el.tagName === "INPUT")  el.value = "";
-  });
+  // Flag para indicar que estamos limpando (evita chamadas de API)
+  state._isClearingFilters = true;
+  
+  try {
+    // Limpa filtros de hierarquia (segmento, diretoria, gerencia) deixando vazios
+    const hierarchyFilters = ["#f-segmento", "#f-diretoria", "#f-gerencia"];
+    hierarchyFilters.forEach(sel => {
+      const el = $(sel);
+      if (el && el.tagName === "SELECT") {
+        el.selectedIndex = -1; // Deixa vazio
+        el.value = "";
+      }
+    });
+    
+    // Limpa outros filtros
+    [
+      "#f-gerente",
+      "#f-agencia","#f-gerente-gestao","#f-secao","#f-familia","#f-produto",
+      "#f-status-kpi","#f-visao"
+    ].forEach(sel => {
+      const el = $(sel);
+      if (!el) return;
+      if (el.tagName === "SELECT") el.selectedIndex = 0;
+      if (el.tagName === "INPUT")  el.value = "";
+    });
 
-  // valores padrão explícitos
-  const st = $("#f-status-kpi"); if (st) st.value = "todos";
-  const visaoSelect = $("#f-visao");
-  if (visaoSelect) visaoSelect.value = "mensal";
-  state.accumulatedView = "mensal";
-  const secaoSelect = $("#f-secao");
-  if (secaoSelect) secaoSelect.dispatchEvent(new Event("change"));
-  const familiaSelect = $("#f-familia");
-  if (familiaSelect) familiaSelect.dispatchEvent(new Event("change"));
-  const produtoSelect = $("#f-produto");
-  if (produtoSelect) produtoSelect.dispatchEvent(new Event("change"));
+    // valores padrão explícitos
+    const st = $("#f-status-kpi"); if (st) st.value = "todos";
+    const visaoSelect = $("#f-visao");
+    if (visaoSelect) visaoSelect.value = "mensal";
+    state.accumulatedView = "mensal";
+    
+    // Não dispara eventos "change" para evitar chamadas de API
+    // Os combos serão atualizados pelo refreshHierarchyCombos abaixo
+    const secaoSelect = $("#f-secao");
+    if (secaoSelect) {
+      secaoSelect.value = "Todas";
+      // Não dispara evento change
+    }
+    const familiaSelect = $("#f-familia");
+    if (familiaSelect) {
+      familiaSelect.value = "Todas";
+      // Não dispara evento change
+    }
+    const produtoSelect = $("#f-produto");
+    if (produtoSelect) {
+      produtoSelect.value = "Todos";
+      // Não dispara evento change
+    }
 
-  refreshHierarchyCombos();
+    refreshHierarchyCombos();
 
-  // limpa busca (contrato) e estado
-  state.tableSearchTerm = "";
-  if ($("#busca")) $("#busca").value = "";
-  refreshContractSuggestions("");
-  const defaultPeriod = getDefaultPeriodRange();
-  state.period = defaultPeriod;
-  syncPeriodFromAccumulatedView(state.accumulatedView, defaultPeriod.end);
-  if (state.tableView === "contrato") {
-    state.tableView = "diretoria";
-    state.lastNonContractView = "diretoria";
-    setActiveChip("diretoria");
+    // limpa busca (contrato) e estado
+    state.tableSearchTerm = "";
+    if ($("#busca")) $("#busca").value = "";
+    refreshContractSuggestions("");
+    const defaultPeriod = getDefaultPeriodRange();
+    state.period = defaultPeriod;
+    syncPeriodFromAccumulatedView(state.accumulatedView, defaultPeriod.end);
+    if (state.tableView === "contrato") {
+      state.tableView = "diretoria";
+      state.lastNonContractView = "diretoria";
+      setActiveChip("diretoria");
+    }
+
+    await withSpinner(async () => {
+      // Limpa todos os dados de período/filtros
+      clearPeriodData();
+      
+      // Atualiza labels do período
+      updatePeriodLabels();
+      
+      // Atualiza o elemento de período se existir
+      const right = document.getElementById("lbl-atualizacao");
+      if(right){
+        right.innerHTML = `
+          <div class="period-inline">
+            <span class="txt">
+              De
+              <strong><span id="lbl-periodo-inicio">${formatBRDate(state.period.start)}</span></strong>
+              até
+              <strong><span id="lbl-periodo-fim">${formatBRDate(state.period.end)}</span></strong>
+            </span>
+            <button id="btn-alterar-data" type="button" class="link-action">
+              <i class="ti ti-chevron-down"></i> Alterar data
+            </button>
+          </div>`;
+        document.getElementById("btn-alterar-data")?.addEventListener("click", (e)=> openDatePopover(e.currentTarget));
+      }
+      
+      // Re-renderiza com dados zerados
+      applyFiltersAndRender();
+      renderAppliedFilters();
+      renderCampanhasView();
+      if (state.activeView === "ranking") renderRanking();
+      // Limpa cards do dashboard
+      updateDashboardCards();
+    }, "Limpando filtros…");
+    
+    closeMobileFilters();
+  } finally {
+    // Remove a flag após limpar (garante que seja removida mesmo em caso de erro)
+    state._isClearingFilters = false;
   }
-
-  await withSpinner(async () => {
-    applyFiltersAndRender();
-    renderAppliedFilters();
-    renderCampanhasView();
-    if (state.activeView === "ranking") renderRanking();
-  }, "Limpando filtros…");
-  closeMobileFilters();
 }
 
 function setMobileFiltersState(open) {
@@ -7125,14 +7595,14 @@ function renderAppliedFilters() {
 
   bar.innerHTML = "";
 
-  if (vals.segmento && vals.segmento !== "Todos") push("Segmento", vals.segmento, () => $("#f-segmento").selectedIndex = 0);
-  if (vals.diretoria && vals.diretoria !== "Todas") {
+  if (vals.segmento && vals.segmento !== "Todos" && vals.segmento !== "") push("Segmento", vals.segmento, () => $("#f-segmento").selectedIndex = -1);
+  if (vals.diretoria && vals.diretoria !== "Todas" && vals.diretoria !== "") {
     const label = $("#f-diretoria")?.selectedOptions?.[0]?.text || vals.diretoria;
-    push("Diretoria", label, () => $("#f-diretoria").selectedIndex = 0);
+    push("Diretoria", label, () => $("#f-diretoria").selectedIndex = -1);
   }
-  if (vals.gerencia && vals.gerencia !== "Todas") {
+  if (vals.gerencia && vals.gerencia !== "Todas" && vals.gerencia !== "") {
     const label = $("#f-gerencia")?.selectedOptions?.[0]?.text || vals.gerencia;
-    push("Gerência", label, () => $("#f-gerencia").selectedIndex = 0);
+    push("Gerência", label, () => $("#f-gerencia").selectedIndex = -1);
   }
   if (vals.agencia && vals.agencia !== "Todas") {
     const label = $("#f-agencia")?.selectedOptions?.[0]?.text || vals.agencia;
@@ -8558,8 +9028,8 @@ function autoSnapViewToFilters() {
   else if (f.familiaId && f.familiaId !== "Todas") snap = "familia";
   else if (f.secaoId && f.secaoId !== "Todas") snap = "secao";
   else if (f.gerente && f.gerente !== "Todos") snap = "gerente";
-  else if (f.gerencia && f.gerencia !== "Todas") snap = "gerencia";
-  else if (f.diretoria && f.diretoria !== "Todas") snap = "diretoria";
+  else if (f.gerencia && f.gerencia !== "Todas" && f.gerencia !== "") snap = "gerencia";
+  else if (f.diretoria && f.diretoria !== "Todas" && f.diretoria !== "") snap = "diretoria";
   if (snap && state.tableView !== snap) { state.tableView = snap; setActiveChip(snap); }
 }
 
@@ -9474,34 +9944,57 @@ function bindEvents() {
     });
   });
 
-  ["#f-segmento","#f-diretoria","#f-gerencia","#f-agencia","#f-gerente-gestao","#f-gerente","#f-secao","#f-familia","#f-produto","#f-status-kpi"].forEach(sel => {
-    $(sel)?.addEventListener("change", async () => {
-      await withSpinner(async () => {
-        autoSnapViewToFilters();
-        applyFiltersAndRender();
-        renderAppliedFilters();
-        renderCampanhasView();
-        if (state.activeView === "ranking") renderRanking();
-      }, "Atualizando filtros…");
+  // Remove event listeners de "change" - agora os filtros só serão aplicados ao clicar no botão "Filtrar"
+  // Os selects podem ter outros listeners para atualizar combos dependentes, mas não carregam dados
+  
+  // Função para aplicar filtros (chamada pelo botão "Filtrar")
+  async function applyFilters() {
+    await withSpinner(async () => {
+      // Recarrega dados de período quando filtro é aplicado
+      await loadPeriodData();
+      // Processa os dados e popula state.facts e fDados para exibir os cards
+      const dataset = await getData();
+      state._dataset = dataset;
+      state.facts = dataset.facts || state.facts;
+      state._rankingRaw = (state.facts?.dados && state.facts.dados.length)
+        ? state.facts.dados
+        : (dataset.ranking || []);
+      // Reconstroi mapa de pontos com filtro de data atualizado
+      buildPontosByIndicadorMap(state.period);
+      // Atualiza os cards do dashboard com os novos dados
+      updateDashboardCards();
+      autoSnapViewToFilters();
+      applyFiltersAndRender();
+      renderAppliedFilters();
+      renderCampanhasView();
+      if (state.activeView === "ranking") renderRanking();
+    }, "Aplicando filtros…");
+  }
+  
+  // Botão "Filtrar"
+  const btnFiltrar = $("#btn-filtrar");
+  if (btnFiltrar && !btnFiltrar.dataset.wired) {
+    btnFiltrar.dataset.wired = "1";
+    btnFiltrar.addEventListener("click", async (ev) => {
+      ev.preventDefault();
+      btnFiltrar.disabled = true;
+      try {
+        await applyFilters();
+      } finally {
+        setTimeout(() => (btnFiltrar.disabled = false), 250);
+      }
     });
-  });
+  }
 
   const visaoSelect = $("#f-visao");
   if (visaoSelect && !visaoSelect.dataset.bound) {
     visaoSelect.dataset.bound = "1";
-    visaoSelect.addEventListener("change", async () => {
+    visaoSelect.addEventListener("change", () => {
+      // Apenas atualiza o período, não carrega dados automaticamente
       const nextView = visaoSelect.value || "mensal";
       state.accumulatedView = nextView;
       syncPeriodFromAccumulatedView(nextView);
-      await withSpinner(async () => {
-        // Reconstroi mapa de pontos com filtro de data atualizado
-        buildPontosByIndicadorMap(state.period);
-        autoSnapViewToFilters();
-        applyFiltersAndRender();
-        renderAppliedFilters();
-        renderCampanhasView();
-        if (state.activeView === "ranking") renderRanking();
-      }, "Atualizando visão acumulada…");
+      // Os dados serão carregados quando o usuário clicar em "Filtrar"
     });
   }
 
@@ -10388,8 +10881,12 @@ function buildResumoLegacyAnnualDataset(sections = []) {
   const monthLabels = monthKeys.map(monthKeyShortLabel);
   const monthLongLabels = monthKeys.map(monthKeyLabel);
   const monthIndex = new Map(monthKeys.map((key, idx) => [key, idx]));
+  // Os dados já vêm filtrados do backend, então não precisa filtrar novamente
+  // Apenas aplica busca por texto se houver (funcionalidade do frontend)
   const rowsSource = Array.isArray(state._rankingRaw)
-    ? filterRowsExcept(state._rankingRaw, {}, { searchTerm: state.tableSearchTerm, ignoreDate: true })
+    ? (state.tableSearchTerm 
+        ? state._rankingRaw.filter(r => rowMatchesSearch(r, state.tableSearchTerm))
+        : state._rankingRaw)
     : [];
 
   const normalizeKey = (value) => {
@@ -11671,6 +12168,27 @@ function getStatusFilter(){
   return normalizarChaveStatus(raw) || "todos";
 }
 function buildDashboardDatasetFromRows(rows = [], period = state.period || {}) {
+  // Se não há dados, retorna estrutura vazia
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return {
+      sections: [],
+      summary: {
+        indicadoresTotal: 0,
+        indicadoresAtingidos: 0,
+        indicadoresPct: 0,
+        pontosPossiveis: 0,
+        pontosAtingidos: 0,
+        pontosPct: 0,
+        metaTotal: 0,
+        realizadoTotal: 0,
+        metaPct: 0,
+        varPossivel: 0,
+        varAtingido: 0,
+        varPct: 0
+      }
+    };
+  }
+  
   SUBPRODUTO_TO_INDICADOR.clear();
   const productMeta = new Map();
   const aggregated = new Map();
@@ -12313,7 +12831,11 @@ function updateDashboardCards() {
     renderFamilias(empty.sections, empty.summary);
     return;
   }
-  const filtered = filterRowsExcept(factRows, {}, { searchTerm: "" });
+  // Os dados já vêm filtrados do backend, então não precisa filtrar novamente
+  // Apenas aplica busca por texto se houver (funcionalidade do frontend)
+  const filtered = state.tableSearchTerm 
+    ? factRows.filter(r => rowMatchesSearch(r, state.tableSearchTerm))
+    : factRows;
   const dataset = buildDashboardDatasetFromRows(filtered, state.period);
   state.dashboard = dataset;
   refreshSimulatorCatalog();
@@ -12322,9 +12844,17 @@ function updateDashboardCards() {
 
 function renderFamilias(sections, summary){
   const host = $("#grid-familias");
+  if (!host) return;
+  
   host.innerHTML = "";
   host.style.display = "block";
   host.style.gap = "0";
+  
+  // Se não há seções ou itens, não renderiza nada
+  if (!Array.isArray(sections) || sections.length === 0 || !sections.some(sec => Array.isArray(sec.items) && sec.items.length > 0)) {
+    host.innerHTML = "";
+    return;
+  }
 
   const resumoAnim = state.animations?.resumo;
   const prevVarRatios = resumoAnim?.varRatios instanceof Map ? resumoAnim.varRatios : new Map();
@@ -13522,13 +14052,19 @@ function renderExecutiveView(){
     return;
   }
 
-  // base com TODOS os filtros aplicados
-  const rowsBase = filterRows(state._rankingRaw);
+  // Os dados já vêm filtrados do backend, então não precisa filtrar novamente
+  // Apenas aplica busca por texto se houver (funcionalidade do frontend)
+  const rowsBase = state.tableSearchTerm
+    ? state._rankingRaw.filter(r => rowMatchesSearch(r, state.tableSearchTerm))
+    : state._rankingRaw;
   const execMonthlyPeriod = getExecutiveMonthlyPeriod();
-  const rowsMonthly = filterRowsExcept(state._rankingRaw, {}, {
-    searchTerm: state.tableSearchTerm,
-    dateStart: execMonthlyPeriod.start,
-    dateEnd: execMonthlyPeriod.end,
+  // Para dados mensais, filtra apenas por data (o backend já filtra o resto)
+  const rowsMonthly = rowsBase.filter(r => {
+    const rowDate = r.data || r.competencia || "";
+    if (!rowDate) return false;
+    const startISO = execMonthlyPeriod.start;
+    const endISO = execMonthlyPeriod.end;
+    return (!startISO || rowDate >= startISO) && (!endISO || rowDate <= endISO);
   });
 
   // nível inicial
@@ -14905,6 +15441,13 @@ function renderRanking(){
   const hostTbl = document.getElementById("rk-table");
   if(!hostSum || !hostTbl) return;
 
+  // Se estiver limpando filtros, limpa a exibição
+  if (state._isClearingFilters) {
+    hostSum.innerHTML = "";
+    hostTbl.innerHTML = "";
+    return;
+  }
+
   const typeSelect = document.getElementById("rk-type");
   const productWrapper = document.getElementById("rk-product-wrapper");
   const modeGroup = document.getElementById("rk-product-mode");
@@ -14928,8 +15471,18 @@ function renderRanking(){
     levelSelect.value = normalizeProductRankLevel(selectValue);
   }
 
-  const except = { [level]: true };
-  const rowsBase = filterRowsExcept(state._rankingRaw, except, { searchTerm: "" });
+  // Se não há dados de ranking, não exibe nada
+  if (!Array.isArray(state._rankingRaw) || state._rankingRaw.length === 0) {
+    hostSum.innerHTML = "";
+    hostTbl.innerHTML = "";
+    return;
+  }
+  
+  // Os dados já vêm filtrados do backend, então não precisa filtrar novamente
+  // Apenas aplica busca por texto se houver (funcionalidade do frontend)
+  const rowsBase = state.tableSearchTerm
+    ? state._rankingRaw.filter(r => rowMatchesSearch(r, state.tableSearchTerm))
+    : state._rankingRaw;
 
   const gruposLimite = rkGroupCount(level);
   const myUnit = currentUnitForLevel(level);
@@ -14954,6 +15507,14 @@ function renderRanking(){
     if (modeGroup) {
       modeGroup.querySelectorAll('.seg-btn').forEach(btn => btn.classList.remove('is-active'));
     }
+    
+    // Se estiver limpando ou não houver dados, não exibe histórico
+    if (state._isClearingFilters) {
+      hostSum.innerHTML = "";
+      hostTbl.innerHTML = "";
+      return;
+    }
+    
     if (!myUnit) {
       hostSum.innerHTML = `<div class="rk-badges"><span class="rk-badge rk-badge--warn">Selecione um(a) ${nivelNome.toLowerCase()} para ver o histórico anual.</span></div>`;
       hostTbl.innerHTML = `<p class="rk-empty">Escolha um(a) ${nivelNome.toLowerCase()} nos filtros para visualizar a evolução dos últimos anos.</p>`;
@@ -15516,7 +16077,11 @@ function renderTreeTable() {
   renderDetailViewBar();
 
   const def = TABLE_VIEWS.find(v=> v.id === state.tableView) || TABLE_VIEWS[0];
-  let rowsFiltered = filterRows(state._rankingRaw);
+  // Os dados já vêm filtrados do backend, então não precisa filtrar novamente
+  // Apenas aplica busca por texto se houver (funcionalidade do frontend)
+  let rowsFiltered = state.tableSearchTerm
+    ? state._rankingRaw.filter(r => rowMatchesSearch(r, state.tableSearchTerm))
+    : state._rankingRaw;
   const dashboardSections = Array.isArray(state.dashboardVisibleSections) && state.dashboardVisibleSections.length
     ? state.dashboardVisibleSections
     : state.dashboard?.sections;
@@ -15950,7 +16515,8 @@ async function refresh(){
   setupTopbarNotifications();
 
   try {
-    await loadBaseData();
+    // Carrega apenas dados iniciais necessários para filtros
+    await loadInitialData();
   } catch (error) {
     handleInitDataError(error);
     return;
@@ -15966,12 +16532,32 @@ async function refresh(){
     setupOpportunityModal();
   }
 
-  try {
-    await refresh();
-  } catch (error) {
-    handleInitDataError(error);
-    return;
+  // Garante que o período seja inicializado e exibido
+  if (!state.period) {
+    state.period = getDefaultPeriodRange();
   }
+  updatePeriodLabels();
+  
+  // Atualiza o elemento de período se existir
+  const right = document.getElementById("lbl-atualizacao");
+  if(right){
+    right.innerHTML = `
+      <div class="period-inline">
+        <span class="txt">
+          De
+          <strong><span id="lbl-periodo-inicio">${formatBRDate(state.period.start)}</span></strong>
+          até
+          <strong><span id="lbl-periodo-fim">${formatBRDate(state.period.end)}</span></strong>
+        </span>
+        <button id="btn-alterar-data" type="button" class="link-action">
+          <i class="ti ti-chevron-down"></i> Alterar data
+        </button>
+      </div>`;
+    document.getElementById("btn-alterar-data")?.addEventListener("click", (e)=> openDatePopover(e.currentTarget));
+  }
+
+  // Dados de período serão carregados apenas quando o usuário interagir (mudar filtro ou período)
+  // Isso é feito automaticamente pelos event listeners configurados em bindEvents()
 
   ensureChatWidget();
 })();
@@ -16087,7 +16673,8 @@ if (typeof window !== "undefined") {
   window.DEBUG = window.DEBUG || {};
   window.DEBUG.check = function debugCheck(){
     const factRows = (state?.facts?.dados && Array.isArray(state.facts.dados)) ? state.facts.dados : fDados;
-    const filtered = Array.isArray(factRows) ? filterRowsExcept(factRows, {}, { searchTerm: "" }) : [];
+    // Os dados já vêm filtrados do backend, então não precisa filtrar novamente
+    const filtered = Array.isArray(factRows) ? factRows : [];
     const grouped = filtered.reduce((acc, row) => {
       const gerente = row.gerente_id || row.gerenteId || row.gerente || "";
       const indicador = row.indicadorId || row.id_indicador || row.produtoId || "";

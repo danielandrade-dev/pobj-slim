@@ -67,9 +67,9 @@ function normalizarLinhasFatoVariavel(rows){
 }
 
 /* ===== Função para carregar dados de variável da API ===== */
-async function loadVariavelData(){
+async function loadVariavelData(filterParams = {}){
   try {
-    const response = await apiGet('/variavel').catch(() => null);
+    const response = await apiGet('/variavel', filterParams).catch(() => null);
     if (!response) return [];
     
     // Verifica se a resposta está no novo formato { success, data }
