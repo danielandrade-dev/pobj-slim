@@ -3641,7 +3641,27 @@ function buildPontosByIndicadorMap(period = state.period || {}) {
       }
       
       // Busca o ID do card usando o código numérico do indicador
-      const cardId = INDICADOR_CODE_TO_CARD_ID.get(String(ponto.idIndicador)) || String(ponto.idIndicador);
+      // Tenta primeiro pelo mapa INDICADOR_CODE_TO_CARD_ID
+      let cardId = INDICADOR_CODE_TO_CARD_ID.get(String(ponto.idIndicador));
+      
+      // Se não encontrou, tenta resolver pelo nome do indicador
+      if (!cardId && ponto.indicador) {
+        cardId = resolverIndicadorPorAlias(ponto.indicador);
+      }
+      
+      // Se ainda não encontrou, tenta pelo código numérico convertido para slug
+      if (!cardId) {
+        const codigoSlug = INDICADOR_CODE_TO_SLUG.get(String(ponto.idIndicador));
+        if (codigoSlug) {
+          cardId = resolverIndicadorPorAlias(codigoSlug);
+        }
+      }
+      
+      // Fallback: usa o código numérico como string
+      if (!cardId) {
+        cardId = String(ponto.idIndicador);
+      }
+      
       // Se já existe, mantém o mais recente (compara por data)
       const existente = PONTOS_BY_INDICADOR.get(cardId);
       if (!existente || (ponto.dataRealizado && existente.dataRealizado && ponto.dataRealizado > existente.dataRealizado)) {
@@ -11359,9 +11379,11 @@ function renderResumoLegacyAnnualMatrix(host, sections = [], summary = {}) {
       sectionToggle.classList.toggle("is-expanded", allExpanded);
       if (sectionToggleLabel) sectionToggleLabel.textContent = allExpanded ? "Recolher filtros" : "Abrir todos os filtros";
     };
-c
+
     items.forEach(item => {
-      const pesoValor = Number(item.pontosMeta ?? item.peso ?? 0);
+      // Busca pontos da API se disponível para o peso
+      const pontosApi = PONTOS_BY_INDICADOR.get(String(item.id));
+      const pesoValor = pontosApi ? Number(pontosApi.meta) || 0 : (Number(item.pontosMeta ?? item.peso ?? 0) || 0);
       const pesoLabel = escapeHTML(fmtINT.format(Math.round(pesoValor || 0)));
       const metricKeyRaw = typeof item.metric === "string" ? item.metric.toLowerCase() : "";
       const metricMeta = metricInfo[metricKeyRaw] || { label: item.metric || "—", title: "Métrica do indicador" };
@@ -12661,7 +12683,11 @@ function buildDashboardDatasetFromRows(rows = [], period = state.period || {}) {
       const agg = aggregated.get(item.id);
       if (!agg) return null;
       if (agg.secaoId && agg.secaoId !== sec.id) return null;
-      const ating = agg.metaTotal ? (agg.realizadoTotal / agg.metaTotal) : 0;
+      // Calcula atingimento: se metaTotal for 0 ou não existir, retorna 0
+      // Caso contrário, calcula realizadoTotal / metaTotal
+      const metaTotal = Number(agg.metaTotal) || 0;
+      const realizadoTotal = Number(agg.realizadoTotal) || 0;
+      const ating = metaTotal > 0 ? (realizadoTotal / metaTotal) : 0;
       const variavelAting = agg.variavelMeta ? (agg.variavelReal / agg.variavelMeta) : ating;
       // Busca pontos da API se disponível, senão usa os calculados
       const pontosApi = PONTOS_BY_INDICADOR.get(String(item.id));
@@ -12670,6 +12696,8 @@ function buildDashboardDatasetFromRows(rows = [], period = state.period || {}) {
       const pontosMeta = pontosApi ? Number(pontosApi.meta) || 0 : 0;
       const pontosBrutos = pontosApi ? Number(pontosApi.realizado) || 0 : (Number.isFinite(agg.pontos) ? agg.pontos : 0);
       const pontosCumpridos = Math.max(0, Math.min(pontosMeta, pontosBrutos));
+      // Calcula atingimento de pontos: se houver pontos, verifica se atingiu 100%
+      const pontosAting = pontosMeta > 0 ? (pontosCumpridos / pontosMeta) : 0;
       // Se não houver data real de atualização, usa "Indisponível"
       const ultimaAtualizacaoTexto = agg.ultimaAtualizacao 
         ? formatBRDate(agg.ultimaAtualizacao) 
@@ -12684,13 +12712,14 @@ function buildDashboardDatasetFromRows(rows = [], period = state.period || {}) {
         secaoLabel: sec.label,
         familiaId: agg.familiaId,
         familiaLabel: agg.familiaLabel,
-        meta: agg.metaTotal,
-        realizado: agg.realizadoTotal,
-        variavelMeta: agg.variavelMeta,
-        variavelReal: agg.variavelReal,
-        ating,
-        atingVariavel: variavelAting,
-        atingido: ating >= 1,
+        meta: Number(agg.metaTotal) || 0,
+        realizado: Number(agg.realizadoTotal) || 0,
+        variavelMeta: Number(agg.variavelMeta) || 0,
+        variavelReal: Number(agg.variavelReal) || 0,
+        ating: Number.isFinite(ating) ? ating : 0,
+        atingVariavel: Number.isFinite(variavelAting) ? variavelAting : ating,
+        // Considera atingido se atingiu 100% da meta OU 100% dos pontos
+        atingido: ating >= 1 || pontosAting >= 1,
         pontos: pontosCumpridos,
         pontosMeta,
         pontosBrutos,
@@ -12845,6 +12874,8 @@ function updateDashboardCards() {
     renderFamilias(empty.sections, empty.summary);
     return;
   }
+  // Garante que o mapa de pontos está atualizado antes de calcular o summary
+  buildPontosByIndicadorMap(state.period);
   // Os dados já vêm filtrados do backend, então não precisa filtrar novamente
   // Apenas aplica busca por texto se houver (funcionalidade do frontend)
   const filtered = state.tableSearchTerm 
@@ -13015,7 +13046,35 @@ function renderFamilias(sections, summary){
         || familiaAttr;
       const familiaAttrSafe = escapeHTML(familiaAttr || "");
       const familiaLabelSafe = escapeHTML(familiaLabelAttr || familiaAttr || "");
-      const pct = Math.max(0, Math.min(100, f.ating*100)); /* clamp 0..100 */
+
+      // Busca pontos da API se disponível, senão usa os calculados
+      const pontosApi = PONTOS_BY_INDICADOR.get(String(f.id));
+      const pontosMeta = pontosApi ? Number(pontosApi.meta) || 0 : pontosMetaItem;
+      const pontosReal = pontosApi ? Number(pontosApi.realizado) || 0 : pontosRealItem;
+      // O peso sempre vem da API de produtos (f.peso ou PRODUCT_INDEX), não da API de pontos
+      const pesoCard = Number(f.peso) || Number(prodMeta?.peso) || pontosMetaItem || 0;
+      const pontosRatio = pontosMeta ? (pontosReal / pontosMeta) : 0;
+      const pontosPct = Math.max(0, pontosRatio * 100);
+
+      // Calcula atingimento: prioriza meta/realizado, mas usa pontos como fallback
+      // Se houver meta válida, calcula a partir de meta/realizado
+      // Caso contrário, usa a porcentagem de pontos se disponível
+      let atingValue = 0;
+      const metaVal = Number(f.meta) || 0;
+      const realizadoVal = Number(f.realizado) || 0;
+      
+      if (metaVal > 0) {
+        // Se há meta, calcula a partir de meta/realizado
+        atingValue = realizadoVal / metaVal;
+      } else if (pontosMeta > 0) {
+        // Se não houver meta mas houver pontos, usa a porcentagem de pontos
+        atingValue = pontosRatio;
+      } else if (Number.isFinite(f.ating) && f.ating > 0) {
+        // Usa f.ating apenas se for maior que 0 (evita usar 0 quando há dados de pontos)
+        atingValue = f.ating;
+      }
+      
+      const pct = Math.max(0, Math.min(100, atingValue * 100)); /* clamp 0..100 */
       const badgeClass = pct < 50 ? "badge--low" : (pct < 100 ? "badge--warn" : "badge--ok");
       const badgeTxt   = pct >= 100 ? `${Math.round(pct)}%` : `${pct.toFixed(1)}%`;
       const narrowStyle= badgeTxt.length >= 5 ? 'style="font-size:11px"' : '';
@@ -13026,15 +13085,6 @@ function renderFamilias(sections, summary){
       const metaTxt      = formatByMetric(metrica, f.meta);
       const realizadoFull = formatMetricFull(metrica, f.realizado);
       const metaFull      = formatMetricFull(metrica, f.meta);
-
-      // Busca pontos da API se disponível, senão usa os calculados
-      const pontosApi = PONTOS_BY_INDICADOR.get(String(f.id));
-      const pontosMeta = pontosApi ? Number(pontosApi.meta) || 0 : pontosMetaItem;
-      const pontosReal = pontosApi ? Number(pontosApi.realizado) || 0 : pontosRealItem;
-      // O peso sempre vem da API de produtos (f.peso ou PRODUCT_INDEX), não da API de pontos
-      const pesoCard = Number(f.peso) || Number(prodMeta?.peso) || pontosMetaItem || 0;
-      const pontosRatio = pontosMeta ? (pontosReal / pontosMeta) : 0;
-      const pontosPct = Math.max(0, pontosRatio * 100);
       const pontosPctLabel = `${pontosPct.toFixed(1)}%`;
       const pontosFill = Math.max(0, Math.min(100, pontosPct));
       const pontosFillRounded = Number(pontosFill.toFixed(2));
@@ -13321,7 +13371,9 @@ function renderResumoLegacyTable(sections = [], summary = {}, rawSections = null
         metricClasses.push(`resumo-legacy__metric--${metricKeyRaw}`);
       }
       
-      const pesoValor = Number(item.pontosMeta ?? item.peso ?? 0) || 0;
+      // Busca pontos da API se disponível para o peso
+      const pontosApi = PONTOS_BY_INDICADOR.get(String(item.id));
+      const pesoValor = pontosApi ? Number(pontosApi.meta) || 0 : (Number(item.pontosMeta ?? item.peso ?? 0) || 0);
       const pesoLabelRaw = fmtINT.format(Math.round(pesoValor));
 
       let metaCellRaw = "—";
@@ -13352,7 +13404,8 @@ function renderResumoLegacyTable(sections = [], summary = {}, rawSections = null
       const atingLabelRaw = `${atingPct.toFixed(1)}%`;
       const atingMeterClass = atingPct >= 100 ? "is-ok" : (atingPct >= 50 ? "is-warn" : "is-low");
 
-      const pontosValor = Number(item.pontos ?? item.pontosBrutos ?? item.peso ?? 0) || 0;
+      // Busca pontos da API se disponível, senão usa os calculados
+      const pontosValor = pontosApi ? Number(pontosApi.realizado) || 0 : (Number(item.pontos ?? item.pontosBrutos ?? 0) || 0);
       const pontosLabelRaw = formatPoints(pontosValor, { withUnit: true });
       const pontosTitleRaw = formatPoints(pontosValor, { withUnit: true });
 
