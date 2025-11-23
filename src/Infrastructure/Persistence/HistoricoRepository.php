@@ -29,7 +29,6 @@ class HistoricoRepository extends BaseRepository
     public function baseSelect(): string
     {
         return "SELECT 
-                    nivel,
                     ano,
                     `database` AS data,
                     segmento,
