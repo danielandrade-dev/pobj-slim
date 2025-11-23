@@ -35,7 +35,8 @@ $container['view'] = function ($container) {
 $dependencies = require __DIR__ . '/../config/dependencies.php';
 $dependencies($app->getContainer());
 
-require __DIR__ . '/../routes/web.php';
-require __DIR__ . '/../routes/api.php';
+// Configurar aplicação (middlewares e rotas)
+$configureApp = require __DIR__ . '/../config/app.php';
+$configureApp($app);
 
 $app->run();

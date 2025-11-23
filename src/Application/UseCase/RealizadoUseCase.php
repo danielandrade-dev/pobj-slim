@@ -3,32 +3,17 @@
 namespace App\Application\UseCase;
 
 use App\Domain\DTO\FilterDTO;
-use App\Infrastructure\Persistence\FindAllRealizadosRepository;
-
+use App\Infrastructure\Persistence\RealizadosRepository;
+use App\Infrastructure\Persistence\Interface\UseCaseInterface;
 /**
  * UseCase para operações relacionadas a realizados
  */
-class RealizadoUseCase
+class RealizadoUseCase extends AbstractUseCase
 {
-    /** @var FindAllRealizadosRepository */
-    private $repository;
-
-    /**
-     * @param FindAllRealizadosRepository $repository
-     */
-    public function __construct(FindAllRealizadosRepository $repository)
+    public function __construct(RealizadosRepository $repository)
     {
-        $this->repository = $repository;
+        parent::__construct($repository);
     }
 
-    /**
-     * Retorna todos os realizados com filtros opcionais
-     * @param FilterDTO|null $filters
-     * @return array
-     */
-    public function getAllRealizados(FilterDTO $filters = null): array
-    {
-        return $this->repository->fetch($filters);
-    }
 }
 

@@ -67,12 +67,12 @@ function registerRepositories($container)
         return new \App\Infrastructure\Persistence\StatusIndicadoresRepository($c->get(PDO::class));
     };
 
-    $container['App\Infrastructure\Persistence\FindAllRealizadosRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\FindAllRealizadosRepository($c->get(PDO::class));
+    $container['App\Infrastructure\Persistence\RealizadosRepository'] = function ($c) {
+        return new \App\Infrastructure\Persistence\RealizadosRepository($c->get(PDO::class));
     };
 
-    $container['App\Infrastructure\Persistence\MetaRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\MetaRepository($c->get(PDO::class));
+    $container['App\Infrastructure\Persistence\MetasRepository'] = function ($c) {
+        return new \App\Infrastructure\Persistence\MetasRepository($c->get(PDO::class));
     };
 
     $container['App\Infrastructure\Persistence\VariavelRepository'] = function ($c) {
@@ -83,8 +83,8 @@ function registerRepositories($container)
         return new \App\Infrastructure\Persistence\ProdutoRepository($c->get(PDO::class));
     };
 
-    $container['App\Infrastructure\Persistence\FindAllCalendarioRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\FindAllCalendarioRepository($c->get(PDO::class));
+    $container['App\Infrastructure\Persistence\CalendarioRepository'] = function ($c) {
+        return new \App\Infrastructure\Persistence\CalendarioRepository($c->get(PDO::class));
     };
 
     $container['App\Infrastructure\Persistence\CampanhasRepository'] = function ($c) {
@@ -197,7 +197,7 @@ function registerUseCases($container)
 
     $container['App\Application\UseCase\RealizadoUseCase'] = function ($c) {
         return new \App\Application\UseCase\RealizadoUseCase(
-            $c->get('App\Infrastructure\Persistence\FindAllRealizadosRepository')
+            $c->get('App\Infrastructure\Persistence\RealizadosRepository')
         );
     };
 
@@ -221,7 +221,7 @@ function registerUseCases($container)
 
     $container['App\Application\UseCase\MetaUseCase'] = function ($c) {
         return new \App\Application\UseCase\MetaUseCase(
-            $c->get('App\Infrastructure\Persistence\MetaRepository')
+            $c->get('App\Infrastructure\Persistence\FindAllMetasRepository')
         );
     };
 

@@ -11,7 +11,7 @@ use App\Infrastructure\Helpers\DateFormatter;
 /**
  * Repositório para buscar todos os registros do calendário
  */
-class FindAllCalendarioRepository extends BaseRepository
+class CalendarioRepository extends BaseRepository
 {
     /**
      * @param PDO $pdo
@@ -55,15 +55,6 @@ class FindAllCalendarioRepository extends BaseRepository
     }
 
     /**
-     * Busca todos os registros do calendário sem necessidade de filtros
-     * @return array
-     */
-    public function fetchAll(): array
-    {
-        return $this->fetch(null);
-    }
-
-    /**
      * Retorna a cláusula ORDER BY
      * @return string
      */
@@ -95,5 +86,14 @@ class FindAllCalendarioRepository extends BaseRepository
             $row['semestre'] ?? null,                   // semestre
             $ehDiaUtil                                  // ehDiaUtil
         );
+    }
+
+    /**
+     * Busca todos os registros do calendário sem necessidade de filtros
+     * @return array
+     */
+    public function fetchAll(): array
+    {
+        return $this->fetch(null);
     }
 }

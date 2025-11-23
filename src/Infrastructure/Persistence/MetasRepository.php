@@ -4,23 +4,22 @@ namespace App\Infrastructure\Persistence;
 
 use PDO;
 use App\Domain\DTO\FilterDTO;
-use App\Domain\DTO\RealizadoDTO;
-use App\Domain\Enum\Cargo;
+use App\Domain\DTO\MetaDTO;
 use App\Domain\Enum\Tables;
 use App\Infrastructure\Helpers\DateFormatter;
 use App\Infrastructure\Helpers\ValueFormatter;
 
 /**
- * Repositório para buscar todos os registros de realizados com filtros opcionais
+ * Repositório para buscar todos os registros de metas com filtros opcionais
  */
-class FindAllRealizadosRepository extends BaseRepository
+class MetasRepository extends BaseRepository
 {
     /**
      * @param PDO $pdo
      */
     public function __construct(PDO $pdo)
     {
-        parent::__construct($pdo, RealizadoDTO::class);
+        parent::__construct($pdo, MetaDTO::class);
     }
 
     /**
@@ -29,19 +28,19 @@ class FindAllRealizadosRepository extends BaseRepository
      */
     public function baseSelect(): string
     {
-        return "SELECT 
-                    r.id AS registro_id,
-                    r.data_realizado AS data,
-                    r.data_realizado AS competencia,
-                    r.funcional,
-                    r.realizado AS realizado_mensal,
-                    r.familia_id,
-                    r.indicador_id,
-                    r.subindicador_id,
-                    r.segmento_id,
-                    r.diretoria_id,
-                    r.gerencia_regional_id,
-                    r.agencia_id,
+        return "SELECT DISTINCT
+                    m.id AS registro_id,
+                    m.data_meta AS data,
+                    m.data_meta AS competencia,
+                    m.funcional,
+                    m.meta_mensal,
+                    m.id_familia AS familia_id,
+                    m.id_indicador AS indicador_id,
+                    m.id_subindicador AS subindicador_id,
+                    m.segmento_id,
+                    m.diretoria_id,
+                    m.gerencia_regional_id,
+                    m.agencia_id,
                     COALESCE(u.segmento, '') AS segmento,
                     COALESCE(u.diretoria, '') AS diretoria_nome,
                     COALESCE(u.regional, '') AS gerencia_regional_nome,
@@ -55,15 +54,15 @@ class FindAllRealizadosRepository extends BaseRepository
                     COALESCE(CAST(p.id_indicador AS CHAR), '') AS id_indicador,
                     COALESCE(p.indicador, '') AS ds_indicador,
                     COALESCE(p.subindicador, '') AS subproduto,
-                    COALESCE(CAST(COALESCE(p.id_subindicador, 0) AS CHAR), '0') AS id_subindicador
-                FROM " . Tables::F_REALIZADOS . " r
-                LEFT JOIN " . Tables::D_ESTRUTURA . " u ON u.id_segmento = r.segmento_id
-                    AND u.id_diretoria = r.diretoria_id
-                    AND u.id_regional = r.gerencia_regional_id
-                    AND u.id_agencia = r.agencia_id
-                    AND u.funcional = r.funcional
-                LEFT JOIN " . Tables::D_PRODUTOS . " p ON p.id_indicador = r.indicador_id
-                    AND (p.id_subindicador = r.subindicador_id OR (p.id_subindicador IS NULL AND r.subindicador_id IS NULL))
+                    COALESCE(CAST(p.id_subindicador AS CHAR), '0') AS id_subindicador
+                FROM " . Tables::F_META . " m
+                LEFT JOIN " . Tables::D_ESTRUTURA . " u ON u.id_segmento = m.segmento_id
+                    AND u.id_diretoria = m.diretoria_id
+                    AND u.id_regional = m.gerencia_regional_id
+                    AND u.id_agencia = m.agencia_id
+                    AND u.funcional = m.funcional
+                LEFT JOIN " . Tables::D_PRODUTOS . " p ON p.id_indicador = m.id_indicador
+                    AND (p.id_subindicador = m.id_subindicador OR (p.id_subindicador IS NULL AND m.id_subindicador IS NULL))
                 WHERE 1=1";
     }
 
@@ -82,55 +81,47 @@ class FindAllRealizadosRepository extends BaseRepository
         }
 
         if ($filters->segmento !== null) {
-            $sql .= " AND r.segmento_id = :segmento";
+            $sql .= " AND m.segmento_id = :segmento";
             $params[':segmento'] = $filters->segmento;
         }
 
         if ($filters->diretoria !== null) {
-            $sql .= " AND r.diretoria_id = :diretoria";
+            $sql .= " AND m.diretoria_id = :diretoria";
             $params[':diretoria'] = $filters->diretoria;
         }
 
         if ($filters->regional !== null) {
-            $sql .= " AND r.gerencia_regional_id = :regional";
+            $sql .= " AND m.gerencia_regional_id = :regional";
             $params[':regional'] = $filters->regional;
         }
 
         if ($filters->agencia !== null) {
-            $sql .= " AND r.agencia_id = :agencia";
+            $sql .= " AND m.agencia_id = :agencia";
             $params[':agencia'] = $filters->agencia;
         }
 
         if ($filters->gerenteGestao !== null) {
-            $sql .= " AND EXISTS (
-                SELECT 1 FROM " . Tables::D_ESTRUTURA . " ggestao 
-                WHERE ggestao.funcional = :gerente_gestao
-                AND ggestao.id_cargo = " . Cargo::GERENTE_GESTAO . "
-                AND ggestao.id_segmento = r.segmento_id
-                AND ggestao.id_diretoria = r.diretoria_id
-                AND ggestao.id_regional = r.gerencia_regional_id
-                AND ggestao.id_agencia = r.agencia_id
-            )";
+            $sql .= " AND u.funcional = :gerente_gestao";
             $params[':gerente_gestao'] = $filters->gerenteGestao;
         }
 
         if ($filters->gerente !== null) {
-            $sql .= " AND r.funcional = :gerente";
+            $sql .= " AND m.funcional = :gerente";
             $params[':gerente'] = $filters->gerente;
         }
 
         if ($filters->familia !== null) {
-            $sql .= " AND r.familia_id = :familia";
+            $sql .= " AND m.id_familia = :familia";
             $params[':familia'] = $filters->familia;
         }
 
         if ($filters->indicador !== null) {
-            $sql .= " AND r.indicador_id = :indicador";
+            $sql .= " AND m.id_indicador = :indicador";
             $params[':indicador'] = $filters->indicador;
         }
 
         if ($filters->subindicador !== null) {
-            $sql .= " AND r.subindicador_id = :subindicador";
+            $sql .= " AND m.id_subindicador = :subindicador";
             $params[':subindicador'] = $filters->subindicador;
         }
 
@@ -143,17 +134,19 @@ class FindAllRealizadosRepository extends BaseRepository
      */
     protected function getOrderBy(): string
     {
-        return "ORDER BY r.data_realizado DESC, r.id";
+        return "ORDER BY m.data_meta DESC, m.id";
     }
 
     /**
-     * Mapeia um array de resultados para RealizadoDTO
+     * Mapeia um array de resultados para MetaDTO
      * @param array $row
-     * @return RealizadoDTO
+     * @return MetaDTO
      */
-    public function mapToDto(array $row): RealizadoDTO
+    public function mapToDto(array $row): MetaDTO
     {
-        return new RealizadoDTO(
+        $dataIso = DateFormatter::toIsoDate($row['data'] ?? null);
+        
+        return new MetaDTO(
             (string)($row['registro_id'] ?? null),
             $row['segmento'] ?? null,
             (string)($row['segmento_id'] ?? null),
@@ -180,12 +173,12 @@ class FindAllRealizadosRepository extends BaseRepository
             null,                                        // canalVenda
             null,                                        // tipoVenda
             null,                                        // modalidadePagamento
-            DateFormatter::toIsoDate($row['data'] ?? null),
-            DateFormatter::toIsoDate($row['competencia'] ?? null),
-            ValueFormatter::toFloat($row['realizado_mensal'] ?? null),
-            null,                                        // realizado_acumulado
-            ValueFormatter::toFloat($row['quantidade'] ?? null),
-            ValueFormatter::toFloat($row['variavel_real'] ?? null)
+            $dataIso,                                    // data
+            $dataIso,                                    // competencia
+            ValueFormatter::toFloat($row['meta_mensal'] ?? null),
+            null,                                        // metaAcumulada
+            null,                                        // variavelMeta
+            null                                         // peso
         );
     }
 }
