@@ -3336,6 +3336,214 @@ function buildPontosByIndicadorMap(period = state.period || {}) {
   });
 }
 
+function calculatePontosFromApi(period = state.period || {}) {
+  const pontosArray = typeof FACT_PONTOS !== "undefined" ? FACT_PONTOS : [];
+  const startISO = period.start || "";
+  const endISO = period.end || "";
+  const filters = getFilterValues();
+  
+  // Busca dados de realizados para cruzar com filtros de estrutura
+  const realizadosArray = typeof FACT_REALIZADOS !== "undefined" ? FACT_REALIZADOS : [];
+  
+  // Cria um mapa de indicadores que passam nos filtros de estrutura
+  const indicadoresFiltrados = new Set();
+  if (!selecaoPadrao(filters.segmento) || !selecaoPadrao(filters.diretoria) || 
+      !selecaoPadrao(filters.gerencia) || !selecaoPadrao(filters.agencia) ||
+      !selecaoPadrao(filters.ggestao) || !selecaoPadrao(filters.gerente)) {
+    realizadosArray.forEach(row => {
+      const okSeg = selecaoPadrao(filters.segmento) || matchesSegmentFilter(filters.segmento, row.segmento, row.segmentoId, row.segmentoNome);
+      const okDR = selecaoPadrao(filters.diretoria) || matchesSelection(filters.diretoria, row.diretoria, row.diretoriaNome);
+      const okGR = selecaoPadrao(filters.gerencia) || matchesSelection(filters.gerencia, row.gerenciaRegional, row.gerenciaNome, row.regional);
+      const okAg = selecaoPadrao(filters.agencia) || matchesSelection(filters.agencia, row.agencia, row.agenciaNome, row.agenciaCodigo);
+      const okGG = selecaoPadrao(filters.ggestao) || matchesSelection(
+        filters.ggestao,
+        row.gerente_gestao_id,
+        row.gerenteGestaoId,
+        row.gerenteGestao,
+        row.gerenteGestaoNome,
+        row.gerenteGestaoLabel
+      );
+      const okGer = selecaoPadrao(filters.gerente) || matchesSelection(
+        filters.gerente,
+        row.gerente_id,
+        row.gerenteId,
+        row.gerente,
+        row.gerenteNome,
+        row.gerenteLabel
+      );
+      
+      if (okSeg && okDR && okGR && okAg && okGG && okGer && row.produtoId) {
+        indicadoresFiltrados.add(row.produtoId);
+      }
+    });
+  }
+  
+  let totalMeta = 0;
+  let totalRealizado = 0;
+  
+  pontosArray.forEach(ponto => {
+    if (ponto && ponto.idIndicador) {
+      // Filtra por data se o período estiver definido
+      if (startISO || endISO) {
+        const pontoData = ponto.dataRealizado || "";
+        if (startISO && pontoData && pontoData < startISO) return;
+        if (endISO && pontoData && pontoData > endISO) return;
+      }
+      
+      const cardId = INDICADOR_CODE_TO_CARD_ID.get(String(ponto.idIndicador)) || String(ponto.idIndicador);
+      
+      // Filtra por estrutura (gerente, diretoria, etc.) se houver filtros ativos
+      if (indicadoresFiltrados.size > 0 && !indicadoresFiltrados.has(cardId)) {
+        return;
+      }
+      
+      // Filtra por família se o filtro estiver ativo
+      if (!selecaoPadrao(filters.familiaId) && filters.familiaId) {
+        const produtoMeta = PRODUCT_INDEX.get(cardId);
+        const familiaMeta = PRODUTO_TO_FAMILIA.get(cardId);
+        const pontoFamiliaId = ponto.idFamilia ? String(ponto.idFamilia) : "";
+        const cardFamiliaId = familiaMeta?.id || produtoMeta?.familiaId || "";
+        
+        if (!matchesSelection(filters.familiaId, cardFamiliaId, pontoFamiliaId, familiaMeta?.nome)) {
+          return;
+        }
+      }
+      
+      // Filtra por indicador/produto se o filtro estiver ativo
+      if (!selecaoPadrao(filters.produtoId) && filters.produtoId) {
+        if (!matchesSelection(filters.produtoId, cardId, String(ponto.idIndicador), ponto.indicador)) {
+          return;
+        }
+      }
+      
+      // Filtra por seção se o filtro estiver ativo
+      if (!selecaoPadrao(filters.secaoId) && filters.secaoId) {
+        const produtoMeta = PRODUCT_INDEX.get(cardId);
+        const familiaMeta = PRODUTO_TO_FAMILIA.get(cardId);
+        const secaoId = produtoMeta?.sectionId || familiaMeta?.secaoId || "";
+        if (!matchesSelection(filters.secaoId, secaoId)) {
+          return;
+        }
+      }
+      
+      totalMeta += Number(ponto.meta) || 0;
+      totalRealizado += Number(ponto.realizado) || 0;
+    }
+  });
+  
+  return {
+    meta: totalMeta,
+    realizado: totalRealizado
+  };
+}
+
+function calculateVariavelFromApi(period = state.period || {}) {
+  const variavelArray = typeof FACT_VARIAVEL !== "undefined" ? FACT_VARIAVEL : [];
+  
+  // Se não houver dados, retorna zero
+  if (!Array.isArray(variavelArray) || variavelArray.length === 0) {
+    return { meta: 0, realizado: 0 };
+  }
+  
+  const filters = getFilterValues();
+  
+  let totalMeta = 0;
+  let totalRealizado = 0;
+  
+  variavelArray.forEach(variavel => {
+    if (!variavel) return;
+    
+    // Variável não filtra por data - os dados já são agregados por período
+    
+    // Filtra por estrutura diretamente dos campos da variável
+    // Se não houver filtro ativo (selecaoPadrao retorna true), passa automaticamente
+    const okSeg = selecaoPadrao(filters.segmento) || matchesSegmentFilter(filters.segmento, variavel.segmento, variavel.segmentoId, variavel.segmento);
+    const okDR = selecaoPadrao(filters.diretoria) || matchesSelection(filters.diretoria, variavel.diretoriaId, variavel.diretoriaNome);
+    const okGR = selecaoPadrao(filters.gerencia) || matchesSelection(filters.gerencia, variavel.gerenciaId, variavel.regionalNome);
+    const okAg = selecaoPadrao(filters.agencia) || matchesSelection(filters.agencia, variavel.agenciaId, variavel.agenciaNome);
+    
+    // Para gerente de gestão e gerente, busca usando funcional
+    let okGG = selecaoPadrao(filters.ggestao);
+    let okGer = selecaoPadrao(filters.gerente);
+    
+    // Se há filtro de gerente de gestão ou gerente, precisa buscar e comparar
+    if (!okGG && filters.ggestao) {
+      // Busca informações do gerente usando funcional
+      if (variavel.funcional) {
+        const gerenteMeta = findGerenteMeta(variavel.funcional);
+        if (gerenteMeta) {
+          okGG = matchesSelection(
+            filters.ggestao,
+            gerenteMeta.gerenteGestaoId,
+            gerenteMeta.gerenteGestao,
+            gerenteMeta.gerenteGestaoNome,
+            gerenteMeta.gerenteGestaoLabel
+          );
+        }
+      }
+    }
+    
+    if (!okGer && filters.gerente) {
+      // Busca informações do gerente usando funcional
+      if (variavel.funcional) {
+        const gerenteMeta = findGerenteMeta(variavel.funcional);
+        if (gerenteMeta) {
+          okGer = matchesSelection(
+            filters.gerente,
+            gerenteMeta.gerenteId || gerenteMeta.id,
+            variavel.funcional,
+            gerenteMeta.nome || gerenteMeta.label,
+            variavel.nomeFuncional
+          );
+        } else {
+          // Se não encontrou no índice, tenta usar funcional diretamente
+          okGer = matchesSelection(filters.gerente, variavel.funcional, variavel.nomeFuncional);
+        }
+      }
+    }
+    
+    // Se algum filtro de estrutura falhou, exclui o registro
+    if (!okSeg || !okDR || !okGR || !okAg || !okGG || !okGer) {
+      return;
+    }
+    
+    // Filtra por família se o filtro estiver ativo
+    if (!selecaoPadrao(filters.familiaId) && filters.familiaId) {
+      const variavelFamiliaId = variavel.familiaId || "";
+      if (!matchesSelection(filters.familiaId, variavelFamiliaId, variavel.familiaNome)) {
+        return;
+      }
+    }
+    
+    // Filtra por indicador/produto se o filtro estiver ativo
+    if (!selecaoPadrao(filters.produtoId) && filters.produtoId) {
+      const produtoId = variavel.produtoId || "";
+      if (!matchesSelection(filters.produtoId, produtoId, variavel.produtoNome)) {
+        return;
+      }
+    }
+    
+    // Filtra por seção se o filtro estiver ativo
+    if (!selecaoPadrao(filters.secaoId) && filters.secaoId) {
+      const produtoMeta = variavel.produtoId ? PRODUCT_INDEX.get(variavel.produtoId) : null;
+      const familiaMeta = variavel.produtoId ? PRODUTO_TO_FAMILIA.get(variavel.produtoId) : null;
+      const secaoId = produtoMeta?.sectionId || familiaMeta?.secaoId || variavel.secaoId || "";
+      if (!matchesSelection(filters.secaoId, secaoId)) {
+        return;
+      }
+    }
+    
+    // Soma os valores
+    totalMeta += Number(variavel.variavelMeta) || 0;
+    totalRealizado += Number(variavel.variavelReal) || 0;
+  });
+  
+  return {
+    meta: totalMeta,
+    realizado: totalRealizado
+  };
+}
+
 function buildCardSectionsFromDimension(rows = []) {
   const normalizedRows = Array.isArray(rows) ? rows : [];
   const sectionsMap = new Map();
@@ -9642,15 +9850,30 @@ function renderResumoKPI(summary, context = {}) {
 
   const indicadoresAtingidos = toNumber(summary.indicadoresAtingidos ?? visibleItemsHitCount ?? 0);
   const indicadoresTotal = toNumber(summary.indicadoresTotal ?? 0);
-  const pontosAtingidos = toNumber(summary.pontosAtingidos ?? visiblePointsHit ?? 0);
-  const pontosTotal = toNumber(summary.pontosPossiveis ?? 0);
+  
+  // Calcula pontos da API se disponível, senão usa os calculados
+  const pontosFromApi = calculatePontosFromApi(state.period || {});
+  const hasPontosApi = typeof FACT_PONTOS !== "undefined" && Array.isArray(FACT_PONTOS) && FACT_PONTOS.length > 0;
+  const pontosAtingidos = hasPontosApi
+    ? pontosFromApi.realizado
+    : toNumber(summary.pontosAtingidos ?? visiblePointsHit ?? 0);
+  const pontosTotal = hasPontosApi
+    ? pontosFromApi.meta
+    : toNumber(summary.pontosPossiveis ?? 0);
 
-  const varTotalBase = summary.varPossivel != null
-    ? toNumber(summary.varPossivel)
-    : (visibleVarMeta != null ? toNumber(visibleVarMeta) : 0);
-  const varRealBase = summary.varAtingido != null
-    ? toNumber(summary.varAtingido)
-    : (visibleVarAtingido != null ? toNumber(visibleVarAtingido) : 0);
+  // Calcula variável da API se disponível, senão usa os calculados
+  const variavelFromApi = calculateVariavelFromApi(state.period || {});
+  const hasVariavelApi = typeof FACT_VARIAVEL !== "undefined" && Array.isArray(FACT_VARIAVEL) && FACT_VARIAVEL.length > 0;
+  const varTotalBase = hasVariavelApi
+    ? variavelFromApi.meta
+    : (summary.varPossivel != null
+      ? toNumber(summary.varPossivel)
+      : (visibleVarMeta != null ? toNumber(visibleVarMeta) : 0));
+  const varRealBase = hasVariavelApi
+    ? variavelFromApi.realizado
+    : (summary.varAtingido != null
+      ? toNumber(summary.varAtingido)
+      : (visibleVarAtingido != null ? toNumber(visibleVarAtingido) : 0));
 
   const resumoAnim = state.animations?.resumo;
   const keyParts = [
