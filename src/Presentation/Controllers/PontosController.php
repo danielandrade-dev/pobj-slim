@@ -6,9 +6,8 @@ use App\Application\UseCase\PontosUseCase;
 use App\Domain\DTO\FilterDTO;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use Exception;
 
-class PontosController
+class PontosController extends ControllerBase
 {
     private $pontosUseCase;
 
@@ -17,25 +16,14 @@ class PontosController
         $this->pontosUseCase = $pontosUseCase;
     }
 
-    public function handle(Request $request, Response $response)
+    public function handle(Request $request, Response $response): Response
     {
-        try {
-            $queryParams = $request->getQueryParams();
-            $filters = new FilterDTO($queryParams);
-            
-            $result = $this->pontosUseCase->getAllPontos($filters);
-            
-            $response = $response->withHeader('Content-Type', 'application/json; charset=utf-8');
-            $response->getBody()->write(json_encode($result, JSON_UNESCAPED_UNICODE));
-            return $response;
-        } catch (Exception $e) {
-            $response = $response->withStatus(500);
-            $response->getBody()->write(json_encode([
-                'error' => 'Erro ao buscar pontos',
-                'message' => $e->getMessage()
-            ], JSON_UNESCAPED_UNICODE));
-            return $response;
-        }
+        $queryParams = $request->getQueryParams();
+        $filters = new FilterDTO($queryParams);
+        
+        $result = $this->pontosUseCase->handle($filters);
+        
+        return $this->success($response, $result);
     }
 }
 

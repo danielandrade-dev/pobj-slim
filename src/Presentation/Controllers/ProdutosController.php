@@ -7,7 +7,7 @@ use App\Domain\DTO\FilterDTO;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
-class ProdutosController
+class ProdutosController extends ControllerBase
 {
     private $produtoUseCase;
 
@@ -21,11 +21,9 @@ class ProdutosController
         $queryParams = $request->getQueryParams();
         $filters = new FilterDTO($queryParams);
         
-        $result = $this->produtoUseCase->getAllProdutos($filters);
+        $result = $this->produtoUseCase->handle($filters);
         
-        $response = $response->withHeader('Content-Type', 'application/json; charset=utf-8');
-        $response->getBody()->write(json_encode($result, JSON_UNESCAPED_UNICODE));
-        return $response;
+        return $this->success($response, $result);
     }
 }
 

@@ -2,6 +2,7 @@
 
 namespace App\Domain\DTO;
 
+use App\Domain\Entity\DProduto;
 class ProdutoDTO extends BaseFactDTO
 {
     private $id;
@@ -42,7 +43,7 @@ class ProdutoDTO extends BaseFactDTO
         ];
     }
 
-    public static function fromEntity(\App\Domain\Entity\DProduto $entity): self
+    public static function fromEntity(DProduto $entity): self
     {
         $peso = ($entity->getPeso() !== null && $entity->getPeso() !== '' && is_numeric($entity->getPeso())) 
             ? (float)$entity->getPeso() 
@@ -56,8 +57,8 @@ class ProdutoDTO extends BaseFactDTO
             $entity->getIndicador() ?? '',
             $entity->getIdSubindicador() !== null ? (string)$entity->getIdSubindicador() : null,
             $entity->getSubindicador() ?? '',
-            null,
-            $peso
+            $entity->getMetrica() ?? '',
+            $entity->getPeso() ?? null
         );
     }
 

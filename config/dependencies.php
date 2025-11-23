@@ -221,7 +221,7 @@ function registerUseCases($container)
 
     $container['App\Application\UseCase\MetaUseCase'] = function ($c) {
         return new \App\Application\UseCase\MetaUseCase(
-            $c->get('App\Infrastructure\Persistence\FindAllMetasRepository')
+            $c->get('App\Infrastructure\Persistence\MetasRepository')
         );
     };
 
@@ -233,7 +233,7 @@ function registerUseCases($container)
 
     $container['App\Application\UseCase\CalendarioUseCase'] = function ($c) {
         return new \App\Application\UseCase\CalendarioUseCase(
-            $c->get('App\Infrastructure\Persistence\FindAllCalendarioRepository')
+            $c->get('App\Infrastructure\Persistence\CalendarioRepository')
         );
     };
 

@@ -2,31 +2,16 @@
 
 namespace App\Application\UseCase;
 
-use App\Infrastructure\Persistence\FindAllCalendarioRepository;
+use App\Infrastructure\Persistence\CalendarioRepository;
 
 /**
  * UseCase para operações relacionadas ao calendário
  */
-class CalendarioUseCase
+class CalendarioUseCase extends AbstractUseCase
 {
-    /** @var FindAllCalendarioRepository */
-    private $repository;
-
-    /**
-     * @param FindAllCalendarioRepository $repository
-     */
-    public function __construct(FindAllCalendarioRepository $repository)
+    public function __construct(CalendarioRepository $repository)
     {
-        $this->repository = $repository;
-    }
-
-    /**
-     * Retorna todos os registros do calendário
-     * @return array
-     */
-    public function getAllCalendario(): array
-    {
-        return $this->repository->fetchAll();
+        parent::__construct($repository);
     }
 }
 

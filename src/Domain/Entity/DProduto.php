@@ -52,6 +52,11 @@ class DProduto
      */
     private $peso;
 
+    /**
+     * @ORM\Column(type="string", length=120, nullable=true)
+     */
+    private $metrica;   
+
     public function getId()
     {
         return $this->id;
@@ -134,6 +139,17 @@ class DProduto
         return $this;
     }
 
+    public function getMetrica()
+    {
+        return $this->metrica;
+    }
+
+    public function setMetrica($metrica)
+    {
+        $this->metrica = $metrica;
+        return $this;
+    }
+
     public static function fromArray(array $data): self
     {
         $entity = new self();
@@ -145,6 +161,7 @@ class DProduto
         $entity->idSubindicador = isset($data['id_subindicador']) ? (int)$data['id_subindicador'] : null;
         $entity->subindicador = $data['subindicador'] ?? null;
         $entity->peso = isset($data['peso']) ? (float)$data['peso'] : null;
+        $entity->metrica = $data['metrica'] ?? null;
         return $entity;
     }
 

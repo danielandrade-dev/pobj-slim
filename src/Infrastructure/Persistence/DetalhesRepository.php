@@ -7,19 +7,28 @@ use App\Domain\DTO\FilterDTO;
 use App\Domain\DTO\DetalhesDTO;
 use App\Domain\Enum\Tables;
 use App\Infrastructure\Helpers\DateFormatter;
+use App\Infrastructure\Helpers\ValueFormatter;
 
-class DetalhesRepository
+/**
+ * Repositório para buscar todos os registros de detalhes com filtros opcionais
+ */
+class DetalhesRepository extends BaseRepository
 {
-    private $pdo;
-
+    /**
+     * @param PDO $pdo
+     */
     public function __construct(PDO $pdo)
     {
-        $this->pdo = $pdo;
+        parent::__construct($pdo, DetalhesDTO::class);
     }
 
-    public function findAllAsArray(FilterDTO $filters = null): array
+    /**
+     * Retorna o SELECT completo da consulta
+     * @return string
+     */
+    public function baseSelect(): string
     {
-        $sql = "SELECT 
+        return "SELECT 
                     registro_id,
                     segmento,
                     segmento_id,
@@ -53,108 +62,125 @@ class DetalhesRepository
                     status_id
                 FROM " . Tables::F_DETALHES . "
                 WHERE 1=1";
-        
-        $params = [];
-        
-        if ($filters !== null && $filters->hasAnyFilter()) {
-            if ($filters->segmento !== null) {
-                $sql .= " AND segmento_id = :segmento";
-                $params[':segmento'] = $filters->segmento;
-            }
-            if ($filters->diretoria !== null) {
-                $sql .= " AND diretoria_id = :diretoria";
-                $params[':diretoria'] = $filters->diretoria;
-            }
-            if ($filters->regional !== null) {
-                $sql .= " AND gerencia_regional_id = :regional";
-                $params[':regional'] = $filters->regional;
-            }
-            if ($filters->agencia !== null) {
-                $sql .= " AND agencia_id = :agencia";
-                $params[':agencia'] = $filters->agencia;
-            }
-            if ($filters->gerenteGestao !== null) {
-                $sql .= " AND gerente_gestao_id = :gerente_gestao";
-                $params[':gerente_gestao'] = $filters->gerenteGestao;
-            }
-            if ($filters->gerente !== null) {
-                $sql .= " AND gerente_id = :gerente";
-                $params[':gerente'] = $filters->gerente;
-            }
-            if ($filters->familia !== null) {
-                $sql .= " AND familia_id = :familia";
-                $params[':familia'] = $filters->familia;
-            }
-            if ($filters->indicador !== null) {
-                $sql .= " AND id_indicador = :indicador";
-                $params[':indicador'] = $filters->indicador;
-            }
-            if ($filters->subindicador !== null) {
-                $sql .= " AND id_subindicador = :subindicador";
-                $params[':subindicador'] = $filters->subindicador;
-            }
-        }
-        
-        $sql .= " ORDER BY data DESC";
-        
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
-        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        return array_map(function ($row) {
-            $dataIso = DateFormatter::toIsoDate(isset($row['data']) ? $row['data'] : null);
-            $competenciaIso = DateFormatter::toIsoDate(isset($row['competencia']) ? $row['competencia'] : null);
-            
-            $dto = new DetalhesDTO(
-                isset($row['registro_id']) ? $row['registro_id'] : null,
-                isset($row['segmento']) ? $row['segmento'] : null,
-                isset($row['segmento_id']) ? $row['segmento_id'] : null,
-                isset($row['diretoria_id']) ? $row['diretoria_id'] : null,
-                isset($row['diretoria_nome']) ? $row['diretoria_nome'] : null,
-                isset($row['gerencia_regional_id']) ? $row['gerencia_regional_id'] : null,
-                isset($row['gerencia_regional_nome']) ? $row['gerencia_regional_nome'] : null,
-                isset($row['agencia_id']) ? $row['agencia_id'] : null,
-                isset($row['agencia_nome']) ? $row['agencia_nome'] : null,
-                isset($row['gerente_gestao_id']) ? $row['gerente_gestao_id'] : null,
-                isset($row['gerente_gestao_nome']) ? $row['gerente_gestao_nome'] : null,
-                isset($row['gerente_id']) ? $row['gerente_id'] : null,
-                isset($row['gerente_nome']) ? $row['gerente_nome'] : null,
-                isset($row['familia_id']) ? $row['familia_id'] : null,
-                isset($row['familia_nome']) ? $row['familia_nome'] : null,
-                isset($row['id_indicador']) ? $row['id_indicador'] : null,
-                isset($row['ds_indicador']) ? $row['ds_indicador'] : null,
-                isset($row['subindicador']) ? $row['subindicador'] : null,
-                isset($row['id_subindicador']) ? $row['id_subindicador'] : null,
-                isset($row['subindicador']) ? $row['subindicador'] : null,
-                null,
-                null,
-                null,
-                isset($row['carteira']) ? $row['carteira'] : null,
-                isset($row['canal_venda']) ? $row['canal_venda'] : null,
-                isset($row['tipo_venda']) ? $row['tipo_venda'] : null,
-                isset($row['modalidade_pagamento']) ? $row['modalidade_pagamento'] : null,
-                $dataIso,
-                $competenciaIso,
-                $this->toFloat(isset($row['valor_meta']) ? $row['valor_meta'] : null),
-                $this->toFloat(isset($row['valor_realizado']) ? $row['valor_realizado'] : null),
-                $this->toFloat(isset($row['quantidade']) ? $row['quantidade'] : null),
-                $this->toFloat(isset($row['peso']) ? $row['peso'] : null),
-                $this->toFloat(isset($row['pontos']) ? $row['pontos'] : null),
-                isset($row['status_id']) ? $row['status_id'] : null
-            );
-            
-            return $dto->toArray();
-        }, $results);
     }
-    
-    private function toFloat($value)
+
+    /**
+     * Constrói os filtros WHERE baseado no FilterDTO
+     * @param FilterDTO|null $filters
+     * @return array ['sql' => string, 'params' => array]
+     */
+    public function builderFilter(FilterDTO $filters = null): array
     {
-        if ($value === null || $value === '') {
-            return null;
+        $sql = "";
+        $params = [];
+
+        if ($filters === null || !$filters->hasAnyFilter()) {
+            return ['sql' => $sql, 'params' => $params];
         }
-        if (is_numeric($value)) {
-            return (float)$value;
+
+        if ($filters->segmento !== null) {
+            $sql .= " AND segmento_id = :segmento";
+            $params[':segmento'] = $filters->segmento;
         }
-        return null;
+
+        if ($filters->diretoria !== null) {
+            $sql .= " AND diretoria_id = :diretoria";
+            $params[':diretoria'] = $filters->diretoria;
+        }
+
+        if ($filters->regional !== null) {
+            $sql .= " AND gerencia_regional_id = :regional";
+            $params[':regional'] = $filters->regional;
+        }
+
+        if ($filters->agencia !== null) {
+            $sql .= " AND agencia_id = :agencia";
+            $params[':agencia'] = $filters->agencia;
+        }
+
+        if ($filters->gerenteGestao !== null) {
+            $sql .= " AND gerente_gestao_id = :gerente_gestao";
+            $params[':gerente_gestao'] = $filters->gerenteGestao;
+        }
+
+        if ($filters->gerente !== null) {
+            $sql .= " AND gerente_id = :gerente";
+            $params[':gerente'] = $filters->gerente;
+        }
+
+        if ($filters->familia !== null) {
+            $sql .= " AND familia_id = :familia";
+            $params[':familia'] = $filters->familia;
+        }
+
+        if ($filters->indicador !== null) {
+            $sql .= " AND id_indicador = :indicador";
+            $params[':indicador'] = $filters->indicador;
+        }
+
+        if ($filters->subindicador !== null) {
+            $sql .= " AND id_subindicador = :subindicador";
+            $params[':subindicador'] = $filters->subindicador;
+        }
+
+        return ['sql' => $sql, 'params' => $params];
+    }
+
+    /**
+     * Retorna a cláusula ORDER BY
+     * @return string
+     */
+    protected function getOrderBy(): string
+    {
+        return "ORDER BY data DESC";
+    }
+
+    /**
+     * Mapeia um array de resultados para DetalhesDTO
+     * @param array $row
+     * @return DetalhesDTO
+     */
+    public function mapToDto(array $row): DetalhesDTO
+    {
+        $dataIso = DateFormatter::toIsoDate($row['data'] ?? null);
+        $competenciaIso = DateFormatter::toIsoDate($row['competencia'] ?? null);
+
+        return new DetalhesDTO(
+            $row['registro_id'] ?? null,
+            $row['segmento'] ?? null,
+            $row['segmento_id'] ?? null,
+            $row['diretoria_id'] ?? null,
+            $row['diretoria_nome'] ?? null,
+            $row['gerencia_regional_id'] ?? null,
+            $row['gerencia_regional_nome'] ?? null,
+            $row['agencia_id'] ?? null,
+            $row['agencia_nome'] ?? null,
+            $row['gerente_gestao_id'] ?? null,
+            $row['gerente_gestao_nome'] ?? null,
+            $row['gerente_id'] ?? null,
+            $row['gerente_nome'] ?? null,
+            $row['familia_id'] ?? null,
+            $row['familia_nome'] ?? null,
+            $row['id_indicador'] ?? null,
+            $row['ds_indicador'] ?? null,
+            $row['subindicador'] ?? null,
+            $row['id_subindicador'] ?? null,
+            $row['subindicador'] ?? null,
+            null, // subindicadorCodigo
+            null, // familiaCodigo
+            null, // indicadorCodigo
+            $row['carteira'] ?? null,
+            $row['canal_venda'] ?? null,
+            $row['tipo_venda'] ?? null,
+            $row['modalidade_pagamento'] ?? null,
+            $dataIso,
+            $competenciaIso,
+            ValueFormatter::toFloat($row['valor_meta'] ?? null),
+            ValueFormatter::toFloat($row['valor_realizado'] ?? null),
+            ValueFormatter::toFloat($row['quantidade'] ?? null),
+            ValueFormatter::toFloat($row['peso'] ?? null),
+            ValueFormatter::toFloat($row['pontos'] ?? null),
+            $row['status_id'] ?? null
+        );
     }
 }

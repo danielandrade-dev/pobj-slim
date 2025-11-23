@@ -2,33 +2,16 @@
 
 namespace App\Application\UseCase;
 
-use App\Domain\DTO\FilterDTO;
-use App\Infrastructure\Persistence\FindAllMetasRepository;
+use App\Infrastructure\Persistence\MetasRepository;
 
 /**
  * UseCase para operações relacionadas a metas
  */
-class MetaUseCase
+class MetaUseCase extends AbstractUseCase
 {
-    /** @var FindAllMetasRepository */
-    private $repository;
-
-    /**
-     * @param FindAllMetasRepository $repository
-     */
-    public function __construct(FindAllMetasRepository $repository)
+    public function __construct(MetasRepository $repository)
     {
-        $this->repository = $repository;
-    }
-
-    /**
-     * Retorna todas as metas com filtros opcionais
-     * @param FilterDTO|null $filters
-     * @return array
-     */
-    public function getAllMetas(FilterDTO $filters = null): array
-    {
-        return $this->repository->fetch($filters);
+        parent::__construct($repository);
     }
 }
 

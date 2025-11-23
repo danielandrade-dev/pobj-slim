@@ -5,18 +5,11 @@ namespace App\Application\UseCase;
 use App\Domain\DTO\FilterDTO;
 use App\Infrastructure\Persistence\DetalhesRepository;
 
-class DetalhesUseCase
+class DetalhesUseCase extends AbstractUseCase
 {
-    private $repository;
-
     public function __construct(DetalhesRepository $repository)
     {
-        $this->repository = $repository;
-    }
-
-    public function getAllDetalhes(FilterDTO $filters = null): array
-    {
-        return $this->repository->findAllAsArray($filters);
+        parent::__construct($repository);
     }
 }
 
