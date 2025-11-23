@@ -11359,7 +11359,7 @@ function renderResumoLegacyAnnualMatrix(host, sections = [], summary = {}) {
       sectionToggle.classList.toggle("is-expanded", allExpanded);
       if (sectionToggleLabel) sectionToggleLabel.textContent = allExpanded ? "Recolher filtros" : "Abrir todos os filtros";
     };
-
+c
     items.forEach(item => {
       const pesoValor = Number(item.pontosMeta ?? item.peso ?? 0);
       const pesoLabel = escapeHTML(fmtINT.format(Math.round(pesoValor || 0)));
@@ -11909,18 +11909,22 @@ function buildResumoLegacySections(sections = []) {
 
         ensureHierarchyHasChildren(rowItem);
 
-        const pontosMeta = Number(rowItem.pontosMeta ?? rowItem.peso ?? 0) || 0;
-        const pontosBrutos = Number(rowItem.pontosBrutos ?? rowItem.pontos ?? 0) || 0;
+        // Busca pontos da API se disponível, senão usa os calculados
+        const pontosApi = PONTOS_BY_INDICADOR.get(String(rowItem.id));
+        const pontosMeta = pontosApi ? Number(pontosApi.meta) || 0 : 0;
+        const pontosBrutos = pontosApi ? Number(pontosApi.realizado) || 0 : (Number(rowItem.pontosBrutos ?? rowItem.pontos ?? 0) || 0);
         const pontosReal = Math.max(0, Math.min(pontosMeta, pontosBrutos));
         const metaVal = Number(rowItem.meta) || 0;
         const realVal = Number(rowItem.realizado) || 0;
-        const variavelMetaVal = Number(rowItem.variavelMeta) || 0;
-        const variavelRealVal = Number(rowItem.variavelReal) || 0;
+        // Variável vem apenas da API - não usa valores dos itens
+        const variavelMetaVal = 0;
+        const variavelRealVal = 0;
 
         famMeta += metaVal;
         famReal += realVal;
         famPontosMeta += pontosMeta;
         famPontos += pontosReal;
+        // Variável será calculada separadamente da API
         famVariavelMeta += variavelMetaVal;
         famVariavelReal += variavelRealVal;
 
@@ -11961,11 +11965,23 @@ function buildResumoLegacySections(sections = []) {
       secReal += famReal;
       secPontosMeta += famPontosMeta;
       secPontos += famPontos;
+      // Variável não é mais calculada por item, será calculada da API
       secVariavelMeta += famVariavelMeta;
       secVariavelReal += famVariavelReal;
     });
 
     if (!sectionItems.length) return;
+
+    // Calcula variável da API (total geral, não agrupado por seção)
+    // Como a API de variável não tem agrupamento por seção, usamos o total geral
+    let secVariavelMetaAPI = 0;
+    let secVariavelRealAPI = 0;
+    const variavelArray = typeof FACT_VARIAVEL !== "undefined" ? FACT_VARIAVEL : [];
+    variavelArray.forEach(variavel => {
+      if (!variavel) return;
+      secVariavelMetaAPI += Number(variavel.variavelMeta) || 0;
+      secVariavelRealAPI += Number(variavel.variavelReal) || 0;
+    });
 
     result.push({
       id: secDef.id,
@@ -11976,8 +11992,8 @@ function buildResumoLegacySections(sections = []) {
         realizadoTotal: secReal,
         pontosTotal: secPontosMeta,
         pontosHit: secPontos,
-        variavelMeta: secVariavelMeta,
-        variavelReal: secVariavelReal,
+        variavelMeta: secVariavelMetaAPI,
+        variavelReal: secVariavelRealAPI,
         atingPct: secMeta ? (secReal / secMeta) * 100 : 0
       }
     });
@@ -12283,7 +12299,7 @@ function buildDashboardDatasetFromRows(rows = [], period = state.period || {}) {
         nome: meta.nome || row.produtoNome || row.produto || (isUnknown ? "Desconhecido" : resolvedId),
         icon: meta.icon || (isUnknown ? "ti ti-help" : "ti ti-dots"),
         metrica: meta.metrica || row.metrica || meta.metric || row.metric || "valor",
-        peso: meta.peso || row.peso || 1,
+        peso: meta.peso != null ? meta.peso : (row.peso != null ? row.peso : 0),
         hiddenInCards: !!meta.hiddenInCards,
         secaoId,
         secaoLabel,
@@ -12647,8 +12663,12 @@ function buildDashboardDatasetFromRows(rows = [], period = state.period || {}) {
       if (agg.secaoId && agg.secaoId !== sec.id) return null;
       const ating = agg.metaTotal ? (agg.realizadoTotal / agg.metaTotal) : 0;
       const variavelAting = agg.variavelMeta ? (agg.variavelReal / agg.variavelMeta) : ating;
-      const pontosMeta = Number(item.peso) || 0;
-      const pontosBrutos = Number.isFinite(agg.pontos) ? agg.pontos : 0;
+      // Busca pontos da API se disponível, senão usa os calculados
+      const pontosApi = PONTOS_BY_INDICADOR.get(String(item.id));
+      // Se não há dados na API de pontos, não deve usar o peso como pontosMeta
+      // Apenas itens que estão na API de pontos devem ser contados
+      const pontosMeta = pontosApi ? Number(pontosApi.meta) || 0 : 0;
+      const pontosBrutos = pontosApi ? Number(pontosApi.realizado) || 0 : (Number.isFinite(agg.pontos) ? agg.pontos : 0);
       const pontosCumpridos = Math.max(0, Math.min(pontosMeta, pontosBrutos));
       // Se não houver data real de atualização, usa "Indisponível"
       const ultimaAtualizacaoTexto = agg.ultimaAtualizacao 
@@ -12770,12 +12790,33 @@ function buildDashboardDatasetFromRows(rows = [], period = state.period || {}) {
   const allItems = sections.flatMap(sec => sec.items);
   const indicadoresTotal = allItems.length;
   const indicadoresAtingidos = allItems.filter(item => item.atingido).length;
-  const pontosPossiveis = allItems.reduce((acc, item) => acc + (item.pontosMeta ?? item.peso ?? 0), 0);
-  const pontosAtingidos = allItems.reduce((acc, item) => acc + (item.pontos ?? 0), 0);
+  // Calcula pontosPossiveis usando APENAS dados da API de pontos
+  // Não mistura com indicadores - usa diretamente PONTOS_BY_INDICADOR
+  let pontosPossiveis = 0;
+  let pontosAtingidos = 0;
+  PONTOS_BY_INDICADOR.forEach((dados, id) => {
+    const meta = Number(dados.meta) || 0;
+    const realizado = Number(dados.realizado) || 0;
+    pontosPossiveis += meta;
+    pontosAtingidos += realizado;
+  });
   const metaTotal = allItems.reduce((acc, item) => acc + (item.meta || 0), 0);
   const realizadoTotal = allItems.reduce((acc, item) => acc + (item.realizado || 0), 0);
-  const varPossivel = allItems.reduce((acc, item) => acc + (item.variavelMeta || 0), 0);
-  const varAtingido = allItems.reduce((acc, item) => acc + (item.variavelReal || 0), 0);
+  
+  // Calcula variável usando APENAS dados da API de variável
+  // Não mistura com indicadores - usa diretamente FACT_VARIAVEL
+  const variavelArray = typeof FACT_VARIAVEL !== "undefined" ? FACT_VARIAVEL : [];
+  
+  // Calcula varPossivel e varAtingido somando APENAS os valores da API de variável
+  let varPossivel = 0;
+  let varAtingido = 0;
+  variavelArray.forEach(variavel => {
+    if (!variavel) return;
+    const meta = Number(variavel.variavelMeta) || 0;
+    const realizado = Number(variavel.variavelReal) || 0;
+    varPossivel += meta;
+    varAtingido += realizado;
+  });
 
   const summary = {
     indicadoresTotal,
@@ -12990,8 +13031,8 @@ function renderFamilias(sections, summary){
       const pontosApi = PONTOS_BY_INDICADOR.get(String(f.id));
       const pontosMeta = pontosApi ? Number(pontosApi.meta) || 0 : pontosMetaItem;
       const pontosReal = pontosApi ? Number(pontosApi.realizado) || 0 : pontosRealItem;
-      // O peso sempre vem da API de produtos (f.peso), não da API de pontos
-      const pesoCard = Number(f.peso) || pontosMetaItem || 0;
+      // O peso sempre vem da API de produtos (f.peso ou PRODUCT_INDEX), não da API de pontos
+      const pesoCard = Number(f.peso) || Number(prodMeta?.peso) || pontosMetaItem || 0;
       const pontosRatio = pontosMeta ? (pontosReal / pontosMeta) : 0;
       const pontosPct = Math.max(0, pontosRatio * 100);
       const pontosPctLabel = `${pontosPct.toFixed(1)}%`;
@@ -13279,7 +13320,7 @@ function renderResumoLegacyTable(sections = [], summary = {}, rawSections = null
       if (isKnownMetric) {
         metricClasses.push(`resumo-legacy__metric--${metricKeyRaw}`);
       }
-
+      
       const pesoValor = Number(item.pontosMeta ?? item.peso ?? 0) || 0;
       const pesoLabelRaw = fmtINT.format(Math.round(pesoValor));
 
