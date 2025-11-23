@@ -92,6 +92,12 @@ $app->get('/api/leads', function ($request, $response) use ($app) {
     return $controller->handle($request, $response);
 });
 
+// Pontos
+$app->get('/api/pontos', function ($request, $response) use ($app) {
+    $controller = $app->getContainer()->get('App\Presentation\Controllers\PontosController');
+    return $controller->handle($request, $response);
+});
+
 // Rotas Omega
 $app->group('/api/omega', function () use ($app) {
     // Omega Users

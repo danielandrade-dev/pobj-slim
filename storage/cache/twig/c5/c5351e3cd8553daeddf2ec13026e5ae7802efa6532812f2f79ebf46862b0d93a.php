@@ -59,6 +59,7 @@ class __TwigTemplate_4027f91da9c4608afa5e2f1546bf3a81648cdddd70307eda3e805679703
   <script src=\"/js/api/detalhes.js\"></script>
   <script src=\"/js/api/historico.js\"></script>
   <script src=\"/js/api/leads.js\"></script>
+  <script src=\"/js/api/pontos.js\"></script>
   
   <!-- Core Application -->
   <script src=\"/js/core/app.js\"></script>
@@ -106,6 +107,7 @@ class __TwigTemplate_4027f91da9c4608afa5e2f1546bf3a81648cdddd70307eda3e805679703
   <script src=\"/js/api/detalhes.js\"></script>
   <script src=\"/js/api/historico.js\"></script>
   <script src=\"/js/api/leads.js\"></script>
+  <script src=\"/js/api/pontos.js\"></script>
   
   <!-- Core Application -->
   <script src=\"/js/core/app.js\"></script>

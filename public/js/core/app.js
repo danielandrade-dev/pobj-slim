@@ -2644,6 +2644,7 @@ function processBaseDataSources({
   leadsRaw = [],
   detalhesRaw = [],
   historicoRaw = [],
+  pontosRaw = [],
   dimSegmentosRaw = [],
   dimDiretoriasRaw = [],
   dimRegionaisRaw = [],
@@ -2682,6 +2683,10 @@ function processBaseDataSources({
   processMetasData(metasRaw);
   // Processa dados de variável usando função de variavel.js
   processVariavelData(variavelRaw);
+  // Processa dados de pontos usando função de pontos.js
+  processPontosData(pontosRaw);
+  // Cria mapa de pontos por indicador para acesso rápido
+  buildPontosByIndicadorMap();
   // Processa dados de campanhas usando função de campanhas.js
   processCampanhasData(campanhasRaw);
   // Processa dados de calendário usando função de calendario.js
@@ -2775,7 +2780,8 @@ async function loadBaseData(){
         campanhas,
         detalhes,
         historico,
-        leads
+        leads,
+        pontos
       ] = await Promise.all([
         loadEstruturaData(),
         loadStatusData(),
@@ -2788,7 +2794,8 @@ async function loadBaseData(){
         loadCampanhasData(),
         loadDetalhesData(),
         loadHistoricoData(),
-        loadLeadsData()
+        loadLeadsData(),
+        loadPontosData()
       ]);
 
       return processBaseDataSources({
@@ -2803,6 +2810,7 @@ async function loadBaseData(){
         leadsRaw: leads || [],
         detalhesRaw: detalhes || [],
         historicoRaw: historico || [],
+        pontosRaw: pontos || [],
         dimSegmentosRaw: estruturaData.segmentos || [],
         dimDiretoriasRaw: estruturaData.diretorias || [],
         dimRegionaisRaw: estruturaData.regionais || [],
@@ -3297,6 +3305,28 @@ let FAMILIA_CODE_TO_SLUG = new Map();
 let INDICADOR_CODE_TO_SLUG = new Map();
 let SUB_CODE_TO_SLUG = new Map();
 let PRODUCT_INDEX = new Map();
+let PONTOS_BY_INDICADOR = new Map();
+let INDICADOR_CODE_TO_CARD_ID = new Map(); // Mapa código numérico -> ID do card
+
+function buildPontosByIndicadorMap() {
+  PONTOS_BY_INDICADOR.clear();
+  const pontosArray = typeof FACT_PONTOS !== "undefined" ? FACT_PONTOS : [];
+  pontosArray.forEach(ponto => {
+    if (ponto && ponto.idIndicador) {
+      // Busca o ID do card usando o código numérico do indicador
+      const cardId = INDICADOR_CODE_TO_CARD_ID.get(String(ponto.idIndicador)) || String(ponto.idIndicador);
+      // Se já existe, mantém o mais recente (compara por data)
+      const existente = PONTOS_BY_INDICADOR.get(cardId);
+      if (!existente || (ponto.dataRealizado && existente.dataRealizado && ponto.dataRealizado > existente.dataRealizado)) {
+        PONTOS_BY_INDICADOR.set(cardId, {
+          meta: ponto.meta || 0,
+          realizado: ponto.realizado || 0,
+          dataRealizado: ponto.dataRealizado
+        });
+      }
+    }
+  });
+}
 
 function buildCardSectionsFromDimension(rows = []) {
   const normalizedRows = Array.isArray(rows) ? rows : [];
@@ -3429,6 +3459,10 @@ function buildCardSectionsFromDimension(rows = []) {
     const indicadorCodigo = limparTexto(row.indicadorCodigo);
     if (indicadorCodigo && row.indicadorId && !INDICADOR_CODE_TO_SLUG.has(indicadorCodigo)) {
       INDICADOR_CODE_TO_SLUG.set(indicadorCodigo, row.indicadorId);
+    }
+    // Mapeia código numérico do indicador para ID do card
+    if (indicadorCodigo && row.indicadorId && /^\d+$/.test(indicadorCodigo)) {
+      INDICADOR_CODE_TO_CARD_ID.set(indicadorCodigo, row.indicadorId);
     }
     const subCodigo = limparTexto(row.subCodigo);
     if (subCodigo && row.subId && !SUB_CODE_TO_SLUG.has(subCodigo)) {
@@ -11797,8 +11831,12 @@ function renderFamilias(sections, summary){
       const realizadoFull = formatMetricFull(metrica, f.realizado);
       const metaFull      = formatMetricFull(metrica, f.meta);
 
-      const pontosMeta = pontosMetaItem;
-      const pontosReal = pontosRealItem;
+      // Busca pontos da API se disponível, senão usa os calculados
+      const pontosApi = PONTOS_BY_INDICADOR.get(String(f.id));
+      const pontosMeta = pontosApi ? Number(pontosApi.meta) || 0 : pontosMetaItem;
+      const pontosReal = pontosApi ? Number(pontosApi.realizado) || 0 : pontosRealItem;
+      // O peso sempre vem da API de produtos (f.peso), não da API de pontos
+      const pesoCard = Number(f.peso) || pontosMetaItem || 0;
       const pontosRatio = pontosMeta ? (pontosReal / pontosMeta) : 0;
       const pontosPct = Math.max(0, pontosRatio * 100);
       const pontosPctLabel = `${pontosPct.toFixed(1)}%`;
@@ -11819,7 +11857,7 @@ function renderFamilias(sections, summary){
 
           <div class="prod-card__meta">
             <span class="pill">Pontos: ${formatPoints(pontosReal)} / ${formatPoints(pontosMeta)}</span>
-            <span class="pill">Peso: ${formatPeso(pontosMeta)}</span>
+            <span class="pill">Peso: ${formatPeso(pesoCard)}</span>
             <span class="pill">${metricaCapitalizada}</span>
           </div>
 

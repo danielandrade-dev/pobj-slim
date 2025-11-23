@@ -122,6 +122,10 @@ function registerRepositories($container)
     $container['App\Infrastructure\Persistence\OmegaMesuRepository'] = function ($c) {
         return new \App\Infrastructure\Persistence\OmegaMesuRepository($c->get(PDO::class));
     };
+
+    $container['App\Infrastructure\Persistence\PontosRepository'] = function ($c) {
+        return new \App\Infrastructure\Persistence\PontosRepository($c->get(PDO::class));
+    };
 }
 
 function registerUseCases($container)
@@ -232,6 +236,12 @@ function registerUseCases($container)
             $c->get('App\Infrastructure\Persistence\CalendarioRepository')
         );
     };
+
+    $container['App\Application\UseCase\PontosUseCase'] = function ($c) {
+        return new \App\Application\UseCase\PontosUseCase(
+            $c->get('App\Infrastructure\Persistence\PontosRepository')
+        );
+    };
 }
 
 function registerControllers($container)
@@ -315,6 +325,12 @@ function registerControllers($container)
     $container['App\Presentation\Controllers\VariavelController'] = function ($c) {
         return new \App\Presentation\Controllers\VariavelController(
             $c->get('App\Application\UseCase\VariavelUseCase')
+        );
+    };
+
+    $container['App\Presentation\Controllers\PontosController'] = function ($c) {
+        return new \App\Presentation\Controllers\PontosController(
+            $c->get('App\Application\UseCase\PontosUseCase')
         );
     };
 
