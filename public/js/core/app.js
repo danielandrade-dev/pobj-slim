@@ -11585,43 +11585,30 @@ function buildResumoLegacySections(sections = []) {
     return cloned;
   };
 
-  const periodStart = state.period?.start || "";
-  const periodEnd = state.period?.end || "";
-  const diasTotais = businessDaysBetweenInclusive(periodStart, periodEnd);
-  const diasDecorridos = businessDaysElapsedUntilToday(periodStart, periodEnd);
-  const diasRestantes = Math.max(0, diasTotais - diasDecorridos);
+
+
+  const { total: diasTotais, elapsed: diasDecorridos, remaining: diasRestantes } = getCurrentMonthBusinessSnapshot();
 
   const normalizeNodeMetrics = (node = {}, fallbackMetric = "valor") => {
     const metrica = typeof node.metrica === "string" && node.metrica ? node.metrica.toLowerCase() : (typeof node.metric === "string" && node.metric ? node.metric.toLowerCase() : fallbackMetric);
     const metaVal = Number(node.meta) || 0;
     const realVal = Number(node.realizado) || 0;
-    const variavelMetaVal = Number(node.variavelMeta) || 0;
-    const variavelRealVal = Number(node.variavelReal) || 0;
+    const variavelMetaVal = Number(node.meta) || 0;
+    const variavelRealVal = Number(node.realizado) || 0;
     const pesoVal = Number(node.peso ?? node.pontosMeta) || 0;
     const pontosMetaVal = Number(node.pontosMeta ?? node.peso) || pesoVal;
     const pontosBrutosVal = Number(node.pontos ?? Math.min(pesoVal, realVal)) || 0;
     const ultimaAtualizacao = node.ultimaAtualizacao || node.ultimaAtualizacaoTexto || "";
     const ating = metaVal ? realVal / metaVal : 0;
-    const metaDiariaValCandidate = toNumber(node.metaDiaria);
-    const metaDiariaVal = Number.isFinite(metaDiariaValCandidate)
-      ? metaDiariaValCandidate
-      : (diasTotais > 0 ? metaVal / diasTotais : 0);
-    const referenciaCandidate = toNumber(
-      node.referenciaHoje ?? node.referenciaDia ?? node.referencia ?? node.referenciaAtual
-    );
-    const referenciaHojeVal = Number.isFinite(referenciaCandidate)
-      ? referenciaCandidate
-      : (diasDecorridos > 0 ? Math.min(metaVal, metaDiariaVal * diasDecorridos) : 0);
-    const metaNecCandidate = toNumber(
-      node.metaDiariaNecessaria ?? node.metaNecessaria ?? node.metaDiaNecessaria ?? node.metaDiariaRestante
-    );
-    const metaDiariaNecessariaVal = Number.isFinite(metaNecCandidate)
-      ? metaNecCandidate
-      : (diasRestantes > 0 ? Math.max(0, (metaVal - realVal) / diasRestantes) : 0);
-    const projecaoCandidate = toNumber(node.projecao ?? node.forecast ?? node.previsao);
-    const projecaoVal = Number.isFinite(projecaoCandidate)
-      ? projecaoCandidate
-      : (diasDecorridos > 0 ? (realVal / Math.max(diasDecorridos, 1)) * diasTotais : realVal);
+    const metaDiariaVal = (diasTotais > 0 ? metaVal / diasTotais : 0);
+
+    const referenciaHojeVal = (diasTotais > 0 ? (metaVal / diasTotais) * diasDecorridos : 0);
+    const faltaTotal = Math.max(0, metaVal - realVal);
+    const metaDiariaNecessariaVal = (diasRestantes > 0 ? (faltaTotal / diasRestantes) : 0);
+    
+    const mediaDiariaAtual = diasDecorridos > 0 ? (realVal / diasDecorridos) : 0;
+    const projecaoVal = (mediaDiariaAtual * (diasTotais || 0));
+
     return {
       ...node,
       metrica,
@@ -12237,6 +12224,7 @@ function buildCardTooltipHTML(item) {
 
   const necessarioPorDiaDisp = diasRestantes > 0 ? fmt(item.metric, necessarioPorDia) : "—";
   const referenciaHojeDisp   = diasDecorridos > 0 ? fmt(item.metric, referenciaHoje) : "—";
+  
 
   return `
     <div class="kpi-tip" role="dialog" aria-label="Detalhes do indicador">
@@ -13444,6 +13432,13 @@ function renderResumoLegacyTable(sections = [], summary = {}, rawSections = null
   const showAnnualMatrix = (state.accumulatedView || "mensal") === "anual";
   host.classList.toggle("resumo-legacy--annual", showAnnualMatrix);
 
+  // Calcula dias úteis para os cálculos de referência, forecast e meta diária necessária
+  const periodStart = state.period?.start || "";
+  const periodEnd = state.period?.end || "";
+  const diasTotais = businessDaysBetweenInclusive(periodStart, periodEnd);
+  const diasDecorridos = businessDaysElapsedUntilToday(periodStart, periodEnd);
+  const diasRestantes = Math.max(0, diasTotais - diasDecorridos);
+
   const activeSections = showAnnualMatrix
     ? (Array.isArray(rawSections) && rawSections.length ? rawSections : sections)
     : sections;
@@ -13623,12 +13618,28 @@ function renderResumoLegacyTable(sections = [], summary = {}, rawSections = null
         metaTitleRaw = formatMetricFull(metricKeyRaw, item.meta);
         realizadoCellRaw = formatByMetric(metricKeyRaw, item.realizado);
         realizadoTitleRaw = formatMetricFull(metricKeyRaw, item.realizado);
-        referenciaCellRaw = formatByMetric(metricKeyRaw, item.referenciaHoje);
-        referenciaTitleRaw = formatMetricFull(metricKeyRaw, item.referenciaHoje);
+        
+        // Ref. do dia: diasDecorridos > 0 ? fmt(item.metric, referenciaHoje) : "—"
+        if (diasDecorridos > 0) {
+          referenciaCellRaw = formatByMetric(metricKeyRaw, item.referenciaHoje);
+          referenciaTitleRaw = formatMetricFull(metricKeyRaw, item.referenciaHoje);
+        } else {
+          referenciaCellRaw = "—";
+          referenciaTitleRaw = "Sem referência do dia";
+        }
+        
+        // Forecast: sempre calculado (mediaDiariaAtual * diasTotais)
         forecastCellRaw = formatByMetric(metricKeyRaw, item.projecao);
         forecastTitleRaw = formatMetricFull(metricKeyRaw, item.projecao);
-        metaNecCellRaw = formatByMetric(metricKeyRaw, item.metaDiariaNecessaria);
-        metaNecTitleRaw = formatMetricFull(metricKeyRaw, item.metaDiariaNecessaria);
+        
+        // Meta diária necessária: diasRestantes > 0 ? fmt(item.metric, necessarioPorDia) : "—"
+        if (diasRestantes > 0) {
+          metaNecCellRaw = formatByMetric(metricKeyRaw, item.metaDiariaNecessaria);
+          metaNecTitleRaw = formatMetricFull(metricKeyRaw, item.metaDiariaNecessaria);
+        } else {
+          metaNecCellRaw = "—";
+          metaNecTitleRaw = "Sem meta diária necessária";
+        }
       }
 
       const atingPct = Math.max(0, Math.min(200, toNumber(item.ating) * 100));
