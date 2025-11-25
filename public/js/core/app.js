@@ -827,7 +827,7 @@ function buildResumoHierarchyDefault(rows = []) {
     if (!id) return;
     const nome = limparTexto(dim.nome) || extractNameFromLabel(dim.label) || id;
     // Para gerente, usa funcional se disponível, senão usa id
-    const displayId = limparTexto(dim.funcional) || id;
+    const displayId = limparTexto(dim.funcional);
     const label = buildHierarchyLabel(displayId, nome);
     const agencia = limparTexto(dim.id_agencia || dim.agencia);
     const regional = limparTexto(dim.id_regional || dim.regional || dim.gerencia);
@@ -1697,8 +1697,10 @@ function montarHierarquiaMesu(rows){
     const lookup = DIM_GGESTAO_LOOKUP.get(id) || {};
     const baseEntry = ggMap.get(id) || {};
     const nome = extractNameFromLabel(normalized.label) || lookup.nome || baseEntry.nome || id;
-    const displayId = limparTexto(lookup.funcional || normalized.funcional || opt.funcional);
-    const label = buildHierarchyLabel(displayId, nome);
+    // Remove qualquer ID/funcional do início do nome se ainda estiver lá
+    const nomeLimpo = nome.replace(/^[a-z0-9]+\s*-\s*/i, '').trim() || nome;
+    // Para gerente de gestão, mostra apenas o nome (sem ID/funcional)
+    const label = nomeLimpo;
     const agencia = limparTexto(lookup.id_agencia || baseEntry.agencia);
     const gerencia = limparTexto(lookup.id_regional || baseEntry.gerencia);
     const diretoria = limparTexto(lookup.id_diretoria || baseEntry.diretoria);
@@ -1729,8 +1731,10 @@ function montarHierarquiaMesu(rows){
     const lookup = DIM_GERENTES_LOOKUP.get(id) || {};
     const baseEntry = gerMap.get(id) || {};
     const nome = extractNameFromLabel(normalized.label) || lookup.nome || baseEntry.nome || id;
-    const displayId = limparTexto(lookup.funcional || normalized.funcional || opt.funcional);
-    const label = buildHierarchyLabel(displayId, nome);
+    // Remove qualquer ID/funcional do início do nome se ainda estiver lá
+    const nomeLimpo = nome.replace(/^[a-z0-9]+\s*-\s*/i, '').trim() || nome;
+    // Para gerente, mostra apenas o nome (sem ID/funcional)
+    const label = nomeLimpo;
     const agencia = limparTexto(lookup.id_agencia || baseEntry.agencia);
     const gerencia = limparTexto(lookup.id_regional || baseEntry.gerencia);
     const diretoria = limparTexto(lookup.id_diretoria || baseEntry.diretoria);
@@ -8354,7 +8358,7 @@ function buildHierarchyOptions(fieldKey, selection, rows){
       filteredOptions.map(opt => {
         const normalized = normOpt(opt);
         // Preserva funcional do opt original (normOpt pode remover campos extras)
-        const funcional = opt.funcional || normalized.funcional;
+        const funcional = opt.funcional;
         let label = normalized.label || normalized.id;
         
         // Para segmento, diretoria, agência, gerente gestão e gerente, garantir que o label inclua o ID
@@ -8362,15 +8366,14 @@ function buildHierarchyOptions(fieldKey, selection, rows){
           const optId = limparTexto(normalized.id);
           const optLabel = limparTexto(normalized.label);
           
-          // Para gerente e gerente de gestão, sempre usa funcional
+          // Para gerente e gerente de gestão, mostra apenas o nome (sem ID/funcional)
           if (fieldKey === "ggestao" || fieldKey === "gerente") {
-            const displayId = limparTexto(funcional);
             // Extrai o nome do label (remove qualquer ID que possa estar no início)
             const optName = typeof extractNameFromLabel === "function" ? extractNameFromLabel(optLabel) : optLabel;
-            // Remove qualquer ID do início do nome se ainda estiver lá
-            const nomeFinal = optName.replace(/^\d+\s*-\s*/, '').trim() || optLabel.replace(/^\d+\s*-\s*/, '').trim() || optLabel;
-            // Sempre reconstrói o label com funcional - nome
-            label = buildHierarchyLabel(displayId, nomeFinal) || `${displayId} - ${nomeFinal}`;
+            // Remove qualquer ID/funcional do início do nome
+            const nomeFinal = optName.replace(/^[a-z0-9]+\s*-\s*/i, '').trim() || optLabel.replace(/^[a-z0-9]+\s*-\s*/i, '').trim() || optLabel;
+            // Usa apenas o nome, sem ID ou funcional
+            label = nomeFinal;
           } else {
             // Para outros campos, usa a lógica normal
             const optName = typeof extractNameFromLabel === "function" ? extractNameFromLabel(optLabel) : optLabel;

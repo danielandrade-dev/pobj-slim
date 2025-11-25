@@ -371,15 +371,12 @@ function buildHierarchyRowsFromEstrutura(){
       : agenciaNomeRaw;
     
     const gerenteGestaoNomeRaw = gerenteGestao ? (gerenteGestao.label || gerenteGestao.nome || String(gerenteGestao.id || "")) : "";
-    const gerenteGestaoIdStr = gerenteGestao ? String(gerenteGestao.id || "") : "";
-    const gerenteGestaoNome = gerenteGestaoIdStr && gerenteGestaoNomeRaw && gerenteGestaoNomeRaw !== gerenteGestaoIdStr
-      ? buildHierarchyLabel(gerenteGestaoIdStr, gerenteGestaoNomeRaw) || gerenteGestaoNomeRaw
-      : gerenteGestaoNomeRaw;
+    // Para gerente de gestão, mostra apenas o nome (remove ID/funcional se presente)
+    const gerenteGestaoNome = gerenteGestaoNomeRaw ? gerenteGestaoNomeRaw.replace(/^[a-z0-9]+\s*-\s*/i, '').trim() || gerenteGestaoNomeRaw : gerenteGestaoNomeRaw;
     
     const gerenteNomeRaw = gerente ? (gerente.label || gerente.nome || gerenteIdStr) : gerenteIdStr;
-    const gerenteNome = gerenteIdStr && gerenteNomeRaw && gerenteNomeRaw !== gerenteIdStr
-      ? buildHierarchyLabel(gerenteIdStr, gerenteNomeRaw) || gerenteNomeRaw
-      : gerenteNomeRaw;
+    // Para gerente, mostra apenas o nome (remove ID/funcional se presente)
+    const gerenteNome = gerenteNomeRaw ? gerenteNomeRaw.replace(/^[a-z0-9]+\s*-\s*/i, '').trim() || gerenteNomeRaw : gerenteNomeRaw;
     
     const segmentoIdStrFinal = segmento ? String(segmento.id || "") : segmentoIdStr || "";
     const segmentoNomeRaw = segmento ? (segmento.label || segmento.nome || segmentoIdStrFinal) : "";
@@ -450,11 +447,9 @@ function buildHierarchyRowsFromEstrutura(){
       ? buildHierarchyLabel(agenciaIdStr, agenciaNomeRaw2) || agenciaNomeRaw2 
       : agenciaNomeRaw2;
     
-    const gerenteGestaoIdStr2 = gerenteGestaoFinal ? String(gerenteGestaoFinal.id || "") : "";
-    const gerenteGestaoNomeRaw2 = gerenteGestaoFinal ? (gerenteGestaoFinal.label || gerenteGestaoFinal.nome || gerenteGestaoIdStr2) : "";
-    const gerenteGestaoNome2 = gerenteGestaoIdStr2 && gerenteGestaoNomeRaw2 && gerenteGestaoNomeRaw2 !== gerenteGestaoIdStr2
-      ? buildHierarchyLabel(gerenteGestaoIdStr2, gerenteGestaoNomeRaw2) || gerenteGestaoNomeRaw2
-      : gerenteGestaoNomeRaw2;
+    const gerenteGestaoNomeRaw2 = gerenteGestaoFinal ? (gerenteGestaoFinal.label || gerenteGestaoFinal.nome || "") : "";
+    // Para gerente de gestão, mostra apenas o nome (remove ID/funcional se presente)
+    const gerenteGestaoNome2 = gerenteGestaoNomeRaw2 ? gerenteGestaoNomeRaw2.replace(/^[a-z0-9]+\s*-\s*/i, '').trim() || gerenteGestaoNomeRaw2 : gerenteGestaoNomeRaw2;
     
     const segmentoIdStrFinal2 = segmento ? String(segmento.id || "") : segmentoIdStr || "";
     const segmentoNomeRaw2 = segmento ? (segmento.label || segmento.nome || segmentoIdStrFinal2) : "";
@@ -519,9 +514,8 @@ function buildHierarchyRowsFromEstrutura(){
       : agenciaNomeRaw3;
     
     const gerenteGestaoNomeRaw3 = gg ? (gg.label || gg.nome || ggIdStr) : ggIdStr;
-    const gerenteGestaoNome3 = ggIdStr && gerenteGestaoNomeRaw3 && gerenteGestaoNomeRaw3 !== ggIdStr
-      ? buildHierarchyLabel(ggIdStr, gerenteGestaoNomeRaw3) || gerenteGestaoNomeRaw3
-      : gerenteGestaoNomeRaw3;
+    // Para gerente de gestão, mostra apenas o nome (remove ID/funcional se presente)
+    const gerenteGestaoNome3 = gerenteGestaoNomeRaw3 ? gerenteGestaoNomeRaw3.replace(/^[a-z0-9]+\s*-\s*/i, '').trim() || gerenteGestaoNomeRaw3 : gerenteGestaoNomeRaw3;
     
     const segmentoIdStrFinal3 = segmento ? String(segmento.id || "") : segmentoIdStr || "";
     const segmentoNomeRaw3 = segmento ? (segmento.label || segmento.nome || segmentoIdStrFinal3) : "";
@@ -719,7 +713,7 @@ function buildHierarchyOptions(fieldKey, selection, rows){
     options.push(...filteredOptions.map(opt => {
         const normalized = typeof normOpt === "function" ? normOpt(opt) : opt;
         // Preserva funcional do opt original (normOpt pode remover campos extras)
-        const funcional = opt.funcional || normalized.funcional;
+        const funcional = opt.funcional;
         let label = normalized.label || normalized.id;
         
         // Para segmento, diretoria, agência, gerente gestão e gerente, garantir que o label inclua o ID
@@ -727,15 +721,14 @@ function buildHierarchyOptions(fieldKey, selection, rows){
           const optId = limparTexto(normalized.id);
           const optLabel = limparTexto(normalized.label);
           
-          // Para gerente e gerente de gestão, sempre usa funcional
+          // Para gerente e gerente de gestão, mostra apenas o nome (sem ID/funcional)
           if (fieldKey === "ggestao" || fieldKey === "gerente") {
-            const displayId = limparTexto(funcional);
             // Extrai o nome do label (remove qualquer ID que possa estar no início)
             const optName = typeof extractNameFromLabel === "function" ? extractNameFromLabel(optLabel) : optLabel;
-            // Remove qualquer ID do início do nome se ainda estiver lá
-            const nomeFinal = optName.replace(/^\d+\s*-\s*/, '').trim() || optLabel.replace(/^\d+\s*-\s*/, '').trim() || optLabel;
-            // Sempre reconstrói o label com funcional - nome
-            label = buildHierarchyLabel(displayId, nomeFinal) || `${displayId} - ${nomeFinal}`;
+            // Remove qualquer ID/funcional do início do nome
+            const nomeFinal = optName.replace(/^[a-z0-9]+\s*-\s*/i, '').trim() || optLabel.replace(/^[a-z0-9]+\s*-\s*/i, '').trim() || optLabel;
+            // Usa apenas o nome, sem ID ou funcional
+            label = nomeFinal;
           } else {
             // Para outros campos, usa a lógica normal
             const optName = typeof extractNameFromLabel === "function" ? extractNameFromLabel(optLabel) : optLabel;
@@ -929,7 +922,16 @@ function buildHierarchyOptions(fieldKey, selection, rows){
     const cleanValue = limparTexto(rawValue);
     const cleanLabel = limparTexto(rawLabel);
     const explicitLabel = limparTexto(row[`${fieldKey}Label`]) || limparTexto(row[`${def.labelKey}Label`]);
-    const idForLabel = limparTexto(row[def.idKey] || row[`${fieldKey}Id`]);
+    
+    // Para gerente e gerente de gestão, não usa ID/funcional no label (apenas nome)
+    let idForLabel = null;
+    if (fieldKey === "ggestao" || fieldKey === "gerente") {
+      // Não precisa do ID para gerente e gerente de gestão (mostra apenas nome)
+      idForLabel = null;
+    } else {
+      idForLabel = limparTexto(row[def.idKey] || row[`${fieldKey}Id`]);
+    }
+    
     const nameForLabel = limparTexto(row[`${fieldKey}NomeOriginal`])
       || limparTexto(row[`${def.labelKey}NomeOriginal`])
       || limparTexto(row[`${fieldKey}Nome`])
@@ -940,12 +942,19 @@ function buildHierarchyOptions(fieldKey, selection, rows){
     
     // Para segmento, diretoria, agência, gerente gestão e gerente, sempre incluir ID junto com o nome
     if (fieldsWithIdRequired.has(fieldKey) && idForLabel && nameForLabel && idForLabel !== nameForLabel) {
-      // Verifica se o label já contém o ID
-      const labelWithId = buildHierarchyLabel(idForLabel, nameForLabel);
-      if (labelWithId && labelWithId !== displayLabel) {
-        displayLabel = labelWithId;
-      } else if (!explicitLabel || !displayLabel.includes(idForLabel)) {
-        displayLabel = `${idForLabel} - ${nameForLabel}`;
+      // Para gerente e gerente de gestão, mostra apenas o nome (sem ID/funcional)
+      if (fieldKey === "ggestao" || fieldKey === "gerente") {
+        // Remove qualquer ID/funcional do início do nome se ainda estiver lá
+        const nomeLimpo = nameForLabel.replace(/^[a-z0-9]+\s*-\s*/i, '').trim() || nameForLabel;
+        displayLabel = nomeLimpo;
+      } else {
+        // Verifica se o label já contém o ID
+        const labelWithId = buildHierarchyLabel(idForLabel, nameForLabel);
+        if (labelWithId && labelWithId !== displayLabel) {
+          displayLabel = labelWithId;
+        } else if (!explicitLabel || !displayLabel.includes(idForLabel)) {
+          displayLabel = `${idForLabel} - ${nameForLabel}`;
+        }
       }
       aliasCandidates.push(nameForLabel);
     } else if (!explicitLabel && comboFieldsWithConcat.has(fieldKey) && idForLabel && nameForLabel && idForLabel !== nameForLabel) {
@@ -997,11 +1006,18 @@ function buildHierarchyOptions(fieldKey, selection, rows){
         const optLabel = limparTexto(normalized.label);
         const optName = typeof extractNameFromLabel === "function" ? extractNameFromLabel(optLabel) : optLabel;
         
-        // Se o label não contém o ID, adiciona usando buildHierarchyLabel
-        if (optId && optName && optId !== optName && !optLabel.includes(optId)) {
-          normalized.label = buildHierarchyLabel(optId, optName) || `${optId} - ${optName}`;
-        } else if (optId && !optLabel.includes(optId)) {
-          normalized.label = buildHierarchyLabel(optId, optLabel) || `${optId} - ${optLabel}`;
+        // Para gerente e gerente de gestão, mostra apenas o nome (sem ID/funcional)
+        if (fieldKey === "ggestao" || fieldKey === "gerente") {
+          // Remove qualquer ID/funcional do início do nome
+          const nomeLimpo = optName.replace(/^[a-z0-9]+\s*-\s*/i, '').trim() || optLabel.replace(/^[a-z0-9]+\s*-\s*/i, '').trim() || optLabel;
+          normalized.label = nomeLimpo;
+        } else {
+          // Se o label não contém o ID, adiciona usando buildHierarchyLabel
+          if (optId && optName && optId !== optName && !optLabel.includes(optId)) {
+            normalized.label = buildHierarchyLabel(optId, optName) || `${optId} - ${optName}`;
+          } else if (optId && !optLabel.includes(optId)) {
+            normalized.label = buildHierarchyLabel(optId, optLabel) || `${optId} - ${optLabel}`;
+          }
         }
       }
       register(normalized.id, normalized.label);
