@@ -7,12 +7,16 @@ namespace App\Domain\Enum;
  */
 class Cargo
 {
-    const GERENTE = 1;
+    const DIRETOR = 1;
+    const REGIONAL = 2;
     const GERENTE_GESTAO = 3;
+    const GERENTE = 4;
 
     private static $validValues = [
         self::GERENTE,
         self::GERENTE_GESTAO,
+        self::DIRETOR,
+        self::REGIONAL,
     ];
 
     private $value;
@@ -34,12 +38,16 @@ class Cargo
                 return 'Gerente';
             case self::GERENTE_GESTAO:
                 return 'Gerente de Gestão';
+            case self::DIRETOR:
+                return 'Diretor';
+            case self::REGIONAL:
+                return 'Regional';
             default:
                 return '';
         }
     }
 
-    public static function tryFromId(int $id): ?self
+    public static function tryFromId(int $id): self|null
     {
         if (in_array($id, self::$validValues, true)) {
             return new self($id);
@@ -64,6 +72,16 @@ class Cargo
     public static function GERENTE_GESTAO(): self
     {
         return new self(self::GERENTE_GESTAO);
+    }
+
+    public static function DIRETOR(): self
+    {
+        return new self(self::DIRETOR);
+    }
+
+    public static function REGIONAL(): self
+    {
+        return new self(self::REGIONAL);
     }
 }
 

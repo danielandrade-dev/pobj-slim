@@ -2,81 +2,71 @@
 
 namespace App\Infrastructure\Persistence;
 
-use App\Domain\Model\Estrutura;
+use App\Domain\Model\DEstrutura;
+use App\Domain\Model\Segmento;
+use App\Domain\Model\Diretoria;
+use App\Domain\Model\Regional;
+use App\Domain\Model\Agencia;
 use App\Domain\Enum\Cargo;
 
 class EstruturaRepository
 {
+    /**
+     * Retorna todos os segmentos (sem pai)
+     * @return array
+     */
     public function findAllSegmentos(): array
     {
-        return Estrutura::selectRaw('DISTINCT id_segmento AS id, segmento AS label')
-            ->whereNotNull('id_segmento')
-            ->whereNotNull('segmento')
-            ->orderBy('segmento', 'ASC')
+        return Segmento::select('id', 'nome as label')
+            ->orderBy('nome', 'ASC')
             ->get()
             ->toArray();
     }
 
+    /**
+     * Retorna todas as diretorias com id_segmento (pai)
+     * @return array
+     */
     public function findAllDiretorias(): array
     {
-        return Estrutura::selectRaw('DISTINCT id_diretoria AS id, diretoria AS label, id_segmento')
-            ->whereNotNull('id_diretoria')
-            ->whereNotNull('diretoria')
-            ->orderBy('diretoria', 'ASC')
+        return Diretoria::select('id', 'nome as label', 'segmento_id as id_segmento')
+            ->orderBy('nome', 'ASC')
             ->get()
             ->toArray();
     }
 
+    /**
+     * Retorna todas as regionais com id_diretoria (pai)
+     * @return array
+     */
     public function findAllRegionais(): array
     {
-        return Estrutura::selectRaw('DISTINCT id_regional AS id, regional AS label, id_diretoria')
-            ->whereNotNull('id_regional')
-            ->whereNotNull('regional')
-            ->orderBy('regional', 'ASC')
+        return Regional::select('id', 'nome as label', 'diretoria_id as id_diretoria')
+            ->orderBy('nome', 'ASC')
             ->get()
             ->toArray();
     }
 
+    /**
+     * Retorna todas as agências com id_regional (pai)
+     * @return array
+     */
     public function findAllAgencias(): array
     {
-        return Estrutura::selectRaw('DISTINCT id_agencia AS id, agencia AS label, porte, id_regional')
-            ->whereNotNull('id_agencia')
-            ->whereNotNull('agencia')
-            ->orderBy('agencia', 'ASC')
+        return Agencia::select('id', 'nome as label', 'porte', 'regional_id as id_regional')
+            ->orderBy('nome', 'ASC')
             ->get()
             ->toArray();
     }
 
+    /**
+     * Retorna todos os gerentes de gestão com id_agencia (pai)
+     * @return array
+     */
     public function findAllGGestoes(): array
     {
-        return Estrutura::selectRaw('DISTINCT funcional AS id, nome AS label, id_agencia')
-            ->where('id_cargo', Cargo::GERENTE_GESTAO)
-            ->whereNotNull('funcional')
-            ->whereNotNull('nome')
-            ->where('funcional', '!=', '')
-            ->where('nome', '!=', '')
-            ->orderBy('nome', 'ASC')
-            ->get()
-            ->toArray();
-    }
-
-    public function findAllGerentes(): array
-    {
-        return Estrutura::selectRaw('DISTINCT funcional AS id, nome AS label')
-            ->where('id_cargo', Cargo::GERENTE)
-            ->whereNotNull('funcional')
-            ->whereNotNull('nome')
-            ->where('funcional', '!=', '')
-            ->where('nome', '!=', '')
-            ->orderBy('nome', 'ASC')
-            ->get()
-            ->toArray();
-    }
-
-    public function findGGestoesForFilter(): array
-    {
-        return Estrutura::selectRaw('DISTINCT funcional AS id, nome AS label, cargo, id_cargo')
-            ->where('id_cargo', Cargo::GERENTE_GESTAO)
+        return DEstrutura::select('id','funcional', 'nome as label', 'agencia_id as id_agencia')
+            ->where('cargo_id', Cargo::GERENTE_GESTAO)
             ->whereNotNull('funcional')
             ->whereNotNull('nome')
             ->orderBy('nome', 'ASC')
@@ -84,39 +74,35 @@ class EstruturaRepository
             ->toArray();
     }
 
-    public function findGerentesForFilter(): array
-    {
-        return Estrutura::selectRaw('DISTINCT funcional AS id, nome AS label, cargo, id_cargo')
-            ->where('id_cargo', Cargo::GERENTE)
-            ->whereNotNull('funcional')
-            ->whereNotNull('nome')
-            ->orderBy('nome', 'ASC')
-            ->get()
-            ->toArray();
-    }
-
+    /**
+     * Retorna todos os gerentes com id_gestor (pai)
+     * Busca o gerente de gestão da mesma estrutura hierárquica
+     * @return array
+     */
     public function findGerentesWithGestor(): array
     {
-        return Estrutura::from('d_estrutura as g')
-            ->selectRaw('
-                DISTINCT
-                g.funcional AS id,
-                g.nome AS label,
-                g.agencia,
-                g.id_agencia,
-                g.cargo,
-                g.id_cargo,
-                gg.funcional AS id_gestor
-            ')
-            ->leftJoin('d_estrutura as gg', function ($join) {
-                $join->on('gg.id_agencia', '=', 'g.id_agencia')
-                     ->on('gg.id_regional', '=', 'g.id_regional')
-                     ->on('gg.id_diretoria', '=', 'g.id_diretoria')
-                     ->on('gg.id_segmento', '=', 'g.id_segmento')
-                     ->where('gg.id_cargo', '=', Cargo::GERENTE_GESTAO);
-            })
-            ->where('g.id_cargo', Cargo::GERENTE)
-            ->get()
-            ->toArray();
+        $gerentes = DEstrutura::where('cargo_id', Cargo::GERENTE)
+            ->whereNotNull('funcional')
+            ->whereNotNull('nome')
+            ->orderBy('nome', 'ASC')
+            ->get();
+
+        return $gerentes->map(function ($gerente) {
+            // Busca o gerente de gestão da mesma agência
+            $gestor = null;
+            if ($gerente->agencia_id) {
+                $gestor = DEstrutura::where('cargo_id', Cargo::GERENTE_GESTAO)
+                    ->where('agencia_id', $gerente->agencia_id)
+                    ->whereNotNull('funcional')
+                    ->first();
+            }
+
+            return [
+                'id' => $gerente->id,
+                'funcional' => $gerente->funcional,
+                'label' => $gerente->nome,
+                'id_gestor' => $gestor ? $gestor->id : null,
+            ];
+        })->toArray();
     }
 }
