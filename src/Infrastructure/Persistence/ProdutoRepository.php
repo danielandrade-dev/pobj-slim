@@ -25,16 +25,19 @@ class ProdutoRepository extends BaseRepository
     public function baseSelect(): string
     {
         return "SELECT 
-                    id,
-                    id_familia, 
-                    familia,
-                    id_indicador,
-                    indicador,
-                    id_subindicador,
-                    subindicador,
-                    metrica,
-                    MAX(peso) as peso
-                FROM " . Tables::D_PRODUTOS . "
+                    p.id,
+                    p.familia_id as id_familia,
+                    COALESCE(f.nm_familia, '') as familia,
+                    p.indicador_id as id_indicador,
+                    COALESCE(i.nm_indicador, '') as indicador,
+                    p.subindicador_id as id_subindicador,
+                    COALESCE(s.nm_subindicador, '') as subindicador,
+                    p.metrica,
+                    MAX(p.peso) as peso
+                FROM " . Tables::D_PRODUTOS . " p
+                LEFT JOIN familia f ON f.id = p.familia_id
+                LEFT JOIN indicador i ON i.id = p.indicador_id
+                LEFT JOIN subindicador s ON s.id = p.subindicador_id
                 WHERE 1=1";
     }
 
@@ -53,17 +56,17 @@ class ProdutoRepository extends BaseRepository
         }
 
         if ($filters->getFamilia() !== null) {
-            $sql .= " AND id_familia = :familia";
+            $sql .= " AND p.familia_id = :familia";
             $params[':familia'] = $filters->getFamilia();
         }
 
         if ($filters->getIndicador() !== null) {
-            $sql .= " AND id_indicador = :indicador";
+            $sql .= " AND p.indicador_id = :indicador";
             $params[':indicador'] = $filters->getIndicador();
         }
 
         if ($filters->getSubindicador() !== null) {
-            $sql .= " AND id_subindicador = :subindicador";
+            $sql .= " AND p.subindicador_id = :subindicador";
             $params[':subindicador'] = $filters->getSubindicador();
         }
 
@@ -77,15 +80,15 @@ class ProdutoRepository extends BaseRepository
     protected function getOrderBy(): string
     {
         return "GROUP BY 
-                    id,
-                    id_familia,
-                    familia,
-                    id_indicador,
-                    indicador,
-                    id_subindicador,
-                    subindicador,
-                    metrica
-                ORDER BY familia ASC, indicador ASC, subindicador ASC";
+                    p.id,
+                    p.familia_id,
+                    f.nm_familia,
+                    p.indicador_id,
+                    i.nm_indicador,
+                    p.subindicador_id,
+                    s.nm_subindicador,
+                    p.metrica
+                ORDER BY f.nm_familia ASC, i.nm_indicador ASC, s.nm_subindicador ASC";
     }
 
     /**

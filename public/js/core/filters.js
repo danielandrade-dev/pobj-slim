@@ -645,6 +645,29 @@ function filterHierarchyRowsForField(targetField, selection, rows){
       if (gerenteIsDefault) return true; // Não filtrar por ggestao se não há gerente selecionado
     }
     
+    // Caso especial: se estamos construindo opções para "gerente" e há gerente de gestão selecionado,
+    // filtrar gerentes pelo id_gestor
+    if (targetField === "gerente" && field.key === "ggestao") {
+      const ggestaoValue = selection.ggestao;
+      const ggestaoDef = HIERARCHY_FIELD_MAP.get("ggestao");
+      const ggestaoIsDefault = !ggestaoValue || ggestaoValue === ggestaoDef?.defaultValue || selecaoPadrao(ggestaoValue);
+      if (!ggestaoIsDefault) {
+        // Filtra gerentes que pertencem ao gerente de gestão selecionado
+        const ggestaoId = limparTexto(ggestaoValue);
+        const rowGerenteGestaoId = limparTexto(row.gerenteGestaoId || row.id_gestor || "");
+        const matches = rowGerenteGestaoId && String(rowGerenteGestaoId) === String(ggestaoId);
+        console.log(`[filterHierarchyRowsForField] Filtrando gerente por ggestao:`, {
+          ggestaoValue,
+          ggestaoId,
+          rowGerenteGestaoId,
+          row: row,
+          matches
+        });
+        return matches;
+      }
+      return true; // Se não há gerente de gestão selecionado, mostra todos os gerentes
+    }
+    
     return hierarchyRowMatchesField(row, field.key, selection[field.key]);
   }));
 }
@@ -781,7 +804,16 @@ function buildHierarchyOptions(fieldKey, selection, rows){
     if (parentValue && parentValue !== (parentDef?.defaultValue || "")) {
       dimensionOptions = dimensionOptions.filter(opt => {
         const relationValue = normalizeId(opt[filterConfig.relationField] || opt[filterConfig.relationField.replace('id_', '')] || "");
-        return relationValue && String(relationValue) === String(parentValue);
+        const matches = relationValue && String(relationValue) === String(parentValue);
+        if (fieldKey === "gerente" && filterConfig.parentField === "ggestao") {
+          console.log(`[buildHierarchyOptions] Filtrando gerente por ggestao (dimension preset):`, {
+            parentValue,
+            relationValue,
+            opt: opt,
+            matches
+          });
+        }
+        return matches;
       });
     }
   }

@@ -45,6 +45,25 @@ class FilterDTO
      */
     public function get(string $key, $default = null)
     {
+        // Para dataInicio e dataFim, não adiciona 'Id' no final
+        if ($key === 'dataInicio' || $key === 'dataFim') {
+            if (isset($this->filters[$key])) {
+                return $this->filters[$key];
+            }
+            // Tenta variações comuns
+            $variations = [
+                $this->normalizeKey($key),
+                strtolower($key),
+                strtoupper($key)
+            ];
+            foreach ($variations as $k) {
+                if (isset($this->filters[$k])) {
+                    return $this->filters[$k];
+                }
+            }
+            return $default;
+        }
+        
         // Suporta múltiplas chaves para compatibilidade
         $keys = [
             $key . 'Id',

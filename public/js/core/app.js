@@ -8293,6 +8293,29 @@ function filterHierarchyRowsForField(targetField, selection, rows){
       if (gerenteIsDefault) return true; // Não filtrar por ggestao se não há gerente selecionado
     }
     
+    // Caso especial: se estamos construindo opções para "gerente" e há gerente de gestão selecionado,
+    // filtrar gerentes pelo id_gestor
+    if (targetField === "gerente" && field.key === "ggestao") {
+      const ggestaoValue = selection.ggestao;
+      const ggestaoDef = HIERARCHY_FIELD_MAP.get("ggestao");
+      const ggestaoIsDefault = !ggestaoValue || ggestaoValue === ggestaoDef?.defaultValue || selecaoPadrao(ggestaoValue);
+      if (!ggestaoIsDefault) {
+        // Filtra gerentes que pertencem ao gerente de gestão selecionado
+        const ggestaoId = limparTexto(ggestaoValue);
+        const rowGerenteGestaoId = limparTexto(row.gerenteGestaoId || row.id_gestor || "");
+        const matches = rowGerenteGestaoId && String(rowGerenteGestaoId) === String(ggestaoId);
+        console.log(`[filterHierarchyRowsForField - app.js] Filtrando gerente por ggestao:`, {
+          ggestaoValue,
+          ggestaoId,
+          rowGerenteGestaoId,
+          row: row,
+          matches
+        });
+        return matches;
+      }
+      return true; // Se não há gerente de gestão selecionado, mostra todos os gerentes
+    }
+    
     return hierarchyRowMatchesField(row, field.key, selection[field.key]);
   }));
 }
@@ -8320,7 +8343,16 @@ function buildHierarchyOptions(fieldKey, selection, rows){
     && DIMENSION_FILTER_OPTIONS[dimensionKey].length > 0;
   
   // Se há preset e não há rows, usa diretamente as opções de dimensão (com filtro hierárquico)
-  if (hasDimensionPreset && (!Array.isArray(rows) || !rows.length)) {
+  // Para gerente, sempre usa dimension preset para garantir filtragem correta por id_gestor
+  const shouldUseDimensionPreset = hasDimensionPreset && (fieldKey === "gerente" || (!Array.isArray(rows) || !rows.length));
+  if (shouldUseDimensionPreset) {
+    if (fieldKey === "gerente") {
+      console.log(`[buildHierarchyOptions - app.js] Usando caminho: dimension preset para gerente`, {
+        hasDimensionPreset,
+        rowsLength: Array.isArray(rows) ? rows.length : 'not array',
+        selection: selection
+      });
+    }
     const baseOption = { value: def.defaultValue, label: def.defaultLabel };
     
     // Mapeamento de campos de relacionamento para cada nível hierárquico
@@ -8349,7 +8381,16 @@ function buildHierarchyOptions(fieldKey, selection, rows){
       if (parentValue && parentValue !== parentDefaultValue && !selecaoPadrao(parentValue)) {
         filteredOptions = DIMENSION_FILTER_OPTIONS[dimensionKey].filter(opt => {
           const relationValue = normalizeId(opt[filterConfig.relationField] || opt[filterConfig.relationField.replace('id_', '')] || "");
-          return relationValue && String(relationValue) === String(parentValue);
+          const matches = relationValue && String(relationValue) === String(parentValue);
+          if (fieldKey === "gerente" && filterConfig.parentField === "ggestao") {
+            console.log(`[buildHierarchyOptions - app.js - no rows] Filtrando gerente por ggestao:`, {
+              parentValue,
+              relationValue,
+              opt: opt,
+              matches
+            });
+          }
+          return matches;
         });
       }
     }
@@ -8360,6 +8401,14 @@ function buildHierarchyOptions(fieldKey, selection, rows){
         // Preserva funcional do opt original (normOpt pode remover campos extras)
         const funcional = opt.funcional;
         let label = normalized.label || normalized.id;
+        if (fieldKey === "gerente") {
+          console.log(`[buildHierarchyOptions - app.js] Processando opção de gerente:`, {
+            opt: opt,
+            normalized: normalized,
+            funcional: funcional,
+            label: label
+          });
+        }
         
         // Para segmento, diretoria, agência, gerente gestão e gerente, garantir que o label inclua o ID
         if (fieldsWithIdRequired.has(fieldKey) && normalized.id) {
@@ -8394,7 +8443,21 @@ function buildHierarchyOptions(fieldKey, selection, rows){
         };
       })
     );
+    if (fieldKey === "gerente") {
+      console.log(`[buildHierarchyOptions - app.js] Retornando opções filtradas (no rows):`, {
+        optionsCount: options.length,
+        options: options,
+        filteredOptionsCount: filteredOptions.length
+      });
+    }
     return uniqById(options);
+  }
+  
+  if (fieldKey === "gerente") {
+    console.log(`[buildHierarchyOptions - app.js] Usando caminho: tem rows ou não tem dimension preset`, {
+      hasDimensionPreset,
+      rowsLength: Array.isArray(rows) ? rows.length : 'not array'
+    });
   }
   
   const fallbackRows = buildHierarchyFallbackRows(fieldKey);
@@ -8428,7 +8491,16 @@ function buildHierarchyOptions(fieldKey, selection, rows){
     if (parentValue && parentValue !== parentDefaultValue && !selecaoPadrao(parentValue)) {
       dimensionOptions = dimensionOptions.filter(opt => {
         const relationValue = normalizeId(opt[filterConfig.relationField] || opt[filterConfig.relationField.replace('id_', '')] || "");
-        return relationValue && String(relationValue) === String(parentValue);
+        const matches = relationValue && String(relationValue) === String(parentValue);
+        if (fieldKey === "gerente" && filterConfig.parentField === "ggestao") {
+          console.log(`[buildHierarchyOptions - app.js] Filtrando gerente por ggestao (dimension preset):`, {
+            parentValue,
+            relationValue,
+            opt: opt,
+            matches
+          });
+        }
+        return matches;
       });
     }
   }

@@ -32,16 +32,20 @@ class VariavelRepository extends BaseRepository
                     v.variavel,
                     v.dt_atualizacao,
                     COALESCE(e.nome, '') AS nome_funcional,
-                    COALESCE(e.segmento, '') AS segmento,
-                    COALESCE(CAST(e.id_segmento AS CHAR), '') AS segmento_id,
-                    COALESCE(e.diretoria, '') AS diretoria_nome,
-                    COALESCE(CAST(e.id_diretoria AS CHAR), '') AS diretoria_id,
-                    COALESCE(e.regional, '') AS regional_nome,
-                    COALESCE(CAST(e.id_regional AS CHAR), '') AS gerencia_id,
-                    COALESCE(e.agencia, '') AS agencia_nome,
-                    COALESCE(CAST(e.id_agencia AS CHAR), '') AS agencia_id
+                    COALESCE(s.nome, '') AS segmento,
+                    COALESCE(CAST(e.segmento_id AS CHAR), '') AS segmento_id,
+                    COALESCE(d.nome, '') AS diretoria_nome,
+                    COALESCE(CAST(e.diretoria_id AS CHAR), '') AS diretoria_id,
+                    COALESCE(r.nome, '') AS regional_nome,
+                    COALESCE(CAST(e.regional_id AS CHAR), '') AS gerencia_id,
+                    COALESCE(a.nome, '') AS agencia_nome,
+                    COALESCE(CAST(e.agencia_id AS CHAR), '') AS agencia_id
                 FROM " . Tables::F_VARIAVEL . " v
                 LEFT JOIN " . Tables::D_ESTRUTURA . " e ON e.funcional = CAST(v.funcional AS CHAR)
+                LEFT JOIN segmentos s ON s.id = e.segmento_id
+                LEFT JOIN diretorias d ON d.id = e.diretoria_id
+                LEFT JOIN regionais r ON r.id = e.regional_id
+                LEFT JOIN agencias a ON a.id = e.agencia_id
                 WHERE 1=1";
     }
 
@@ -60,22 +64,22 @@ class VariavelRepository extends BaseRepository
         }
 
         if ($filters->getSegmento() !== null) {
-            $sql .= " AND e.id_segmento = :segmento";
+            $sql .= " AND e.segmento_id = :segmento";
             $params[':segmento'] = $filters->getSegmento();
         }
 
         if ($filters->getDiretoria() !== null) {
-            $sql .= " AND e.id_diretoria = :diretoria";
+            $sql .= " AND e.diretoria_id = :diretoria";
             $params[':diretoria'] = $filters->getDiretoria();
         }
 
         if ($filters->getRegional() !== null) {
-            $sql .= " AND e.id_regional = :regional";
+            $sql .= " AND e.regional_id = :regional";
             $params[':regional'] = $filters->getRegional();
         }
 
         if ($filters->getAgencia() !== null) {
-            $sql .= " AND e.id_agencia = :agencia";
+            $sql .= " AND e.agencia_id = :agencia";
             $params[':agencia'] = $filters->getAgencia();
         }
 
@@ -83,11 +87,11 @@ class VariavelRepository extends BaseRepository
             $sql .= " AND EXISTS (
                 SELECT 1 FROM " . Tables::D_ESTRUTURA . " ggestao 
                 WHERE ggestao.funcional = :gerente_gestao
-                AND ggestao.id_cargo = " . Cargo::GERENTE_GESTAO . "
-                AND ggestao.id_segmento = e.id_segmento
-                AND ggestao.id_diretoria = e.id_diretoria
-                AND ggestao.id_regional = e.id_regional
-                AND ggestao.id_agencia = e.id_agencia
+                AND ggestao.cargo_id = " . Cargo::GERENTE_GESTAO . "
+                AND ggestao.segmento_id = e.segmento_id
+                AND ggestao.diretoria_id = e.diretoria_id
+                AND ggestao.regional_id = e.regional_id
+                AND ggestao.agencia_id = e.agencia_id
             )";
             $params[':gerente_gestao'] = $filters->getGerenteGestao();
         }
