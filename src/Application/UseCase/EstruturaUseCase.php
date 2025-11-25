@@ -22,6 +22,10 @@ class EstruturaUseCase
             'agencias'        => $this->repository->findAllAgencias(),
             'gerentes_gestao' => $this->repository->findAllGGestoes(),
             'gerentes'        => $this->repository->findGerentesWithGestor(),
+            'familias'        => $this->repository->findAllFamilias(),
+            'indicadores'     => $this->repository->findAllIndicadores(),
+            'subindicadores'  => $this->repository->findAllSubindicadores(),
+
         ];
     }
 }

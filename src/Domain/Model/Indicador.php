@@ -12,6 +12,7 @@ class Indicador extends Model
     
     protected $fillable = [
         'nm_indicador',
+        'familia_id',
     ];
     
     /**
@@ -28,6 +29,11 @@ class Indicador extends Model
     public function produtos()
     {
         return $this->hasMany(DProduto::class, 'indicador_id');
+    }
+
+    public function familia()
+    {
+        return $this->belongsTo(Familia::class, 'familia_id');
     }
 }
 
