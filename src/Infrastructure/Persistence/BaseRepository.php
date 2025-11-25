@@ -2,18 +2,16 @@
 
 namespace App\Infrastructure\Persistence;
 
-use PDO;
+use Illuminate\Database\Capsule\Manager as DB;
 use App\Domain\DTO\FilterDTO;
 use App\Infrastructure\Persistence\Contracts\BaseRepositoryInterface;
 
 abstract class BaseRepository implements BaseRepositoryInterface
 {
-    protected $pdo;
     protected $dtoClass;
 
-    public function __construct(PDO $pdo, string $dtoClass = null)
+    public function __construct(string $dtoClass = null)
     {
-        $this->pdo = $pdo;
         $this->dtoClass = $dtoClass;
     }
 
@@ -68,11 +66,8 @@ abstract class BaseRepository implements BaseRepositoryInterface
         $sql .= $filterResult['sql'];
         $params = $filterResult['params'];
 
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute($params);
-        
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return (int)($result['total'] ?? 0);
+        $result = DB::select($sql, $params);
+        return (int)(!empty($result) ? $result[0]->total : 0);
     }
 
     public function fetch(FilterDTO $filters = null): array
@@ -92,25 +87,16 @@ abstract class BaseRepository implements BaseRepositoryInterface
         if ($filters !== null && $filters->hasPagination()) {
             $offset = $filters->getOffset();
             $sql .= " LIMIT :limit OFFSET :offset";
+            $params[':limit'] = $filters->limit;
+            $params[':offset'] = $offset;
         }
 
-        $stmt = $this->pdo->prepare($sql);
+        $results = DB::select($sql, $params);
         
-        // Bind dos parâmetros de filtros
-        foreach ($params as $key => $value) {
-            $stmt->bindValue($key, $value, is_int($value) ? PDO::PARAM_INT : PDO::PARAM_STR);
-        }
-        
-        // Bind dos parâmetros de paginação
-        if ($filters !== null && $filters->hasPagination()) {
-            $offset = $filters->getOffset();
-            $stmt->bindValue(':limit', $filters->limit, PDO::PARAM_INT);
-            $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
-        }
-        
-        $stmt->execute();
-
-        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        // Converter objetos stdClass para arrays
+        $results = array_map(function ($row) {
+            return (array) $row;
+        }, $results);
         
         $data = array_map(function ($row) {
             $dto = $this->mapToDto($row);

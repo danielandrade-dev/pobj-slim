@@ -2,7 +2,6 @@
 
 namespace App\Infrastructure\Persistence;
 
-use PDO;
 use App\Domain\DTO\FilterDTO;
 use App\Domain\DTO\OmegaStructureDTO;
 use App\Domain\Enum\Tables;
@@ -12,12 +11,9 @@ use App\Domain\Enum\Tables;
  */
 class OmegaStructureRepository extends BaseRepository
 {
-    /**
-     * @param PDO $pdo
-     */
-    public function __construct(PDO $pdo)
+    public function __construct()
     {
-        parent::__construct($pdo, OmegaStructureDTO::class);
+        parent::__construct(OmegaStructureDTO::class);
     }
 
     /**

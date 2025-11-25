@@ -2,7 +2,6 @@
 
 namespace App\Infrastructure\Persistence;
 
-use PDO;
 use App\Domain\DTO\FilterDTO;
 use App\Domain\DTO\PontosDTO;
 use App\Domain\Enum\Cargo;
@@ -15,12 +14,9 @@ use App\Infrastructure\Helpers\ValueFormatter;
  */
 class PontosRepository extends BaseRepository
 {
-    /**
-     * @param PDO $pdo
-     */
-    public function __construct(PDO $pdo)
+    public function __construct()
     {
-        parent::__construct($pdo, PontosDTO::class);
+        parent::__construct(PontosDTO::class);
     }
 
     /**

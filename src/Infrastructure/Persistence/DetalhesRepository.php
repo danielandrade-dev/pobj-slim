@@ -2,7 +2,6 @@
 
 namespace App\Infrastructure\Persistence;
 
-use PDO;
 use App\Domain\DTO\FilterDTO;
 use App\Domain\DTO\DetalhesDTO;
 use App\Domain\Enum\Tables;
@@ -14,12 +13,9 @@ use App\Infrastructure\Helpers\ValueFormatter;
  */
 class DetalhesRepository extends BaseRepository
 {
-    /**
-     * @param PDO $pdo
-     */
-    public function __construct(PDO $pdo)
+    public function __construct()
     {
-        parent::__construct($pdo, DetalhesDTO::class);
+        parent::__construct(DetalhesDTO::class);
     }
 
     /**

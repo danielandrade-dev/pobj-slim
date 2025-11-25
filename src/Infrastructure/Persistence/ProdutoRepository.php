@@ -2,7 +2,6 @@
 
 namespace App\Infrastructure\Persistence;
 
-use PDO;
 use App\Domain\DTO\FilterDTO;
 use App\Domain\DTO\ProdutoDTO;
 use App\Domain\Entity\DProduto;
@@ -14,12 +13,9 @@ use App\Infrastructure\Helpers\ValueFormatter;
  */
 class ProdutoRepository extends BaseRepository
 {
-    /**
-     * @param PDO $pdo
-     */
-    public function __construct(PDO $pdo)
+    public function __construct()
     {
-        parent::__construct($pdo, ProdutoDTO::class);
+        parent::__construct(ProdutoDTO::class);
     }
 
     /**

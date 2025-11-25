@@ -2,7 +2,6 @@
 
 namespace App\Infrastructure\Persistence;
 
-use PDO;
 use App\Domain\DTO\FilterDTO;
 use App\Domain\Enum\Tables;
 use App\Domain\Enum\StatusIndicador;
@@ -12,13 +11,10 @@ use App\Domain\Enum\StatusIndicador;
  */
 class StatusIndicadoresRepository extends BaseRepository
 {
-    /**
-     * @param PDO $pdo
-     */
-    public function __construct(PDO $pdo)
+    public function __construct()
     {
         // Não usa DTO, então passamos null e retornamos array diretamente
-        parent::__construct($pdo, null);
+        parent::__construct(null);
     }
 
     /**

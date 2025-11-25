@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Presentation\Controllers;
+namespace App\Presentation\Controllers\Omega;
 
 use App\Application\UseCase\OmegaTicketsUseCase;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use App\Presentation\Controllers\ControllerBase;
 
 /**
  * Controller para operações relacionadas a tickets Omega

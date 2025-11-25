@@ -38,6 +38,9 @@ $container['view'] = function ($container) {
 $dependencies = require __DIR__ . '/../config/dependencies.php';
 $dependencies($app->getContainer());
 
+// Inicializar o Capsule para uso global
+$container->get('db');
+
 // Configurar aplicação (middlewares e rotas)
 $configureApp = require __DIR__ . '/../config/app.php';
 $configureApp($app);

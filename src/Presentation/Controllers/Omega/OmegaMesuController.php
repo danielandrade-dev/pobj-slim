@@ -1,15 +1,16 @@
 <?php
 
-namespace App\Presentation\Controllers;
+namespace App\Presentation\Controllers\Omega;
 
 use App\Application\UseCase\OmegaMesuUseCase;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use App\Presentation\Controllers\ControllerBase;
 
 /**
- * Controller para operações relacionadas a estrutura Mesu
+ * Controller para operações relacionadas a estrutura Omega Mesu
  */
-class MesuController extends ControllerBase
+class OmegaMesuController extends ControllerBase
 {
     private $omegaMesuUseCase;
 
@@ -22,7 +23,8 @@ class MesuController extends ControllerBase
     {
         $filters = $request->getAttribute('filters');
         $result = $this->omegaMesuUseCase->handle($filters);
-        
+            
         return $this->success($response, $result);
     }
 }
+

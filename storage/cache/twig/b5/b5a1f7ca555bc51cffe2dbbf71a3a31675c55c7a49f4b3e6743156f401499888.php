@@ -35,7 +35,7 @@ class __TwigTemplate_e18bb42d1645036bd519a48e62774db4857a81197e55c01718334e1d168
         $macros = $this->macros;
         // line 1
         echo "  <footer class=\"footer\">
-    <span>Bradesco POBJ • v1.0 </span>
+    <span style=\"margin-bottom: 10px;\">Bradesssco POBJ • v1.0 </span>
   </footer>
 
 ";
@@ -54,7 +54,7 @@ class __TwigTemplate_e18bb42d1645036bd519a48e62774db4857a81197e55c01718334e1d168
     public function getSourceContext()
     {
         return new Source("  <footer class=\"footer\">
-    <span>Bradesco POBJ • v1.0 </span>
+    <span style=\"margin-bottom: 10px;\">Bradesssco POBJ • v1.0 </span>
   </footer>
 
 ", "layouts/footer.twig", "/home/daniel/Documentos/pobj-slim/src/Presentation/Views/layouts/footer.twig");

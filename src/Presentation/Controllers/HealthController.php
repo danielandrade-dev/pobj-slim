@@ -2,19 +2,12 @@
 
 namespace App\Presentation\Controllers;
 
-use PDO;
+use Illuminate\Database\Capsule\Manager as DB;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 class HealthController
 {
-    private $pdo;
-
-    public function __construct(PDO $pdo)
-    {
-        $this->pdo = $pdo;
-    }
-
     public function check(Request $request, Response $response): Response
     {
         $status = [
@@ -24,10 +17,9 @@ class HealthController
         ];
 
         try {
-            $stmt = $this->pdo->query('SELECT 1 as test');
-            $result = $stmt->fetch();
+            $result = DB::select('SELECT 1 as test');
             
-            if ($result === false || !isset($result['test'])) {
+            if (empty($result) || !isset($result[0]->test)) {
                 $status['status'] = 'error';
                 $status['database'] = 'error';
                 $status['message'] = 'Banco de dados não respondeu corretamente';

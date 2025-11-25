@@ -2,7 +2,6 @@
 
 namespace App\Infrastructure\Persistence;
 
-use PDO;
 use App\Domain\DTO\FilterDTO;
 use App\Domain\DTO\CalendarioDTO;
 use App\Domain\Enum\Tables;
@@ -13,12 +12,9 @@ use App\Infrastructure\Helpers\DateFormatter;
  */
 class CalendarioRepository extends BaseRepository
 {
-    /**
-     * @param PDO $pdo
-     */
-    public function __construct(PDO $pdo)
+    public function __construct()
     {
-        parent::__construct($pdo, CalendarioDTO::class);
+        parent::__construct(CalendarioDTO::class);
     }
 
     /**

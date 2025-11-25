@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Database\Capsule\Manager as Capsule;
+
 return function ($container) {
     registerDatabase($container);
     registerRepositories($container);
@@ -9,122 +11,105 @@ return function ($container) {
 
 function registerDatabase($container)
 {
-
-    $container[PDO::class] = function ($c) {
+    $container['db'] = function ($c) {
         $settings = $c->get('settings')['db'];
-        $dsn = sprintf(
-            '%s:host=%s;port=%s;dbname=%s;charset=%s',
-            $settings['driver'],
-            $settings['host'],
-            $settings['port'],
-            $settings['database'],
-            $settings['charset']
-        );
         
-        try {
-            // Criar instância PDO com opções otimizadas para reduzir conexões desnecessárias
-            $pdo = new PDO($dsn, $settings['username'], $settings['password'], [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_PERSISTENT => false, // Não usar conexões persistentes para evitar problemas com limites
-                PDO::ATTR_EMULATE_PREPARES => false, // Usar prepared statements nativos do MySQL (mais eficiente)
-                PDO::ATTR_STRINGIFY_FETCHES => false,
-                PDO::ATTR_TIMEOUT => 5, // Timeout de conexão de 5 segundos
-            ]);
-            
-            return $pdo;
-        } catch (\PDOException $e) {
-            // Tratamento específico para erro de limite de conexões
-            if ($e->getCode() == 1226 || strpos($e->getMessage(), 'max_connections_per_hour') !== false) {
-                error_log(sprintf(
-                    'ERRO: Limite de conexões por hora excedido. Código: %s, Mensagem: %s',
-                    $e->getCode(),
-                    $e->getMessage()
-                ));
-                
-                // Lançar exceção com mensagem mais clara
-                throw new \PDOException(
-                    'Limite de conexões ao banco de dados excedido. Por favor, tente novamente em alguns minutos. ' .
-                    'Se o problema persistir, entre em contato com o administrador do sistema.',
-                    1226,
-                    $e
-                );
-            }
-            
-            // Re-lançar outras exceções PDO
-            throw $e;
+        $capsule = new Capsule;
+        
+        // Se host for 'localhost', usar '127.0.0.1' para forçar conexão TCP/IP
+        $host = ($settings['host'] === 'localhost') ? '127.0.0.1' : $settings['host'];
+        
+        $connectionConfig = [
+            'driver'    => $settings['driver'],
+            'host'      => $host,
+            'database'  => $settings['database'],
+            'username'  => $settings['username'],
+            'password'  => $settings['password'],
+            'charset'   => $settings['charset'],
+            'collation' => $settings['collation'] ?? 'utf8_unicode_ci',
+            'prefix'    => '',
+        ];
+        
+        // Adicionar porta se estiver definida
+        if (!empty($settings['port'])) {
+            $connectionConfig['port'] = $settings['port'];
         }
+        
+        $capsule->addConnection($connectionConfig);
+        
+        // permite modelos usar DB globalmente
+        $capsule->setAsGlobal();
+        
+        $capsule->bootEloquent();
+        
+        return $capsule;
     };
 }
 
 function registerRepositories($container)
 {
     $container['App\Infrastructure\Persistence\EstruturaRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\EstruturaRepository($c->get(PDO::class));
+        return new \App\Infrastructure\Persistence\EstruturaRepository();
     };
 
     $container['App\Infrastructure\Persistence\StatusIndicadoresRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\StatusIndicadoresRepository($c->get(PDO::class));
+        return new \App\Infrastructure\Persistence\StatusIndicadoresRepository();
     };
 
     $container['App\Infrastructure\Persistence\RealizadosRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\RealizadosRepository($c->get(PDO::class));
+        return new \App\Infrastructure\Persistence\RealizadosRepository();
     };
 
     $container['App\Infrastructure\Persistence\MetasRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\MetasRepository($c->get(PDO::class));
+        return new \App\Infrastructure\Persistence\MetasRepository();
     };
 
     $container['App\Infrastructure\Persistence\VariavelRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\VariavelRepository($c->get(PDO::class));
+        return new \App\Infrastructure\Persistence\VariavelRepository();
     };
 
     $container['App\Infrastructure\Persistence\ProdutoRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\ProdutoRepository($c->get(PDO::class));
+        return new \App\Infrastructure\Persistence\ProdutoRepository();
     };
 
     $container['App\Infrastructure\Persistence\CalendarioRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\CalendarioRepository($c->get(PDO::class));
+        return new \App\Infrastructure\Persistence\CalendarioRepository();
     };
 
     $container['App\Infrastructure\Persistence\CampanhasRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\CampanhasRepository($c->get(PDO::class));
+        return new \App\Infrastructure\Persistence\CampanhasRepository();
     };
 
     $container['App\Infrastructure\Persistence\DetalhesRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\DetalhesRepository($c->get(PDO::class));
+        return new \App\Infrastructure\Persistence\DetalhesRepository();
     };
 
     $container['App\Infrastructure\Persistence\HistoricoRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\HistoricoRepository($c->get(PDO::class));
+        return new \App\Infrastructure\Persistence\HistoricoRepository();
     };
 
     $container['App\Infrastructure\Persistence\LeadsRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\LeadsRepository($c->get(PDO::class));
+        return new \App\Infrastructure\Persistence\LeadsRepository();
     };
 
     $container['App\Infrastructure\Persistence\OmegaUsersRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\OmegaUsersRepository($c->get(PDO::class));
+        return new \App\Infrastructure\Persistence\OmegaUsersRepository();
     };
 
     $container['App\Infrastructure\Persistence\OmegaStatusRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\OmegaStatusRepository($c->get(PDO::class));
+        return new \App\Infrastructure\Persistence\OmegaStatusRepository();
     };
 
     $container['App\Infrastructure\Persistence\OmegaStructureRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\OmegaStructureRepository($c->get(PDO::class));
+        return new \App\Infrastructure\Persistence\OmegaStructureRepository();
     };
 
     $container['App\Infrastructure\Persistence\OmegaTicketsRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\OmegaTicketsRepository($c->get(PDO::class));
-    };
-
-    $container['App\Infrastructure\Persistence\OmegaMesuRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\OmegaMesuRepository($c->get(PDO::class));
+        return new \App\Infrastructure\Persistence\OmegaTicketsRepository();
     };
 
     $container['App\Infrastructure\Persistence\PontosRepository'] = function ($c) {
-        return new \App\Infrastructure\Persistence\PontosRepository($c->get(PDO::class));
+        return new \App\Infrastructure\Persistence\PontosRepository();
     };
 }
 
@@ -168,12 +153,6 @@ function registerUseCases($container)
     $container['App\Application\UseCase\OmegaTicketsUseCase'] = function ($c) {
         return new \App\Application\UseCase\OmegaTicketsUseCase(
             $c->get('App\Infrastructure\Persistence\OmegaTicketsRepository')
-        );
-    };
-
-    $container['App\Application\UseCase\OmegaMesuUseCase'] = function ($c) {
-        return new \App\Application\UseCase\OmegaMesuUseCase(
-            $c->get('App\Infrastructure\Persistence\OmegaMesuRepository')
         );
     };
 
@@ -247,7 +226,7 @@ function registerUseCases($container)
 function registerControllers($container)
 {
     $container['App\Presentation\Controllers\HealthController'] = function ($c) {
-        return new \App\Presentation\Controllers\HealthController($c->get(PDO::class));
+        return new \App\Presentation\Controllers\HealthController();
     };
 
     $container['App\Presentation\Controllers\AgentController'] = function ($c) {
@@ -334,38 +313,32 @@ function registerControllers($container)
         );
     };
 
-    $container['App\Presentation\Controllers\MesuController'] = function ($c) {
-        return new \App\Presentation\Controllers\MesuController(
-            $c->get('App\Application\UseCase\OmegaMesuUseCase')
-        );
-    };
-
     $container['App\Presentation\Controllers\OmegaMesuController'] = function ($c) {
-        return new \App\Presentation\Controllers\OmegaMesuController(
+        return new \App\Presentation\Controllers\Omega\OmegaMesuController(
             $c->get('App\Application\UseCase\OmegaMesuUseCase')
         );
     };
 
     $container['App\Presentation\Controllers\OmegaStatusController'] = function ($c) {
-        return new \App\Presentation\Controllers\OmegaStatusController(
+        return new \App\Presentation\Controllers\Omega\OmegaStatusController(
             $c->get('App\Application\UseCase\OmegaStatusUseCase')
         );
     };
 
     $container['App\Presentation\Controllers\OmegaStructureController'] = function ($c) {
-        return new \App\Presentation\Controllers\OmegaStructureController(
+        return new \App\Presentation\Controllers\Omega\OmegaStructureController(
             $c->get('App\Application\UseCase\OmegaStructureUseCase')
         );
     };
 
     $container['App\Presentation\Controllers\OmegaTicketsController'] = function ($c) {
-        return new \App\Presentation\Controllers\OmegaTicketsController(
+        return new \App\Presentation\Controllers\Omega\OmegaTicketsController(
             $c->get('App\Application\UseCase\OmegaTicketsUseCase')
         );
     };
 
     $container['App\Presentation\Controllers\OmegaUsersController'] = function ($c) {
-        return new \App\Presentation\Controllers\OmegaUsersController(
+        return new \App\Presentation\Controllers\Omega\OmegaUsersController(
             $c->get('App\Application\UseCase\OmegaUsersUseCase')
         );
     };

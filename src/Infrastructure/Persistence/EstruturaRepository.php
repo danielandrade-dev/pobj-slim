@@ -2,135 +2,104 @@
 
 namespace App\Infrastructure\Persistence;
 
-use PDO;
+use App\Domain\Model\Estrutura;
 use App\Domain\Enum\Cargo;
-use App\Domain\Enum\Tables;
 
 class EstruturaRepository
 {
-    private $pdo;
-
-    public function __construct(PDO $pdo)
-    {
-        $this->pdo = $pdo;
-    }
-
     public function findAllSegmentos(): array
     {
-        $sql = "SELECT DISTINCT id_segmento AS id, segmento AS label
-                FROM " . Tables::D_ESTRUTURA . "
-                WHERE id_segmento IS NOT NULL
-                  AND segmento IS NOT NULL
-                ORDER BY segmento ASC";
-        
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return Estrutura::selectRaw('DISTINCT id_segmento AS id, segmento AS label')
+            ->whereNotNull('id_segmento')
+            ->whereNotNull('segmento')
+            ->orderBy('segmento', 'ASC')
+            ->get()
+            ->toArray();
     }
 
     public function findAllDiretorias(): array
     {
-        $sql = "SELECT DISTINCT id_diretoria AS id, diretoria AS label, id_segmento
-                FROM " . Tables::D_ESTRUTURA . "
-                WHERE id_diretoria IS NOT NULL
-                  AND diretoria IS NOT NULL
-                ORDER BY diretoria ASC";
-        
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return Estrutura::selectRaw('DISTINCT id_diretoria AS id, diretoria AS label, id_segmento')
+            ->whereNotNull('id_diretoria')
+            ->whereNotNull('diretoria')
+            ->orderBy('diretoria', 'ASC')
+            ->get()
+            ->toArray();
     }
 
     public function findAllRegionais(): array
     {
-        $sql = "SELECT DISTINCT id_regional AS id, regional AS label, id_diretoria
-                FROM " . Tables::D_ESTRUTURA . "
-                WHERE id_regional IS NOT NULL
-                  AND regional IS NOT NULL
-                ORDER BY regional ASC";
-        
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return Estrutura::selectRaw('DISTINCT id_regional AS id, regional AS label, id_diretoria')
+            ->whereNotNull('id_regional')
+            ->whereNotNull('regional')
+            ->orderBy('regional', 'ASC')
+            ->get()
+            ->toArray();
     }
 
     public function findAllAgencias(): array
     {
-        $sql = "SELECT DISTINCT id_agencia AS id, agencia AS label, porte, id_regional
-                FROM " . Tables::D_ESTRUTURA . "
-                WHERE id_agencia IS NOT NULL
-                  AND agencia IS NOT NULL
-                ORDER BY agencia ASC";
-        
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return Estrutura::selectRaw('DISTINCT id_agencia AS id, agencia AS label, porte, id_regional')
+            ->whereNotNull('id_agencia')
+            ->whereNotNull('agencia')
+            ->orderBy('agencia', 'ASC')
+            ->get()
+            ->toArray();
     }
 
     public function findAllGGestoes(): array
     {
-        $sql = "SELECT DISTINCT funcional AS id, nome AS label, id_agencia
-                FROM " . Tables::D_ESTRUTURA . "
-                WHERE id_cargo = :idCargo
-                  AND funcional IS NOT NULL
-                  AND nome IS NOT NULL
-                  AND funcional != ''
-                  AND nome != ''
-                ORDER BY nome ASC";
-        
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute(['idCargo' => Cargo::GERENTE_GESTAO]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return Estrutura::selectRaw('DISTINCT funcional AS id, nome AS label, id_agencia')
+            ->where('id_cargo', Cargo::GERENTE_GESTAO)
+            ->whereNotNull('funcional')
+            ->whereNotNull('nome')
+            ->where('funcional', '!=', '')
+            ->where('nome', '!=', '')
+            ->orderBy('nome', 'ASC')
+            ->get()
+            ->toArray();
     }
 
     public function findAllGerentes(): array
     {
-        $sql = "SELECT DISTINCT funcional AS id, nome AS label
-                FROM " . Tables::D_ESTRUTURA . "
-                WHERE id_cargo = :idCargo
-                  AND funcional IS NOT NULL
-                  AND nome IS NOT NULL
-                  AND funcional != ''
-                  AND nome != ''
-                ORDER BY nome ASC";
-        
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute(['idCargo' => Cargo::GERENTE]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return Estrutura::selectRaw('DISTINCT funcional AS id, nome AS label')
+            ->where('id_cargo', Cargo::GERENTE)
+            ->whereNotNull('funcional')
+            ->whereNotNull('nome')
+            ->where('funcional', '!=', '')
+            ->where('nome', '!=', '')
+            ->orderBy('nome', 'ASC')
+            ->get()
+            ->toArray();
     }
 
     public function findGGestoesForFilter(): array
     {
-        $sql = "SELECT DISTINCT funcional AS id, nome AS label, cargo, id_cargo
-                FROM " . Tables::D_ESTRUTURA . "
-                WHERE id_cargo = :idCargo
-                  AND funcional IS NOT NULL
-                  AND nome IS NOT NULL
-                ORDER BY nome ASC";
-        
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute(['idCargo' => Cargo::GERENTE_GESTAO]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return Estrutura::selectRaw('DISTINCT funcional AS id, nome AS label, cargo, id_cargo')
+            ->where('id_cargo', Cargo::GERENTE_GESTAO)
+            ->whereNotNull('funcional')
+            ->whereNotNull('nome')
+            ->orderBy('nome', 'ASC')
+            ->get()
+            ->toArray();
     }
 
     public function findGerentesForFilter(): array
     {
-        $sql = "SELECT DISTINCT funcional AS id, nome AS label, cargo, id_cargo
-                FROM " . Tables::D_ESTRUTURA . "
-                WHERE id_cargo = :idCargo
-                  AND funcional IS NOT NULL
-                  AND nome IS NOT NULL
-                ORDER BY nome ASC";
-        
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute(['idCargo' => Cargo::GERENTE]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return Estrutura::selectRaw('DISTINCT funcional AS id, nome AS label, cargo, id_cargo')
+            ->where('id_cargo', Cargo::GERENTE)
+            ->whereNotNull('funcional')
+            ->whereNotNull('nome')
+            ->orderBy('nome', 'ASC')
+            ->get()
+            ->toArray();
     }
 
     public function findGerentesWithGestor(): array
     {
-        $sql = "
-            SELECT DISTINCT
+        return Estrutura::from('d_estrutura as g')
+            ->selectRaw('
+                DISTINCT
                 g.funcional AS id,
                 g.nome AS label,
                 g.agencia,
@@ -138,18 +107,16 @@ class EstruturaRepository
                 g.cargo,
                 g.id_cargo,
                 gg.funcional AS id_gestor
-            FROM " . Tables::D_ESTRUTURA . " g
-            LEFT JOIN d_estrutura gg
-                ON gg.id_agencia = g.id_agencia
-                AND gg.id_cargo = :idCargoGestor
-            WHERE g.id_cargo = :idCargoGerente
-        ";
-        
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute([
-            'idCargoGestor' => Cargo::GERENTE_GESTAO, // assuming GERENTE_GESTAO is id_cargo 3
-            'idCargoGerente' => Cargo::GERENTE         // assuming GERENTE is id_cargo 1
-        ]);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+            ')
+            ->leftJoin('d_estrutura as gg', function ($join) {
+                $join->on('gg.id_agencia', '=', 'g.id_agencia')
+                     ->on('gg.id_regional', '=', 'g.id_regional')
+                     ->on('gg.id_diretoria', '=', 'g.id_diretoria')
+                     ->on('gg.id_segmento', '=', 'g.id_segmento')
+                     ->where('gg.id_cargo', '=', Cargo::GERENTE_GESTAO);
+            })
+            ->where('g.id_cargo', Cargo::GERENTE)
+            ->get()
+            ->toArray();
     }
 }
