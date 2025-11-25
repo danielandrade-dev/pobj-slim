@@ -2574,6 +2574,9 @@ function processBaseDataSources({
   dimAgenciasRaw = [],
   dimGerentesGestaoRaw = [],
   dimGerentesRaw = [],
+  dimFamiliasRaw = [],
+  dimIndicadoresRaw = [],
+  dimSubindicadoresRaw = [],
 } = {}) {
   // Processa dados de estrutura usando função de estrutura.js
   const estruturaProcessed = processEstruturaData({
@@ -2583,6 +2586,9 @@ function processBaseDataSources({
     dimAgenciasRaw,
     dimGerentesGestaoRaw,
     dimGerentesRaw,
+    dimFamiliasRaw,
+    dimIndicadoresRaw,
+    dimSubindicadoresRaw,
   });
   const segmentosDim = estruturaProcessed.dimSegmentos;
   const diretoriasDim = estruturaProcessed.dimDiretorias;
@@ -2693,11 +2699,9 @@ async function loadInitialData(){
         calendario,
         mesu
       ] = await Promise.all([
-        loadEstruturaData(),
+        await Estrutura.init(),
         loadStatusData(),
-        loadProdutosData(),
         loadCalendarioData(),
-        loadMesuData()
       ]);
 
       return processInitialData({
@@ -2711,6 +2715,9 @@ async function loadInitialData(){
         dimAgenciasRaw: estruturaData.agencias || [],
         dimGerentesGestaoRaw: estruturaData.gerentesGestao || [],
         dimGerentesRaw: estruturaData.gerentes || [],
+        dimFamiliasRaw: estruturaData.familias || [],
+        dimIndicadoresRaw: estruturaData.indicadores || [],
+        dimSubindicadoresRaw: estruturaData.subindicadores || [],
       });
     }
 
@@ -2834,6 +2841,9 @@ function processInitialData({
   dimAgenciasRaw = [],
   dimGerentesGestaoRaw = [],
   dimGerentesRaw = [],
+  dimFamiliasRaw = [],
+  dimIndicadoresRaw = [],
+  dimSubindicadoresRaw = [],
 } = {}) {
   // Processa dados de estrutura usando função de estrutura.js
   const estruturaProcessed = processEstruturaData({
@@ -2843,6 +2853,9 @@ function processInitialData({
     dimAgenciasRaw,
     dimGerentesGestaoRaw,
     dimGerentesRaw,
+    dimFamiliasRaw,
+    dimIndicadoresRaw,
+    dimSubindicadoresRaw,
   });
   const segmentosDim = estruturaProcessed.dimSegmentos;
   const diretoriasDim = estruturaProcessed.dimDiretorias;
@@ -3100,7 +3113,7 @@ async function loadBaseData(){
         leads,
         pontos
       ] = await Promise.all([
-        loadEstruturaData(),
+        await Estrutura.init(),
         loadStatusData(),
         loadProdutosData(),
         loadCalendarioData(),
@@ -3134,6 +3147,9 @@ async function loadBaseData(){
         dimAgenciasRaw: estruturaData.agencias || [],
         dimGerentesGestaoRaw: estruturaData.gerentesGestao || [],
         dimGerentesRaw: estruturaData.gerentes || [],
+        dimFamiliasRaw: estruturaData.familias || [],
+        dimIndicadoresRaw: estruturaData.indicadores || [],
+        dimSubindicadoresRaw: estruturaData.subindicadores || [],
       });
     }
 

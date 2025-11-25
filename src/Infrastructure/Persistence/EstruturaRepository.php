@@ -123,7 +123,6 @@ class EstruturaRepository
             return [
                 'id' => $familia->id,
                 'label' => $familia->label,
-                'pai' => null,
             ];
         })->toArray();
     }
@@ -143,7 +142,7 @@ class EstruturaRepository
             return [
                 'id' => $indicador->id,
                 'label' => $indicador->nm_indicador,
-                'familia' => $familia->id,
+                'familia_id' => $familia->id,
             ];
         })->toArray();
     }
@@ -163,7 +162,7 @@ class EstruturaRepository
             return [
                 'id' => $subindicador->id,
                 'label' => $subindicador->nm_subindicador,
-                'indicador' => $indicador->id,
+                'indicador_id' => $indicador->id,
             ];
         })->toArray();
     }
