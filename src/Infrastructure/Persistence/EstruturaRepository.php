@@ -70,7 +70,7 @@ class EstruturaRepository
      */
     public function findAllGGestoes(): array
     {
-        return DEstrutura::select('funcional as id', 'nome as label', 'agencia_id as id_agencia')
+        return DEstrutura::select('id','funcional', 'nome as label', 'agencia_id as id_agencia')
             ->where('cargo_id', Cargo::GERENTE_GESTAO)
             ->whereNotNull('funcional')
             ->whereNotNull('nome')
@@ -103,7 +103,8 @@ class EstruturaRepository
             }
 
             return [
-                'id' => $gerente->funcional,
+                'id' => $gerente->id,
+                'funcional' => $gerente->funcional,
                 'label' => $gerente->nome,
                 'id_gestor' => $gestor ? $gestor->id : null,
             ];
