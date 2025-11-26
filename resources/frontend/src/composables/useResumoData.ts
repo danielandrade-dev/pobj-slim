@@ -95,12 +95,12 @@ export function useResumoData(
 ) {
   if (!watcherRegistered) {
     watcherRegistered = true
-    watch<WatchSources>(
+    watch(
       () => ({
         filters: filterState.value,
         period: period.value
       }),
-      (current) => {
+      (current: WatchSources) => {
         const filters = buildFiltersFromState(current.filters, current.period)
         fetchResumo(filters)
       },

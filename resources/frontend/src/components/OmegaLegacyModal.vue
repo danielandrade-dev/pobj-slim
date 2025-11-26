@@ -147,7 +147,7 @@ function hookLegacyClosers() {
 
   if (typeof globalAny.closeOmega === 'function' && !(globalAny.closeOmega as any).__omegaVueHooked) {
     originalCloseOmega = globalAny.closeOmega
-    const wrapped = function (...args: any[]) {
+    const wrapped = function (this: unknown, ...args: any[]) {
       resetBodyState()
       return originalCloseOmega?.apply(this, args)
     }
@@ -157,7 +157,7 @@ function hookLegacyClosers() {
 
   if (typeof globalAny.closeOmegaModule === 'function' && !(globalAny.closeOmegaModule as any).__omegaVueHooked) {
     originalCloseOmegaModule = globalAny.closeOmegaModule
-    const wrappedModule = function (...args: any[]) {
+    const wrappedModule = function (this: unknown, ...args: any[]) {
       resetBodyState()
       return originalCloseOmegaModule?.apply(this, args)
     }
