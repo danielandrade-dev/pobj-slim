@@ -9,9 +9,14 @@ use DateTimeImmutable;
 
 class ResumoUseCase
 {
-    private ProdutoUseCase $produtoUseCase;
-    private VariavelUseCase $variavelUseCase;
-    private CalendarioUseCase $calendarioUseCase;
+    /** @var ProdutoUseCase */
+    private $produtoUseCase;
+
+    /** @var VariavelUseCase */
+    private $variavelUseCase;
+
+    /** @var CalendarioUseCase */
+    private $calendarioUseCase;
 
     public function __construct(
         ProdutoUseCase $produtoUseCase,

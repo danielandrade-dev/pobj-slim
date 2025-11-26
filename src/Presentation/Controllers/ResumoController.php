@@ -8,7 +8,8 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 
 class ResumoController extends ControllerBase
 {
-    private ResumoUseCase $resumoUseCase;
+    /** @var ResumoUseCase */
+    private $resumoUseCase;
 
     public function __construct(ResumoUseCase $resumoUseCase)
     {
