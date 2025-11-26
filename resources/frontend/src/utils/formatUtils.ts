@@ -162,3 +162,30 @@ export function formatIntReadable(value: number | string | null | undefined): st
   return formatNumberWithSuffix(value, { currency: false })
 }
 
+// Formata número inteiro simples (sem abreviação)
+export function formatINT(value: number | string | null | undefined): string {
+  if (value === null || value === undefined || value === '') return '0'
+  const num = typeof value === 'string' ? parseFloat(value) : value
+  if (isNaN(num)) return '0'
+  return new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(Math.round(num))
+}
+
+// Formata moeda (alias para formatBRL)
+export function formatCurrency(value: number | string | null | undefined): string {
+  return formatBRL(value)
+}
+
+// Formata data ISO para formato brasileiro
+export function formatDate(isoDate: string | null | undefined): string {
+  if (!isoDate) return '—'
+  try {
+    const [year, month, day] = isoDate.split('-')
+    return `${day}/${month}/${year}`
+  } catch {
+    return isoDate
+  }
+}
+

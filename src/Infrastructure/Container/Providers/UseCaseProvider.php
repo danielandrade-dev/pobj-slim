@@ -26,6 +26,7 @@ class UseCaseProvider implements ServiceProviderInterface
             \App\Application\UseCase\HistoricoUseCase::class,
             \App\Application\UseCase\CalendarioUseCase::class,
             \App\Application\UseCase\PontosUseCase::class,
+            \App\Application\UseCase\RankingUseCase::class,
         ];
         
         ContainerHelper::registerMany($container, $standardUseCases);

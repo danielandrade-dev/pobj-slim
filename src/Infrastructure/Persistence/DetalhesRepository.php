@@ -25,38 +25,68 @@ class DetalhesRepository extends BaseRepository
     public function baseSelect(): string
     {
         return "SELECT 
-                    registro_id,
-                    segmento,
-                    segmento_id,
-                    diretoria_id,
-                    diretoria_nome,
-                    gerencia_regional_id,
-                    gerencia_regional_nome,
-                    agencia_id,
-                    agencia_nome,
-                    gerente_gestao_id,
-                    gerente_gestao_nome,
-                    gerente_id,
-                    gerente_nome,
-                    familia_id,
-                    familia_nome,
-                    id_indicador,
-                    ds_indicador,
-                    subindicador,
-                    id_subindicador,
-                    carteira,
-                    canal_venda,
-                    tipo_venda,
-                    modalidade_pagamento,
-                    data,
-                    competencia,
-                    valor_meta,
-                    valor_realizado,
-                    quantidade,
-                    peso,
-                    pontos,
-                    status_id
-                FROM " . Tables::F_DETALHES . "
+                    fr.id_contrato,
+                    fr.data_realizado AS data,
+                    fr.data_realizado AS competencia,
+                    cal.ano,
+                    cal.mes,
+                    cal.mes_nome,
+                    seg.id AS segmento_id,
+                    seg.nome AS segmento,
+                    dir.id AS diretoria_id,
+                    dir.nome AS diretoria_nome,
+                    reg.id AS gerencia_regional_id,
+                    reg.nome AS gerencia_regional_nome,
+                    ag.id AS agencia_id,
+                    ag.nome AS agencia_nome,
+                    fr.funcional AS gerente_id,
+                    est.nome AS gerente_nome,
+                    prod.familia_id AS familia_id,
+                    fam.nm_familia AS familia_nome,
+                    prod.indicador_id AS id_indicador,
+                    ind.nm_indicador AS ds_indicador,
+                    prod.subindicador_id AS id_subindicador,
+                    sub.nm_subindicador AS subindicador,
+                    prod.peso,
+                    fr.realizado AS valor_realizado,
+                    meta.meta_mensal AS valor_meta,
+                    det.canal_venda,
+                    det.tipo_venda,
+                    est.nome AS gerente_detalhe,
+                    det.condicao_pagamento AS modalidade_pagamento,
+                    det.dt_vencimento,
+                    det.dt_cancelamento,
+                    det.motivo_cancelamento,
+                    det.status_id,
+                    fr.id_contrato AS registro_id
+                FROM " . Tables::F_REALIZADOS . " fr
+                JOIN " . Tables::D_CALENDARIO . " cal
+                    ON cal.data = fr.data_realizado
+                JOIN " . Tables::D_ESTRUTURA . " est
+                    ON est.funcional = fr.funcional
+                LEFT JOIN segmentos seg
+                    ON seg.id = est.segmento_id
+                LEFT JOIN diretorias dir
+                    ON dir.id = est.diretoria_id
+                LEFT JOIN regionais reg
+                    ON reg.id = est.regional_id
+                LEFT JOIN agencias ag
+                    ON ag.id = est.agencia_id
+                LEFT JOIN " . Tables::D_PRODUTOS . " prod
+                    ON prod.id = fr.produto_id
+                LEFT JOIN familia fam
+                    ON fam.id = prod.familia_id
+                LEFT JOIN indicador ind
+                    ON ind.id = prod.indicador_id
+                LEFT JOIN subindicador sub
+                    ON sub.id = prod.subindicador_id
+                LEFT JOIN " . Tables::F_META . " meta
+                    ON  meta.funcional = fr.funcional
+                    AND meta.produto_id = fr.produto_id
+                    AND YEAR(meta.data_meta) = YEAR(fr.data_realizado)
+                    AND MONTH(meta.data_meta) = MONTH(fr.data_realizado)
+                LEFT JOIN " . Tables::F_DETALHES . " det
+                    ON det.contrato_id = fr.id_contrato
                 WHERE 1=1";
     }
 
@@ -75,48 +105,53 @@ class DetalhesRepository extends BaseRepository
         }
 
         if ($filters->getSegmento() !== null) {
-            $sql .= " AND segmento_id = :segmento";
+            $sql .= " AND est.segmento_id = :segmento";
             $params[':segmento'] = $filters->getSegmento();
         }
 
         if ($filters->getDiretoria() !== null) {
-            $sql .= " AND diretoria_id = :diretoria";
+            $sql .= " AND est.diretoria_id = :diretoria";
             $params[':diretoria'] = $filters->getDiretoria();
         }
 
         if ($filters->getRegional() !== null) {
-            $sql .= " AND gerencia_regional_id = :regional";
+            $sql .= " AND est.regional_id = :regional";
             $params[':regional'] = $filters->getRegional();
         }
 
         if ($filters->getAgencia() !== null) {
-            $sql .= " AND agencia_id = :agencia";
+            $sql .= " AND est.agencia_id = :agencia";
             $params[':agencia'] = $filters->getAgencia();
         }
 
-        if ($filters->getGerenteGestao() !== null) {
-            $sql .= " AND gerente_gestao_id = :gerente_gestao";
-            $params[':gerente_gestao'] = $filters->getGerenteGestao();
-        }
-
         if ($filters->getGerente() !== null) {
-            $sql .= " AND gerente_id = :gerente";
+            $sql .= " AND fr.funcional = :gerente";
             $params[':gerente'] = $filters->getGerente();
         }
 
         if ($filters->getFamilia() !== null) {
-            $sql .= " AND familia_id = :familia";
+            $sql .= " AND prod.familia_id = :familia";
             $params[':familia'] = $filters->getFamilia();
         }
 
         if ($filters->getIndicador() !== null) {
-            $sql .= " AND id_indicador = :indicador";
+            $sql .= " AND prod.indicador_id = :indicador";
             $params[':indicador'] = $filters->getIndicador();
         }
 
         if ($filters->getSubindicador() !== null) {
-            $sql .= " AND id_subindicador = :subindicador";
+            $sql .= " AND prod.subindicador_id = :subindicador";
             $params[':subindicador'] = $filters->getSubindicador();
+        }
+
+        if ($filters->getDataInicio() !== null) {
+            $sql .= " AND fr.data_realizado >= :dataInicio";
+            $params[':dataInicio'] = $filters->getDataInicio();
+        }
+
+        if ($filters->getDataFim() !== null) {
+            $sql .= " AND fr.data_realizado <= :dataFim";
+            $params[':dataFim'] = $filters->getDataFim();
         }
 
         return ['sql' => $sql, 'params' => $params];
@@ -128,7 +163,7 @@ class DetalhesRepository extends BaseRepository
      */
     protected function getOrderBy(): string
     {
-        return "ORDER BY data DESC";
+        return "ORDER BY dir.nome, reg.nome, ag.nome, est.nome, fam.nm_familia, ind.nm_indicador, sub.nm_subindicador, fr.id_contrato";
     }
 
     /**
@@ -142,7 +177,7 @@ class DetalhesRepository extends BaseRepository
         $competenciaIso = DateFormatter::toIsoDate($row['competencia'] ?? null);
             
         return new DetalhesDTO(
-            $row['registro_id'] ?? null,
+            $row['registro_id'] ?? $row['id_contrato'] ?? null,
             $row['segmento'] ?? null,
             $row['segmento_id'] ?? null,
             $row['diretoria_id'] ?? null,
@@ -151,8 +186,8 @@ class DetalhesRepository extends BaseRepository
             $row['gerencia_regional_nome'] ?? null,
             $row['agencia_id'] ?? null,
             $row['agencia_nome'] ?? null,
-            $row['gerente_gestao_id'] ?? null,
-            $row['gerente_gestao_nome'] ?? null,
+            null, // gerente_gestao_id (não disponível na query atual)
+            null, // gerente_gestao_nome (não disponível na query atual)
             $row['gerente_id'] ?? null,
             $row['gerente_nome'] ?? null,
             $row['familia_id'] ?? null,
@@ -165,18 +200,18 @@ class DetalhesRepository extends BaseRepository
             null, // subindicadorCodigo
             null, // familiaCodigo
             null, // indicadorCodigo
-            $row['carteira'] ?? null,
+            null, // carteira
             $row['canal_venda'] ?? null,
             $row['tipo_venda'] ?? null,
             $row['modalidade_pagamento'] ?? null,
-                $dataIso,
-                $competenciaIso,
+            $dataIso,
+            $competenciaIso,
             ValueFormatter::toFloat($row['valor_meta'] ?? null),
             ValueFormatter::toFloat($row['valor_realizado'] ?? null),
-            ValueFormatter::toFloat($row['quantidade'] ?? null),
+            null, // quantidade
             ValueFormatter::toFloat($row['peso'] ?? null),
-            ValueFormatter::toFloat($row['pontos'] ?? null),
+            null, // pontos
             $row['status_id'] ?? null
-            );
+        );
     }
 }

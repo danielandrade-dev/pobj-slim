@@ -41,12 +41,17 @@ export function useGlobalFilters() {
     filterState.value = {}
   }
 
+  const clearFilter = (key: keyof FilterState): void => {
+    filterState.value[key] = undefined
+  }
+
   return {
     filterState: computed(() => filterState.value),
     period: computed(() => period.value),
     updateFilter,
     updatePeriod,
-    clearFilters
+    clearFilters,
+    clearFilter
   }
 }
 

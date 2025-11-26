@@ -1,5 +1,5 @@
 import { ref, onMounted, onUnmounted } from 'vue'
-import { getCalendario, getDefaultPeriod, formatBRDate } from '../services/calendarioService'
+import { getCalendario, getDefaultPeriod, formatBRDate, type CalendarioItem } from '../services/calendarioService'
 import type { Period } from '../types'
 
 export function usePeriodManager() {

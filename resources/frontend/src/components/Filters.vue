@@ -325,7 +325,7 @@ watch(() => period.value, (newPeriod) => {
         :aria-expanded="advancedFiltersOpen"
         @click="toggleAdvancedFilters"
       >
-        <i class="ti ti-chevron-down" :class="{ 'rotated': advancedFiltersOpen }"></i>
+        <i class="ti ti-chevron-down" :class="{ 'rotated': advancedFiltersOpen }" aria-hidden="true"></i>
         {{ advancedFiltersOpen ? 'Fechar filtros' : 'Abrir filtros' }}
       </Button>
     </div>
@@ -585,9 +585,12 @@ watch(() => period.value, (newPeriod) => {
   display: block;
 }
 
+.ti-chevron-down {
+  transition: transform 0.2s ease;
+}
+
 .ti-chevron-down.rotated {
   transform: rotate(180deg);
-  transition: transform 0.2s ease;
 }
 
 @media (max-width: 1024px) {

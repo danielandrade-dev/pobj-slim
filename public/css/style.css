@@ -8,15 +8,44 @@
 
 /* ---------- Aqui eu defino tokens de cor e espaçamento ---------- */
 :root{
-  --brand:#b30000;
-  --brand-dark:#8f0000;
-  --info:#246BFD;
+  /* Tema Bradesco */
+  --brad-current-theme: "brad-theme-classic";
+  --brad-color-neutral-0: #fff;
+  --brad-color-neutral-100: #000;
+  --brad-color-primary: #cc092f;
+  --brad-color-primary-light: #d63a59;
+  --brad-color-primary-dark: #9d0b21;
+  --brad-color-primary-xlight: #fce7ec;
+  --brad-color-on-bg-primary: #fff;
+  --brad-color-secondary: #cc092f;
+  --brad-color-secondary-light: #d63a59;
+  --brad-color-secondary-dark: #9d0b21;
+  --brad-color-secondary-xlight: #fce7ec;
+  --brad-color-on-bg-secondary: #fff;
+  --brad-color-primary-gradient: linear-gradient(90deg, #cc092f 40%, #b81570 90%);
+  --brad-color-secondary-gradient: linear-gradient(270deg, #cc092f 40%, #b81570 90%);
+  --brad-color-gray-light: #ebebeb;
+  --brad-color-accent: #517bc5;
+  --brad-color-gray: #c7c7c7;
+  --brad-color-error: red;
+  --brad-color-gray-dark: #999;
+  --brad-color-gray-darker: #3c3c3c;
+  --brad-color-extended-blue: #3b69ff;
+  --swiper-theme-color: #007aff;
+  --swiper-navigation-size: 44px;
 
-  --bg:#f6f7fc;
-  --panel:#ffffff;
-  --stroke:#e7eaf2;
-  --text:#0f1424;
-  --muted:#6b7280;
+  /* Variáveis de compatibilidade */
+  --brand: var(--brad-color-primary);
+  --brand-dark: var(--brad-color-primary-dark);
+  --brand-light: var(--brad-color-primary-light);
+  --brand-xlight: var(--brad-color-primary-xlight);
+  --info: var(--brad-color-accent);
+
+  --bg: var(--brad-color-neutral-0);
+  --panel: var(--brad-color-neutral-0);
+  --stroke: var(--brad-color-gray-light);
+  --text: var(--brad-color-neutral-100);
+  --muted: var(--brad-color-gray-dark);
 
   --radius:16px;
   --shadow:0 12px 28px rgba(17,23,41,.08);
@@ -33,7 +62,7 @@ body{
   margin:0;
   background-color:var(--bg);
   background-image:
-    url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%20320%20320%27%3E%3Ctext%20x%3D%2750%25%27%20y%3D%2750%25%27%20fill%3D%27rgba%2815%2C20%2C36%2C0.08%29%27%20font-size%3D%2720%27%20font-family%3D%27Plus%20Jakarta%20Sans%2C%20sans-serif%27%20text-anchor%3D%27middle%27%20dominant-baseline%3D%27middle%27%20transform%3D%27rotate%28-30%20160%20160%29%27%3EX%20Burguer%20%E2%80%A2%20Funcional%201234567%3C/text%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%20320%20320%27%3E%3Ctext%20x%3D%2750%25%27%20y%3D%2750%25%27%20fill%3D%27rgba%2815%2C20%2C36%2C0.08%29%27%20font-size%3D%2720%27%20font-family%3D%27Bradesco%2C%20sans-serif%27%20text-anchor%3D%27middle%27%20dominant-baseline%3D%27middle%27%20transform%3D%27rotate%28-30%20160%20160%29%27%3EX%20Burguer%20%E2%80%A2%20Funcional%201234567%3C/text%3E%3C/svg%3E"),
     radial-gradient(1200px 720px at 95% -30%, #dfe8ff 0%, transparent 60%),
     radial-gradient(1100px 720px at -25% -10%, #ffe6ea 0%, transparent 55%);
   background-repeat:repeat, no-repeat, no-repeat;
@@ -42,7 +71,7 @@ body{
   color:var(--text);
   -webkit-font-smoothing:antialiased;
   -moz-osx-font-smoothing:grayscale;
-  font-family:"Plus Jakarta Sans", Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
+  font-family:"Bradesco", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
 }
 img{ max-width:100%; display:block; }
 .hidden{ display:none !important; }
@@ -121,7 +150,7 @@ img{ max-width:100%; display:block; }
   color:#475569;
 }
 .logo{ display:flex; align-items:center; gap:10px; min-width:0; }
-.logo__mark{ width:28px; height:28px; border-radius:50%; background:#fff; background-image:url(../img/BBD-6b19aac5.png); background-size:70%; background-position:center; background-repeat:no-repeat; flex:0 0 28px; }
+.logo__mark{ width:28px; height:28px; border-radius:50%; background:#fff; background-image:url(../img/bra-logo.png); background-size:70%; background-position:center; background-repeat:no-repeat; flex:0 0 28px; }
 .logo__text{ font-weight:800; color:#fff; max-width:200px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 
 .userbox{ position:relative; display:flex; align-items:center; min-width:0; }
@@ -2349,7 +2378,7 @@ body.has-no-data-modal-open{ overflow:hidden; }
   align-items:center;
   justify-content:center;
   padding:24px;
-  font-family:"Plus Jakarta Sans", Inter, system-ui, sans-serif;
+  font-family:"Bradesco", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
   opacity:0;
   transition:opacity 0.2s ease;
 }

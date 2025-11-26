@@ -58,16 +58,25 @@ defineSlots<{
 }
 
 .btn--primary {
-  background: linear-gradient(90deg, var(--brand), var(--brand-dark));
+  background: linear-gradient(90deg, #cc092f 40%, #b81570 90%);
   color: #fff;
   border-color: transparent;
-  box-shadow: 0 4px 12px rgba(179, 0, 0, 0.25);
+  box-shadow: 0 4px 12px rgba(204, 9, 47, 0.25);
+}
+
+.btn--primary i {
+  color: #fff;
+  stroke-width: 1.5;
 }
 
 .btn--primary:hover:not(:disabled) {
-  background: linear-gradient(90deg, var(--brand-dark), var(--brand));
-  box-shadow: 0 6px 16px rgba(179, 0, 0, 0.35);
+  background: linear-gradient(90deg, #b81570 40%, #cc092f 90%);
+  box-shadow: 0 6px 16px rgba(204, 9, 47, 0.35);
   transform: translateY(-1px);
+}
+
+.btn--primary:hover:not(:disabled) i {
+  color: #fff;
 }
 
 .btn--secondary:hover:not(:disabled) {
@@ -84,17 +93,31 @@ defineSlots<{
 }
 
 .btn--link:hover:not(:disabled) {
-  background: rgba(179, 0, 0, 0.08);
+  background: rgba(204, 9, 47, 0.08);
   transform: none;
 }
 
 .btn--info {
-  color: #246bfd;
+  background: transparent;
+  border: 1.5px solid var(--brad-color-primary, #cc092f);
+  color: var(--brad-color-primary, #cc092f);
+  font-weight: var(--brad-font-weight-semibold, 600);
+}
+
+.btn--info i {
+  color: var(--brad-color-primary, #cc092f);
+  stroke-width: 1.5;
+  transition: transform 0.2s ease;
 }
 
 .btn--info:hover:not(:disabled) {
-  background: rgba(36, 107, 253, 0.08);
-  color: #246bfd;
+  background: rgba(204, 9, 47, 0.08);
+  border-color: var(--brad-color-primary, #cc092f);
+  color: var(--brad-color-primary, #cc092f);
+}
+
+.btn--info:hover:not(:disabled) i {
+  color: var(--brad-color-primary, #cc092f);
 }
 </style>
 

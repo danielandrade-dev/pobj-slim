@@ -271,5 +271,209 @@ class ProdutoUseCase extends AbstractUseCase
             ];
         }, $produtos);
     }
+
+    /**
+     * Retorna produtos com dados mensais para renderização do resumo-legacy
+     * Retorna dados agrupados por mês (competencia/data_realizado)
+     */
+    public function handleMonthly(FilterDTO $filters = null): array
+    {
+        // Busca produtos base
+        $produtos = $this->repository->fetch($filters);
+        
+        if (empty($produtos)) {
+            return [];
+        }
+
+        // Extrai IDs de produtos
+        $produtoIds = array_unique(array_filter(array_map(function($produto) {
+            return $produto['id'] ?? null;
+        }, $produtos)));
+
+        if (empty($produtoIds)) {
+            return [];
+        }
+
+        // Busca dados mensais
+        $realizadosMensais = $this->getRealizadosMensais($produtoIds, $filters);
+        $metasMensais = $this->getMetasMensais($produtoIds, $filters);
+
+        // Combina dados mensais com produtos
+        return $this->combineProdutosDataMonthly($produtos, $realizadosMensais, $metasMensais);
+    }
+
+    /**
+     * Busca realizados mensais por produto e mês
+     */
+    private function getRealizadosMensais(array $produtoIds, ?FilterDTO $filters): array
+    {
+        if (empty($produtoIds)) {
+            return [];
+        }
+        
+        $query = DB::table(Tables::F_REALIZADOS . ' as r')
+            ->select(
+                'r.produto_id',
+                DB::raw('DATE_FORMAT(r.data_realizado, "%Y-%m") as mes'),
+                DB::raw('SUM(r.realizado) as realizado_total'),
+                DB::raw('MAX(r.data_realizado) as ultima_atualizacao')
+            )
+            ->whereIn('r.produto_id', $produtoIds)
+            ->whereNotNull('r.produto_id');
+        
+        // Aplica filtros de período se existirem
+        $dataInicio = $filters ? $filters->getDataInicio() : null;
+        $dataFim = $filters ? $filters->getDataFim() : null;
+        
+        if ($dataInicio) {
+            $query->where('r.data_realizado', '>=', $dataInicio);
+        }
+        
+        if ($dataFim) {
+            $query->where('r.data_realizado', '<=', $dataFim);
+        }
+        
+        $query->groupBy('r.produto_id', DB::raw('DATE_FORMAT(r.data_realizado, "%Y-%m")'));
+        
+        $rows = $query->get();
+        
+        $result = [];
+        $ultimaAtualizacaoMap = [];
+        foreach ($rows as $row) {
+            $produtoId = (string)$row->produto_id;
+            $mes = $row->mes ?? '';
+            if (!isset($result[$produtoId])) {
+                $result[$produtoId] = [];
+            }
+            $result[$produtoId][$mes] = (float)($row->realizado_total ?? 0);
+            
+            // Armazena a última atualização mais recente por produto
+            if ($row->ultima_atualizacao) {
+                if (!isset($ultimaAtualizacaoMap[$produtoId]) || 
+                    $row->ultima_atualizacao > $ultimaAtualizacaoMap[$produtoId]) {
+                    $ultimaAtualizacaoMap[$produtoId] = $row->ultima_atualizacao;
+                }
+            }
+        }
+        
+        // Adiciona última atualização ao resultado
+        foreach ($ultimaAtualizacaoMap as $produtoId => $ultimaAtualizacao) {
+            if (!isset($result[$produtoId]['_ultima_atualizacao'])) {
+                $result[$produtoId]['_ultima_atualizacao'] = $ultimaAtualizacao;
+            }
+        }
+        
+        return $result;
+    }
+
+    /**
+     * Busca metas mensais por produto e mês
+     */
+    private function getMetasMensais(array $produtoIds, ?FilterDTO $filters): array
+    {
+        if (empty($produtoIds)) {
+            return [];
+        }
+        
+        $query = DB::table(Tables::F_META . ' as m')
+            ->select(
+                'm.produto_id',
+                DB::raw('DATE_FORMAT(m.data_meta, "%Y-%m") as mes'),
+                DB::raw('SUM(m.meta_mensal) as meta_total')
+            )
+            ->whereIn('m.produto_id', $produtoIds);
+        
+        // Aplica filtros de período se existirem
+        $dataInicio = $filters ? $filters->getDataInicio() : null;
+        $dataFim = $filters ? $filters->getDataFim() : null;
+        
+        if ($dataInicio) {
+            $query->where('m.data_meta', '>=', $dataInicio);
+        }
+        
+        if ($dataFim) {
+            $query->where('m.data_meta', '<=', $dataFim);
+        }
+        
+        $query->groupBy('m.produto_id', DB::raw('DATE_FORMAT(m.data_meta, "%Y-%m")'));
+        
+        $rows = $query->get();
+        
+        $result = [];
+        foreach ($rows as $row) {
+            $produtoId = (string)$row->produto_id;
+            $mes = $row->mes ?? '';
+            if (!isset($result[$produtoId])) {
+                $result[$produtoId] = [];
+            }
+            $result[$produtoId][$mes] = (float)($row->meta_total ?? 0);
+        }
+        
+        return $result;
+    }
+
+    /**
+     * Combina dados de produtos com dados mensais
+     */
+    private function combineProdutosDataMonthly(
+        array $produtos,
+        array $realizadosMensais,
+        array $metasMensais
+    ): array {
+        $result = [];
+        
+        foreach ($produtos as $produto) {
+            $produtoId = (string)($produto['id'] ?? '');
+            
+            $realizadosMes = $realizadosMensais[$produtoId] ?? [];
+            $metasMes = $metasMensais[$produtoId] ?? [];
+            
+            // Remove a chave especial de última atualização
+            $ultimaAtualizacao = $realizadosMes['_ultima_atualizacao'] ?? null;
+            unset($realizadosMes['_ultima_atualizacao']);
+            
+            // Calcula totais
+            $realizadoTotal = array_sum($realizadosMes);
+            $metaTotal = array_sum($metasMes);
+            $ating = $metaTotal > 0 ? ($realizadoTotal / $metaTotal) : 0;
+            
+            // Prepara dados mensais
+            $meses = array_unique(array_merge(array_keys($realizadosMes), array_keys($metasMes)));
+            $dadosMensais = [];
+            
+            foreach ($meses as $mes) {
+                $meta = $metasMes[$mes] ?? 0;
+                $realizado = $realizadosMes[$mes] ?? 0;
+                $atingMes = $meta > 0 ? ($realizado / $meta) : 0;
+                
+                $dadosMensais[] = [
+                    'mes' => $mes,
+                    'meta' => $meta,
+                    'realizado' => $realizado,
+                    'atingimento' => $atingMes * 100 // Em percentual
+                ];
+            }
+            
+            $result[] = [
+                'id' => $produtoId,
+                'id_indicador' => (string)($produto['id_indicador'] ?? ''),
+                'indicador' => $produto['indicador'] ?? '',
+                'id_familia' => (string)($produto['id_familia'] ?? ''),
+                'familia' => $produto['familia'] ?? '',
+                'id_subindicador' => $produto['id_subindicador'] ? (string)$produto['id_subindicador'] : null,
+                'subindicador' => $produto['subindicador'] ?? null,
+                'metrica' => $produto['metrica'] ?? 'valor',
+                'peso' => (float)($produto['peso'] ?? 0),
+                'meta' => $metaTotal,
+                'realizado' => $realizadoTotal,
+                'ating' => $ating,
+                'atingido' => $ating >= 1,
+                'ultima_atualizacao' => $ultimaAtualizacao,
+                'meses' => $dadosMensais
+            ];
+        }
+        
+        return $result;
+    }
 }
 

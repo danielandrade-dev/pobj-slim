@@ -143,5 +143,6 @@ export interface TabConfig {
   label: string
   icon: string
   ariaLabel: string
+  path?: string
 }
 

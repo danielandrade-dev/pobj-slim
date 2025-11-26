@@ -178,17 +178,26 @@ const pctVariavel = computed(() => {
 }
 
 .kpi-pill {
+  position: relative;
+  overflow: visible;
   background: #fff;
-  border: 2px solid #d7def3;
-  border-radius: 20px;
-  padding: 24px 26px;
-  box-shadow: 0 12px 28px rgba(17, 23, 41, 0.12);
+  border: 1px solid var(--stroke, #e7eaf2);
+  border-radius: 18px;
+  padding: 16px 16px 20px;
+  box-shadow: var(--shadow, 0 12px 28px rgba(17, 23, 41, 0.08));
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 14px;
+  gap: 12px;
   flex: 1 1 360px;
   min-width: 280px;
+  transition: 0.18s ease transform, 0.18s ease box-shadow, 0.18s ease border-color;
+  cursor: pointer;
+}
+
+.kpi-pill:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12);
+  border-color: #d7def1;
 }
 
 .kpi-strip__main {
@@ -200,15 +209,15 @@ const pctVariavel = computed(() => {
 }
 
 .kpi-icon {
-  width: 44px;
-  height: 44px;
-  border-radius: 999px;
+  font-size: 22px;
+  color: var(--brand, #b30000);
+  width: 36px;
+  height: 36px;
   display: grid;
   place-items: center;
-  background: #eef2ff;
-  color: #1d4ed8;
-  font-size: 19px;
-  box-shadow: inset 0 0 0 1px rgba(29, 78, 216, 0.15);
+  background: #fff4f5;
+  border: 1px solid #ffd7db;
+  border-radius: 12px;
   flex-shrink: 0;
 }
 
@@ -271,18 +280,19 @@ const pctVariavel = computed(() => {
   position: relative;
   flex: 1 1 auto;
   min-width: 0;
-  height: 11px;
+  height: 18px;
   border-radius: 999px;
-  background: #eef2ff;
   border: 1px solid #e5e7eb;
-  overflow: visible;
+  background: #f8fafc;
+  overflow: hidden;
+  --bar-anim-duration: 0.85s;
 }
 
 .hitbar__fill {
   position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
+  left: 2px;
+  top: 3px;
+  bottom: 3px;
   width: var(--target, 0%);
   background: #bbf7d0;
   border-radius: 999px;
@@ -295,19 +305,30 @@ const pctVariavel = computed(() => {
 .hitbar__thumb {
   position: absolute;
   top: 50%;
-  left: clamp(4%, calc(var(--thumb, 0) * 1%), 96%);
+  left: var(--target, 0%);
   transform: translate(-50%, -50%);
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.1;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  background: none;
+  padding: 0;
+  box-shadow: none;
   pointer-events: none;
   z-index: 1;
 }
 
 .hitbar__pct {
-  font-size: 12.5px;
-  font-weight: 800;
-  color: #111827;
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  color: #0f172a;
   white-space: nowrap;
 }
 

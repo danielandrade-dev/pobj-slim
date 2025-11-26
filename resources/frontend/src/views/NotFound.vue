@@ -77,7 +77,7 @@ const goBack = (): void => {
   font-size: 120px;
   font-weight: 800;
   line-height: 1;
-  background: linear-gradient(90deg, var(--brand), var(--brand-dark));
+  background: linear-gradient(90deg, #cc092f 40%, #b81570 90%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -128,14 +128,14 @@ const goBack = (): void => {
 }
 
 .btn-primary {
-  background: linear-gradient(90deg, var(--brand), var(--brand-dark));
+  background: linear-gradient(90deg, #cc092f 40%, #b81570 90%);
   color: #fff;
-  box-shadow: 0 6px 16px rgba(179, 0, 0, 0.25);
+  box-shadow: 0 6px 16px rgba(204, 9, 47, 0.25);
 }
 
 .btn-primary:hover {
-  background: linear-gradient(90deg, var(--brand-dark), var(--brand));
-  box-shadow: 0 8px 20px rgba(179, 0, 0, 0.35);
+  background: linear-gradient(90deg, #b81570 40%, #cc092f 90%);
+  box-shadow: 0 8px 20px rgba(204, 9, 47, 0.35);
   transform: translateY(-1px);
 }
 

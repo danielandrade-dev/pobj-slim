@@ -45,6 +45,9 @@ export enum ApiRoutes {
   // Pontos
   PONTOS = '/api/pontos',
 
+  // Ranking
+  RANKING = '/api/ranking',
+
   // Agent
   AGENT = '/api/agent',
 

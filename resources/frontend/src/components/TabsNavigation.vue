@@ -1,21 +1,31 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import type { ViewType, TabConfig } from '../types'
 
-const activeView = ref<ViewType>('cards')
+const router = useRouter()
+const route = useRoute()
 
 const views: TabConfig[] = [
-  { id: 'cards', label: 'Resumo', icon: 'ti ti-dashboard', ariaLabel: 'Resumo' },
-  { id: 'table', label: 'Detalhamento', icon: 'ti ti-list-tree', ariaLabel: 'Detalhamento' },
-  { id: 'ranking', label: 'Rankings', icon: 'ti ti-trophy', ariaLabel: 'Rankings' },
-  { id: 'exec', label: 'Visão executiva', icon: 'ti ti-chart-line', ariaLabel: 'Visão executiva' },
-  { id: 'simuladores', label: 'Simuladores', icon: 'ti ti-calculator', ariaLabel: 'Simuladores' },
-  { id: 'campanhas', label: 'Campanhas', icon: 'ti ti-speakerphone', ariaLabel: 'Campanhas' }
+  { id: 'cards', label: 'Resumo', icon: 'ti ti-dashboard', ariaLabel: 'Resumo', path: '/' },
+  { id: 'table', label: 'Detalhamento', icon: 'ti ti-list-tree', ariaLabel: 'Detalhamento', path: '/table' },
+  { id: 'ranking', label: 'Rankings', icon: 'ti ti-trophy', ariaLabel: 'Rankings', path: '/ranking' },
+  { id: 'exec', label: 'Visão executiva', icon: 'ti ti-chart-line', ariaLabel: 'Visão executiva', path: '/exec' },
+  { id: 'simuladores', label: 'Simuladores', icon: 'ti ti-calculator', ariaLabel: 'Simuladores', path: '/simuladores' },
+  { id: 'campanhas', label: 'Campanhas', icon: 'ti ti-speakerphone', ariaLabel: 'Campanhas', path: '/campanhas' }
 ]
 
+const activeView = computed<ViewType>(() => {
+  const currentPath = route.path
+  const currentView = views.find(v => v.path === currentPath)
+  return currentView?.id || 'cards'
+})
+
 const handleTabClick = (viewId: ViewType): void => {
-  activeView.value = viewId
-  // TODO: Implementar mudança de view
+  const view = views.find(v => v.id === viewId)
+  if (view && view.path) {
+    router.push(view.path)
+  }
 }
 </script>
 

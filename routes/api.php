@@ -38,6 +38,12 @@ $app->get('/api/produtos', function ($request, $response) use ($app) {
     return $controller->handle($request, $response);
 });
 
+// Produtos Mensais (para resumo-legacy)
+$app->get('/api/produtos/mensais', function ($request, $response) use ($app) {
+    $controller = $app->getContainer()->get('App\Presentation\Controllers\ProdutosController');
+    return $controller->handleMonthly($request, $response);
+});
+
 // Calendário
 $app->get('/api/calendario', function ($request, $response) use ($app) {
     $controller = $app->getContainer()->get('App\Presentation\Controllers\CalendarioController');
@@ -95,6 +101,12 @@ $app->get('/api/leads', function ($request, $response) use ($app) {
 // Pontos
 $app->get('/api/pontos', function ($request, $response) use ($app) {
     $controller = $app->getContainer()->get('App\Presentation\Controllers\PontosController');
+    return $controller->handle($request, $response);
+});
+
+// Ranking
+$app->get('/api/ranking', function ($request, $response) use ($app) {
+    $controller = $app->getContainer()->get('App\Presentation\Controllers\RankingController');
     return $controller->handle($request, $response);
 });
 

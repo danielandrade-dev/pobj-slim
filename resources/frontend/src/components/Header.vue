@@ -151,9 +151,6 @@ const handleMenuAction = (action: string): void => {
 
 <style scoped>
 .topbar {
-  --brand: #b30000;
-  --brand-dark: #8f0000;
-
   position: fixed;
   top: 0;
   left: 0;
@@ -165,9 +162,9 @@ const handleMenuAction = (action: string): void => {
   justify-content: space-between;
   gap: 12px;
   padding: 8px 12px;
-  background: linear-gradient(90deg, var(--brand), var(--brand-dark));
-  color: #fff;
-  box-shadow: 0 6px 16px rgba(179, 0, 0, 0.25);
+  background: var(--brad-color-primary-gradient);
+  color: var(--brad-color-on-bg-primary);
+  box-shadow: 0 6px 16px rgba(204, 9, 47, 0.25);
   margin: 0;
   border: none;
 }
@@ -191,25 +188,27 @@ const handleMenuAction = (action: string): void => {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.14);
+  border: 1.5px solid rgba(255, 255, 255, 1);
+  background: transparent;
   color: #fff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 
 .topbar__bell:hover,
 .topbar__bell:focus-visible {
-  background: rgba(255, 255, 255, 0.22);
-  border-color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 1);
   outline: none;
 }
 
 .topbar__bell i {
   font-size: 18px;
+  stroke-width: 1.5;
+  color: #fff;
 }
 
 .topbar__badge {
@@ -228,7 +227,7 @@ const handleMenuAction = (action: string): void => {
   align-items: center;
   justify-content: center;
   padding: 0 5px;
-  box-shadow: 0 0 0 2px rgba(179, 0, 0, 0.35);
+  box-shadow: 0 0 0 2px rgba(204, 9, 47, 0.35);
 }
 
 .topbar__badge[hidden] {
@@ -275,7 +274,7 @@ const handleMenuAction = (action: string): void => {
   height: 28px;
   border-radius: 50%;
   background: #fff;
-  background-image: url('/img/BBD-6b19aac5.png');
+  background-image: url('/img/bra-logo.png');
   background-size: 70%;
   background-position: center;
   background-repeat: no-repeat;
@@ -302,8 +301,8 @@ const handleMenuAction = (action: string): void => {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: transparent;
+  border: 1.5px solid rgba(255, 255, 255, 1);
   border-radius: 999px;
   padding: 6px 12px;
   color: #fff;
@@ -313,8 +312,8 @@ const handleMenuAction = (action: string): void => {
 }
 
 .userbox__trigger:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 1);
 }
 
 .userbox__trigger:focus-visible {
@@ -324,19 +323,24 @@ const handleMenuAction = (action: string): void => {
 
 .userbox__trigger i {
   font-size: 16px;
+  stroke-width: 1.5;
+  color: #fff;
 }
 
 .userbox__avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.6);
+  border: 2px solid rgba(255, 255, 255, 1);
   object-fit: cover;
   flex: 0 0 36px;
 }
 
 .userbox__name {
-  font-weight: 700;
+  font-family: var(--brad-font-family);
+  font-size: 14px;
+  font-weight: var(--brad-font-weight-semibold);
+  color: #fff;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -390,7 +394,7 @@ const handleMenuAction = (action: string): void => {
 
 .userbox__menu-item:hover,
 .userbox__menu-item:focus-visible {
-  background: rgba(179, 0, 0, 0.12);
+  background: rgba(204, 9, 47, 0.12);
   color: var(--brand);
   outline: none;
 }

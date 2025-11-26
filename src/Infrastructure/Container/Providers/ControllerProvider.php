@@ -24,6 +24,7 @@ class ControllerProvider implements ServiceProviderInterface
             \App\Presentation\Controllers\StatusIndicadoresController::class,
             \App\Presentation\Controllers\VariavelController::class,
             \App\Presentation\Controllers\PontosController::class,
+            \App\Presentation\Controllers\RankingController::class,
             \App\Presentation\Controllers\Omega\OmegaMesuController::class,
             \App\Presentation\Controllers\Omega\OmegaStatusController::class,
             \App\Presentation\Controllers\Omega\OmegaStructureController::class,

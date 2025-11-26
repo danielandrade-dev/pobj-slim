@@ -26,6 +26,7 @@ class RepositoryProvider implements ServiceProviderInterface
             \App\Infrastructure\Persistence\OmegaStructureRepository::class,
             \App\Infrastructure\Persistence\OmegaTicketsRepository::class,
             \App\Infrastructure\Persistence\PontosRepository::class,
+            \App\Infrastructure\Persistence\RankingRepository::class,
         ];
         
         ContainerHelper::registerMany($container, $repositories);

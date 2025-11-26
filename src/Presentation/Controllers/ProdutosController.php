@@ -22,5 +22,13 @@ class ProdutosController extends ControllerBase
         
         return $this->success($response, $result);
     }
+
+    public function handleMonthly(Request $request, Response $response): Response
+    {
+        $filters = $request->getAttribute('filters');
+        $result = $this->produtoUseCase->handleMonthly($filters);
+        
+        return $this->success($response, $result);
+    }
 }
 
