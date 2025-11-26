@@ -31,11 +31,9 @@ const sortState = ref<{ id: string | null; direction: 'asc' | 'desc' | null }>({
   direction: null
 })
 // Todas as colunas habilitadas por padrão (na ordem correta)
-const activeColumns = ref<string[]>([
-  'quantidade',
+const AVAILABLE_COLUMNS: string[] = [
   'realizado',
   'meta',
-  'atingimento_v',
   'atingimento_p',
   'meta_diaria',
   'referencia_hoje',
@@ -44,7 +42,23 @@ const activeColumns = ref<string[]>([
   'peso',
   'projecao',
   'data'
-])
+]
+
+const DEFAULT_COLUMNS = [...AVAILABLE_COLUMNS]
+
+function sanitizeColumns(columns: string[]): string[] {
+  const seen = new Set<string>()
+  const filtered = columns.filter(column => {
+    if (!AVAILABLE_COLUMNS.includes(column) || seen.has(column)) {
+      return false
+    }
+    seen.add(column)
+    return true
+  })
+  return filtered.length ? filtered : [...DEFAULT_COLUMNS]
+}
+
+const activeColumns = ref<string[]>(sanitizeColumns(DEFAULT_COLUMNS))
 
 // Visões da tabela (chips principais)
 const TABLE_VIEWS = [
@@ -64,20 +78,7 @@ const detailViews = ref<DetailView[]>([
   {
     id: 'default',
     name: 'Visão padrão',
-    columns: [
-      'quantidade',
-      'realizado',
-      'meta',
-      'atingimento_v',
-      'atingimento_p',
-      'meta_diaria',
-      'referencia_hoje',
-      'pontos',
-      'meta_diaria_necessaria',
-      'peso',
-      'projecao',
-      'data'
-    ]
+    columns: sanitizeColumns(DEFAULT_COLUMNS)
   }
 ])
 
@@ -89,7 +90,6 @@ interface TreeNode {
   children: TreeNode[]
   data: DetalhesItem[]
   summary: {
-    quantidade: number
     valor_realizado: number
     valor_meta: number
     atingimento_v: number
@@ -168,8 +168,6 @@ function getSortValue(node: TreeNode, columnId: string): number | string {
 
   const summary = node.summary
   switch (columnId) {
-    case 'quantidade':
-      return summary.quantidade || 0
     case 'realizado':
       return summary.valor_realizado || 0
     case 'meta':
@@ -410,7 +408,6 @@ function buildTreeHierarchy(items: DetalhesItem[], hierarchy: string[], level: n
 function calculateSummary(items: DetalhesItem[]) {
   const valor_realizado = items.reduce((sum, item) => sum + (item.valor_realizado || 0), 0)
   const valor_meta = items.reduce((sum, item) => sum + (item.valor_meta || item.meta_mensal || 0), 0)
-  const quantidade = items.length
   const pontos = items.reduce((sum, item) => sum + (item.peso || 0), 0) // Assumindo que pontos = peso
   const peso = items.reduce((sum, item) => sum + (item.peso || 0), 0)
 
@@ -432,7 +429,6 @@ function calculateSummary(items: DetalhesItem[]) {
   const data = firstItem ? (firstItem.data || firstItem.competencia || '') : ''
 
   return {
-    quantidade,
     valor_realizado,
     valor_meta,
     atingimento_v,
@@ -488,14 +484,12 @@ const firstColumnLabel = computed(() => {
 // Função para obter o label de uma coluna
 function getColumnLabel(columnId: string): string {
   const columnMap: Record<string, string> = {
-    quantidade: 'Quantidade',
-    realizado: 'Realizado no mês (R$)',
-    meta: 'Meta no mês (R$)',
-    atingimento_v: 'Atingimento (R$)',
+    realizado: 'Realizado no período (R$)',
+    meta: 'Meta no período (R$)',
     atingimento_p: 'Atingimento (%)',
     meta_diaria: 'Meta diária total (R$)',
     referencia_hoje: 'Referência para hoje (R$)',
-    pontos: 'Pontos no mês (pts)',
+    pontos: 'Pontos no período (pts)',
     meta_diaria_necessaria: 'Meta diária necessária (R$)',
     peso: 'Peso (pts)',
     projecao: 'Projeção (R$)',
@@ -571,7 +565,9 @@ function handleDetailViewChange(viewId: string) {
   activeDetailViewId.value = viewId
   const view = detailViews.value.find(v => v.id === viewId)
   if (view) {
-    activeColumns.value = [...view.columns]
+    const sanitized = sanitizeColumns(view.columns)
+    view.columns = sanitized
+    activeColumns.value = [...sanitized]
   }
 }
 
@@ -581,11 +577,12 @@ function handleOpenColumnDesigner() {
 
 
 function handleSaveView(name: string, columns: string[]) {
+  const sanitizedColumns = sanitizeColumns(columns)
   // Verificar se já existe uma visão com o mesmo nome
   const existingView = detailViews.value.find(v => v.name.toLowerCase() === name.toLowerCase() && v.id !== 'default')
   if (existingView) {
     // Atualizar visão existente
-    existingView.columns = [...columns]
+    existingView.columns = [...sanitizedColumns]
     activeDetailViewId.value = existingView.id
   } else {
     // Verificar limite de 5 visões personalizadas (sem contar a padrão)
@@ -598,12 +595,12 @@ function handleSaveView(name: string, columns: string[]) {
     const newView: DetailView = {
       id: `custom-${Date.now()}`,
       name,
-      columns: [...columns]
+      columns: [...sanitizedColumns]
     }
     detailViews.value.push(newView)
     activeDetailViewId.value = newView.id
   }
-  activeColumns.value = [...columns]
+  activeColumns.value = [...sanitizedColumns]
   // Salvar no localStorage
   localStorage.setItem('pobj3:detailViews', JSON.stringify(detailViews.value.filter(v => v.id !== 'default')))
   localStorage.setItem('pobj3:detailActiveView', activeDetailViewId.value)
@@ -619,7 +616,9 @@ function handleDeleteView(viewId: string) {
       activeDetailViewId.value = 'default'
       const defaultView = detailViews.value.find(v => v.id === 'default')
       if (defaultView) {
-        activeColumns.value = [...defaultView.columns]
+        const sanitized = sanitizeColumns(defaultView.columns)
+        defaultView.columns = sanitized
+        activeColumns.value = [...sanitized]
       }
     }
     // Salvar no localStorage
@@ -629,12 +628,13 @@ function handleDeleteView(viewId: string) {
 }
 
 function handleApplyColumns(columns: string[]) {
-  activeColumns.value = [...columns]
+  const sanitizedColumns = sanitizeColumns(columns)
+  activeColumns.value = [...sanitizedColumns]
   // Atualiza a visão customizada se estiver ativa
   if (activeDetailViewId.value === '__custom__' || activeDetailViewId.value.startsWith('custom-')) {
     const customView = detailViews.value.find(v => v.id === activeDetailViewId.value)
     if (customView) {
-      customView.columns = [...columns]
+      customView.columns = [...sanitizedColumns]
       localStorage.setItem('pobj3:detailViews', JSON.stringify(detailViews.value.filter(v => v.id !== 'default')))
     }
   }
@@ -654,7 +654,7 @@ onMounted(() => {
           ...parsed.map((v: any) => ({
             id: v.id || `custom-${Date.now()}`,
             name: v.name || 'Visão personalizada',
-            columns: v.columns || []
+            columns: sanitizeColumns(Array.isArray(v.columns) ? v.columns : [])
           }))
         ]
       }
@@ -665,7 +665,9 @@ onMounted(() => {
       const view = detailViews.value.find(v => v.id === activeId)
       if (view) {
         activeDetailViewId.value = activeId
-        activeColumns.value = [...view.columns]
+        const sanitized = sanitizeColumns(view.columns)
+        view.columns = sanitized
+        activeColumns.value = [...sanitized]
       }
     }
   } catch (e) {

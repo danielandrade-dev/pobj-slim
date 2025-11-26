@@ -25,6 +25,7 @@ class RepositoryProvider implements ServiceProviderInterface
             \App\Infrastructure\Persistence\OmegaStatusRepository::class,
             \App\Infrastructure\Persistence\OmegaStructureRepository::class,
             \App\Infrastructure\Persistence\OmegaTicketsRepository::class,
+            \App\Infrastructure\Persistence\OmegaMesuRepository::class,
             \App\Infrastructure\Persistence\PontosRepository::class,
             \App\Infrastructure\Persistence\RankingRepository::class,
         ];

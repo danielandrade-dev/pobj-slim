@@ -103,14 +103,14 @@ export function useProdutos(filters?: Ref<ProdutoFilters | null>) {
         }
         
         // Recalcula o atingimento após somar os valores
-        if (cardExistente.meta && cardExistente.meta > 0) {
-          cardExistente.ating = cardExistente.realizado / cardExistente.meta
-        } else if (cardExistente.pontosMeta && cardExistente.pontosMeta > 0) {
-          cardExistente.ating = cardExistente.pontos / cardExistente.pontosMeta
-        }
-        cardExistente.atingido = (cardExistente.ating || 0) >= 1
+        const metaVal = cardExistente.meta || 0
+        const realizadoVal = cardExistente.realizado || 0
+        cardExistente.ating = metaVal > 0 ? (realizadoVal / metaVal) : 0
+        cardExistente.atingido = metaVal > 0 ? (realizadoVal / metaVal) >= 1 : false
       } else {
         // Cria novo card para o indicador
+        const metaVal = produto.meta || 0
+        const realizadoVal = produto.realizado || 0
         const card: ProdutoCard = {
           id: indicadorId,
           nome: produto.indicador || 'Indicador',
@@ -122,11 +122,11 @@ export function useProdutos(filters?: Ref<ProdutoFilters | null>) {
           metrica: produto.metrica || 'valor',
           peso: produto.peso || 0,
           pontosMeta: produto.pontos_meta || produto.peso || 0,
-          meta: produto.meta || 0,
-          realizado: produto.realizado || 0,
+          meta: metaVal,
+          realizado: realizadoVal,
           pontos: produto.pontos || 0,
-          atingido: produto.atingido,
-          ating: produto.ating,
+          atingido: metaVal > 0 ? (realizadoVal / metaVal) >= 1 : false,
+          ating: metaVal > 0 ? (realizadoVal / metaVal) : 0,
           ultimaAtualizacao: produto.ultima_atualizacao
         }
         

@@ -17,13 +17,34 @@ const toggleSubmenu = (submenu: string): void => {
   submenuOpen.value = submenuOpen.value === submenu ? null : submenu
 }
 
-const handleMenuAction = (action: string): void => {
-  console.log('Menu action:', action)
-  // Implementar ações do menu aqui
+const openOmegaModal = (): void => {
+  if (typeof window === 'undefined') return
+  const globalAny = window as any
+  const opener =
+    globalAny.__openOmegaFromVue ||
+    globalAny.openOmegaModule ||
+    globalAny.openOmega ||
+    globalAny.launchOmegaStandalone
+
+  if (typeof opener === 'function') {
+    opener()
+  } else {
+    console.warn('Módulo Omega não está disponível.')
+  }
+}
+
+const handleMenuAction = async (action: string): Promise<void> => {
+  if (action === 'omega') {
+    openOmegaModal()
+    userMenuOpen.value = false
+    return
+  }
+
   if (action === 'logout') {
-    // Implementar logout
     console.log('Logout')
   }
+
+  console.log('Menu action:', action)
   userMenuOpen.value = false
 }
 </script>
@@ -133,6 +154,14 @@ const handleMenuAction = (action: string): void => {
             @click="handleMenuAction('mapao')"
           >
             Mapão de Oportunidades
+          </button>
+          <button
+            class="userbox__menu-item"
+            type="button"
+            data-action="omega"
+            @click="handleMenuAction('omega')"
+          >
+            Omega
           </button>
           <hr class="userbox__divider" />
           <button

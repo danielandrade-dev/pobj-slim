@@ -6,6 +6,9 @@ export enum ApiRoutes {
   // Estrutura organizacional
   ESTRUTURA = '/api/estrutura',
 
+  // Resumo
+  RESUMO = '/api/resumo',
+
   // Filtros
   FILTROS = '/api/filtros',
 

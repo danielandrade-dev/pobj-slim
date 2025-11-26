@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import Header from './components/Header.vue'
 import Footer from './components/Footer.vue'
+import OmegaLegacyModal from './components/OmegaLegacyModal.vue'
 import './assets/bradesco-theme.css'
 </script>
 
@@ -11,6 +12,7 @@ import './assets/bradesco-theme.css'
       <router-view />
     </main>
     <Footer />
+    <OmegaLegacyModal />
   </div>
 </template>
 

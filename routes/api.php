@@ -8,6 +8,12 @@ $app->get('/api/health', function ($request, $response) use ($app) {
     return $controller->check($request, $response);
 });
 
+// Resumo
+$app->get('/api/resumo', function ($request, $response) use ($app) {
+    $controller = $app->getContainer()->get('App\Presentation\Controllers\ResumoController');
+    return $controller->handle($request, $response);
+});
+
 // Agent (POST)
 $app->post('/api/agent', function ($request, $response) use ($app) {
     $controller = $app->getContainer()->get('App\Presentation\Controllers\AgentController');
@@ -114,31 +120,31 @@ $app->get('/api/ranking', function ($request, $response) use ($app) {
 $app->group('/api/omega', function () use ($app) {
     // Omega Users
     $app->get('/users', function ($request, $response) use ($app) {
-        $controller = $app->getContainer()->get('App\Presentation\Controllers\OmegaUsersController');
+        $controller = $app->getContainer()->get('App\Presentation\Controllers\Omega\OmegaUsersController');
         return $controller->handle($request, $response);
     });
     
     // Omega Statuses
     $app->get('/statuses', function ($request, $response) use ($app) {
-        $controller = $app->getContainer()->get('App\Presentation\Controllers\OmegaStatusController');
+        $controller = $app->getContainer()->get('App\Presentation\Controllers\Omega\OmegaStatusController');
         return $controller->handle($request, $response);
     });
     
     // Omega Structure
     $app->get('/structure', function ($request, $response) use ($app) {
-        $controller = $app->getContainer()->get('App\Presentation\Controllers\OmegaStructureController');
+        $controller = $app->getContainer()->get('App\Presentation\Controllers\Omega\OmegaStructureController');
         return $controller->handle($request, $response);
     });
     
     // Omega Tickets
     $app->get('/tickets', function ($request, $response) use ($app) {
-        $controller = $app->getContainer()->get('App\Presentation\Controllers\OmegaTicketsController');
+        $controller = $app->getContainer()->get('App\Presentation\Controllers\Omega\OmegaTicketsController');
         return $controller->handle($request, $response);
     });
     
     // Omega MESU
     $app->get('/mesu', function ($request, $response) use ($app) {
-        $controller = $app->getContainer()->get('App\Presentation\Controllers\OmegaMesuController');
+        $controller = $app->getContainer()->get('App\Presentation\Controllers\Omega\OmegaMesuController');
         return $controller->handle($request, $response);
     });
 });

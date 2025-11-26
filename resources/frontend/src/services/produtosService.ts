@@ -1,64 +1,8 @@
 import { apiGet } from './api'
 import { ApiRoutes } from '../constants/apiRoutes'
+import type { Produto, ProdutoFilters, ProdutoMensal } from '../types'
 
-export interface Produto {
-  id: string
-  id_familia: string
-  familia: string
-  id_indicador: string
-  indicador: string
-  id_subindicador?: string
-  subindicador?: string
-  metrica: string
-  peso: number
-  meta?: number
-  realizado?: number
-  pontos?: number
-  pontos_meta?: number
-  variavel_meta?: number
-  variavel_realizado?: number
-  ating?: number
-  atingido?: boolean
-  ultima_atualizacao?: string
-}
-
-export interface ProdutoFilters {
-  segmento?: string
-  diretoria?: string
-  regional?: string
-  agencia?: string
-  gerenteGestao?: string
-  gerente?: string
-  familia?: string
-  indicador?: string
-  subindicador?: string
-  dataInicio?: string
-  dataFim?: string
-  status?: string
-}
-
-export interface ProdutoMensal {
-  id: string
-  id_indicador: string
-  indicador: string
-  id_familia: string
-  familia: string
-  id_subindicador?: string
-  subindicador?: string
-  metrica: string
-  peso: number
-  meta?: number
-  realizado?: number
-  ating?: number
-  atingido?: boolean
-  ultima_atualizacao?: string
-  meses: Array<{
-    mes: string
-    meta: number
-    realizado: number
-    atingimento: number
-  }>
-}
+export type { Produto, ProdutoFilters, ProdutoMensal } from '../types'
 
 export async function getProdutos(filters?: ProdutoFilters): Promise<Produto[] | null> {
   const params: Record<string, string> = {}

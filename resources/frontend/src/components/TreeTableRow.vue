@@ -9,7 +9,6 @@ export interface TreeNode {
   children: TreeNode[]
   data: any[]
   summary: {
-    quantidade: number
     valor_realizado: number
     valor_meta: number
     atingimento_v: number
@@ -64,25 +63,14 @@ const atingimentoClass = computed(() => {
   return 'text-danger'
 })
 
-const atingimentoVClass = computed(() => {
-  const { valor_realizado, valor_meta } = props.node.summary
-  const diff = valor_realizado - valor_meta
-  if (diff >= 0) return 'att-ok'
-  return 'att-low'
-})
-
 // Função para renderizar o valor formatado (exibição)
 function getColumnValue(columnId: string) {
   const summary = props.node.summary
   switch (columnId) {
-    case 'quantidade':
-      return formatIntReadable(summary.quantidade)
     case 'realizado':
       return formatBRLReadable(summary.valor_realizado)
     case 'meta':
       return formatBRLReadable(summary.valor_meta)
-    case 'atingimento_v':
-      return formatBRLReadable(summary.atingimento_v)
     case 'atingimento_p':
       return `${formatIntReadable(summary.atingimento_p)}%`
     case 'meta_diaria':
@@ -108,14 +96,10 @@ function getColumnValue(columnId: string) {
 function getColumnTooltip(columnId: string) {
   const summary = props.node.summary
   switch (columnId) {
-    case 'quantidade':
-      return formatINT(summary.quantidade)
     case 'realizado':
       return formatBRL(summary.valor_realizado)
     case 'meta':
       return formatBRL(summary.valor_meta)
-    case 'atingimento_v':
-      return formatBRL(summary.atingimento_v)
     case 'atingimento_p':
       return `${formatINT(summary.atingimento_p)}%`
     case 'meta_diaria':
@@ -190,9 +174,6 @@ const contractId = computed(() => {
           {{ getColumnValue(columnId) }}
         </span>
       </td>
-      <td v-else-if="columnId === 'atingimento_v'" class="col-number">
-        <span :class="atingimentoVClass" :title="getColumnTooltip(columnId)" class="cell-content">{{ getColumnValue(columnId) }}</span>
-      </td>
       <td v-else :class="columnId === 'data' ? 'col-number col-date' : 'col-number'">
         <span v-if="columnId !== 'data'" :title="getColumnTooltip(columnId)" class="cell-content">{{ getColumnValue(columnId) }}</span>
         <span v-else class="cell-content">{{ getColumnValue(columnId) }}</span>
@@ -217,7 +198,6 @@ const contractId = computed(() => {
           </div>
           <div class="contract-detail-card__header-center">
             <div class="contract-detail-card__summary">
-              <span class="contract-detail-card__summary-item">{{ formatIntReadable(node.summary.quantidade) }}</span>
               <span class="contract-detail-card__summary-item">{{ formatBRLReadable(node.summary.valor_realizado) }}</span>
               <span class="contract-detail-card__summary-item">—</span>
               <span class="contract-detail-card__summary-item">—</span>
@@ -555,36 +535,6 @@ const contractId = computed(() => {
 }
 
 /* Cores condicionais para Atingimento */
-.att-ok {
-  background: #dcfce7;
-  color: #166534;
-  padding: 4px 8px;
-  border-radius: 999px;
-  display: inline-block;
-  font-weight: 800;
-  text-align: center;
-}
-
-.att-low {
-  background: #fee2e2;
-  color: #991b1b;
-  padding: 4px 8px;
-  border-radius: 999px;
-  display: inline-block;
-  font-weight: 800;
-  text-align: center;
-}
-
-.att-warn {
-  background: #fef3c7;
-  color: #92400e;
-  padding: 4px 8px;
-  border-radius: 999px;
-  display: inline-block;
-  font-weight: 800;
-  text-align: center;
-}
-
 .cell-content {
   display: inline-block;
 }

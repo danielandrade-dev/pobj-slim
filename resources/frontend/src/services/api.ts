@@ -4,12 +4,7 @@
  */
 
 import { API_BASE_URL } from '../config/api'
-
-export interface ApiResponse<T = any> {
-  success: boolean
-  data?: T
-  error?: string
-}
+import type { ApiResponse } from '../types'
 
 /**
  * Faz uma requisição GET genérica à API

@@ -7,21 +7,19 @@ export interface ColumnMeta {
 }
 
 const DETAIL_COLUMNS: ColumnMeta[] = [
-  { id: 'quantidade', label: 'Quantidade' },
-  { id: 'realizado', label: 'Realizado no mês (R$)' },
-  { id: 'meta', label: 'Meta no mês (R$)' },
-  { id: 'atingimento_v', label: 'Atingimento (R$)' },
+  { id: 'realizado', label: 'Realizado no período (R$)' },
+  { id: 'meta', label: 'Meta no período (R$)' },
   { id: 'atingimento_p', label: 'Atingimento (%)' },
   { id: 'meta_diaria', label: 'Meta diária total (R$)' },
   { id: 'referencia_hoje', label: 'Referência para hoje (R$)' },
-  { id: 'pontos', label: 'Pontos no mês (pts)' },
+  { id: 'pontos', label: 'Pontos no período (pts)' },
   { id: 'meta_diaria_necessaria', label: 'Meta diária necessária (R$)' },
   { id: 'peso', label: 'Peso (pts)' },
   { id: 'projecao', label: 'Projeção (R$)' },
   { id: 'data', label: 'Data' }
 ]
 
-const DEFAULT_COLUMNS = ['quantidade', 'realizado', 'meta', 'atingimento_v', 'atingimento_p', 'pontos', 'peso', 'data']
+const DEFAULT_COLUMNS = ['realizado', 'meta', 'atingimento_p', 'pontos', 'peso', 'data']
 
 interface DetailView {
   id: string

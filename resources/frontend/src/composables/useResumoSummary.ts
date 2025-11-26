@@ -1,8 +1,8 @@
 import { computed, type Ref, type ComputedRef } from 'vue'
 import { useFilteredProdutos } from './useFilteredProdutos'
-import { useVariavel, type VariavelFilters } from './useVariavel'
+import { useResumoData } from './useResumoData'
 import type { Period } from '../types'
-import type { FilterState } from './useFilteredProdutos'
+import type { FilterState } from './useGlobalFilters'
 
 /**
  * Composable para calcular o resumo geral (indicadores, pontos, variável)
@@ -12,70 +12,38 @@ export function useResumoSummary(
   period: Ref<Period> | ComputedRef<Period>
 ) {
   const { produtosPorFamilia } = useFilteredProdutos(filterState, period)
+  const resumo = useResumoData(filterState, period)
 
-  // Converte filtros para formato de variável
-  const variavelFilters = computed<VariavelFilters | null>(() => {
-    const filters: VariavelFilters = {}
-    
-    if (filterState.value.segmento && 
-        filterState.value.segmento !== '' && 
-        filterState.value.segmento !== 'Todos' && 
-        filterState.value.segmento !== 'Todas') {
-      filters.segmento = filterState.value.segmento
+  const variavelSummary = computed(() => {
+    const data = resumo.variavel.value || []
+    if (!data.length) {
+      return {
+        varPossivel: null,
+        varAtingido: null
+      }
     }
-    
-    if (filterState.value.diretoria && 
-        filterState.value.diretoria !== '' && 
-        filterState.value.diretoria !== 'Todos' && 
-        filterState.value.diretoria !== 'Todas') {
-      filters.diretoria = filterState.value.diretoria
+
+    const totals = data.reduce(
+      (acc, item) => {
+        const meta = Number(item.variavel_meta) || 0
+        const real = Number(item.variavel_real) || 0
+        acc.meta += meta
+        acc.real += real
+        return acc
+      },
+      { meta: 0, real: 0 }
+    )
+
+    return {
+      varPossivel: totals.meta,
+      varAtingido: totals.real
     }
-    
-    if (filterState.value.gerencia && 
-        filterState.value.gerencia !== '' && 
-        filterState.value.gerencia !== 'Todos' && 
-        filterState.value.gerencia !== 'Todas') {
-      filters.regional = filterState.value.gerencia
-    }
-    
-    if (filterState.value.agencia && 
-        filterState.value.agencia !== '' && 
-        filterState.value.agencia !== 'Todos' && 
-        filterState.value.agencia !== 'Todas') {
-      filters.agencia = filterState.value.agencia
-    }
-    
-    if (filterState.value.ggestao && 
-        filterState.value.ggestao !== '' && 
-        filterState.value.ggestao !== 'Todos' && 
-        filterState.value.ggestao !== 'Todas') {
-      filters.gerenteGestao = filterState.value.ggestao
-    }
-    
-    if (filterState.value.gerente && 
-        filterState.value.gerente !== '' && 
-        filterState.value.gerente !== 'Todos' && 
-        filterState.value.gerente !== 'Todas') {
-      filters.gerente = filterState.value.gerente
-    }
-    
-    if (period.value.start) {
-      filters.dataInicio = period.value.start
-    }
-    
-    if (period.value.end) {
-      filters.dataFim = period.value.end
-    }
-    
-    return filters
   })
-
-  const { summary: variavelSummary } = useVariavel(variavelFilters)
 
   // Calcula summary dos produtos
   const summary = computed(() => {
     const familias = produtosPorFamilia.value || []
-    
+
     let indicadoresAtingidos = 0
     let indicadoresTotal = 0
     let pontosAtingidos = 0
@@ -87,10 +55,10 @@ export function useResumoSummary(
         if (item.atingido) {
           indicadoresAtingidos++
         }
-        
+
         const pontosMeta = item.pontosMeta || 0
         const pontosReal = Math.max(0, item.pontos || 0)
-        
+
         pontosTotal += pontosMeta
         pontosAtingidos += Math.min(pontosReal, pontosMeta)
       })

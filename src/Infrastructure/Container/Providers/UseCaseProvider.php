@@ -23,6 +23,7 @@ class UseCaseProvider implements ServiceProviderInterface
             \App\Application\UseCase\CampanhasUseCase::class,
             \App\Application\UseCase\ProdutoUseCase::class,
             \App\Application\UseCase\MetaUseCase::class,
+            \App\Application\UseCase\MesuUseCase::class,
             \App\Application\UseCase\HistoricoUseCase::class,
             \App\Application\UseCase\CalendarioUseCase::class,
             \App\Application\UseCase\PontosUseCase::class,
@@ -35,6 +36,14 @@ class UseCaseProvider implements ServiceProviderInterface
             ContainerHelper::register($container, \App\Application\UseCase\OmegaMesuUseCase::class);
         }
         
+        $container[\App\Application\UseCase\ResumoUseCase::class] = function ($c) {
+            return new \App\Application\UseCase\ResumoUseCase(
+                $c->get(\App\Application\UseCase\ProdutoUseCase::class),
+                $c->get(\App\Application\UseCase\VariavelUseCase::class),
+                $c->get(\App\Application\UseCase\CalendarioUseCase::class)
+            );
+        };
+
         $container[\App\Application\UseCase\FiltrosUseCase::class] = function ($c) {
             return new \App\Application\UseCase\FiltrosUseCase(
                 $c->get(\App\Infrastructure\Persistence\EstruturaRepository::class),

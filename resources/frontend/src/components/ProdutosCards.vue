@@ -157,24 +157,12 @@ const getTrackClass = (pct: number): string => {
 }
 
 const calculateAtingimento = (item: ProdutoCard): number => {
-  // Se já temos o ating calculado, usa ele (vem como 0-1 do backend)
-  if (item.ating !== undefined && item.ating !== null) {
-    return item.ating * 100
-  }
-
-  // Caso contrário, calcula baseado em meta/realizado ou pontos
   const meta = item.meta || 0
   const realizado = item.realizado || 0
-  const pontosMeta = item.pontosMeta || 0
-  const pontos = item.pontos || 0
-
-  if (meta > 0) {
-    return (realizado / meta) * 100
+  if (meta <= 0) {
+    return 0
   }
-  if (pontosMeta > 0) {
-    return (pontos / pontosMeta) * 100
-  }
-  return 0
+  return (realizado / meta) * 100
 }
 
 const calculatePontosRatio = (item: ProdutoCard): number => {
@@ -251,7 +239,7 @@ const getMetricLabel = (metric: string): string => {
               <span class="pill">
                 Pontos: {{ formatPoints(item.pontos || 0) }} / {{ formatPoints(item.pontosMeta || 0) }}
               </span>
-              <span class="pill">Peso: {{ formatPoints(item.pontosMeta || 0) }}</span>
+              <span class="pill">Peso: {{ formatPeso(item.peso || 0) }}</span>
               <span class="pill">{{ getMetricLabel(item.metrica) }}</span>
             </div>
 

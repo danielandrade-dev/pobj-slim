@@ -24,24 +24,25 @@ class DetalhesRepository extends BaseRepository
      */
     public function baseSelect(): string
     {
-        return "SELECT 
+        return "SELECT
                     fr.id_contrato,
+                    fr.id_contrato AS registro_id,
                     fr.data_realizado AS data,
                     fr.data_realizado AS competencia,
                     cal.ano,
                     cal.mes,
                     cal.mes_nome,
-                    seg.id AS segmento_id,
+                    est.segmento_id,
                     seg.nome AS segmento,
-                    dir.id AS diretoria_id,
+                    est.diretoria_id,
                     dir.nome AS diretoria_nome,
-                    reg.id AS gerencia_regional_id,
+                    est.regional_id AS gerencia_regional_id,
                     reg.nome AS gerencia_regional_nome,
-                    ag.id AS agencia_id,
+                    est.agencia_id,
                     ag.nome AS agencia_nome,
                     fr.funcional AS gerente_id,
                     est.nome AS gerente_nome,
-                    prod.familia_id AS familia_id,
+                    prod.familia_id,
                     fam.nm_familia AS familia_nome,
                     prod.indicador_id AS id_indicador,
                     ind.nm_indicador AS ds_indicador,
@@ -52,18 +53,18 @@ class DetalhesRepository extends BaseRepository
                     meta.meta_mensal AS valor_meta,
                     det.canal_venda,
                     det.tipo_venda,
-                    est.nome AS gerente_detalhe,
                     det.condicao_pagamento AS modalidade_pagamento,
                     det.dt_vencimento,
                     det.dt_cancelamento,
                     det.motivo_cancelamento,
-                    det.status_id,
-                    fr.id_contrato AS registro_id
+                    det.status_id
                 FROM " . Tables::F_REALIZADOS . " fr
                 JOIN " . Tables::D_CALENDARIO . " cal
                     ON cal.data = fr.data_realizado
                 JOIN " . Tables::D_ESTRUTURA . " est
                     ON est.funcional = fr.funcional
+                JOIN " . Tables::D_PRODUTOS . " prod
+                    ON prod.id = fr.produto_id
                 LEFT JOIN segmentos seg
                     ON seg.id = est.segmento_id
                 LEFT JOIN diretorias dir
@@ -72,8 +73,6 @@ class DetalhesRepository extends BaseRepository
                     ON reg.id = est.regional_id
                 LEFT JOIN agencias ag
                     ON ag.id = est.agencia_id
-                LEFT JOIN " . Tables::D_PRODUTOS . " prod
-                    ON prod.id = fr.produto_id
                 LEFT JOIN familia fam
                     ON fam.id = prod.familia_id
                 LEFT JOIN indicador ind
@@ -83,8 +82,8 @@ class DetalhesRepository extends BaseRepository
                 LEFT JOIN " . Tables::F_META . " meta
                     ON  meta.funcional = fr.funcional
                     AND meta.produto_id = fr.produto_id
-                    AND YEAR(meta.data_meta) = YEAR(fr.data_realizado)
-                    AND MONTH(meta.data_meta) = MONTH(fr.data_realizado)
+                    AND YEAR(meta.data_meta) = cal.ano
+                    AND MONTH(meta.data_meta) = cal.mes
                 LEFT JOIN " . Tables::F_DETALHES . " det
                     ON det.contrato_id = fr.id_contrato
                 WHERE 1=1";
@@ -163,7 +162,7 @@ class DetalhesRepository extends BaseRepository
      */
     protected function getOrderBy(): string
     {
-        return "ORDER BY dir.nome, reg.nome, ag.nome, est.nome, fam.nm_familia, ind.nm_indicador, sub.nm_subindicador, fr.id_contrato";
+        return "ORDER BY est.diretoria_id, est.regional_id, est.agencia_id, est.nome, prod.familia_id, prod.indicador_id, prod.subindicador_id, fr.id_contrato";
     }
 
     /**

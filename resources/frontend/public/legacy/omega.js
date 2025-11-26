@@ -1,6 +1,7 @@
 /* =========================================================
    Omega • Central de chamados para o POBJ
    ========================================================= */
+let omegaTemplatePromise = null;
 let omegaInitialized = false;
 
 const OMEGA_ROLE_LABELS = {
@@ -56,10 +57,12 @@ const OMEGA_MONTH_LABELS = [
 
 let OMEGA_STATUS_ORDER = ["todos"];
 let OMEGA_STATUS_META = {};
+const OMEGA_STATUS_SOURCE = "Bases/dStatus.csv";
 let OMEGA_STATUS_CATALOG = [];
+let omegaStatusPromise = null;
 
 function omegaShouldUseApi(){
-  return typeof apiGet === 'function';
+  return typeof DATA_SOURCE !== 'undefined' && DATA_SOURCE === 'sql' && typeof apiGet === 'function';
 }
 
 function omegaApiGet(path){
@@ -79,7 +82,13 @@ function omegaApiPost(path, payload){
 }
 
 function loadOmegaCsv(path, label){
-  return Promise.reject(new Error(`CSV não suportado. Use a API para carregar ${label}.`));
+  if (typeof loadCSVAuto === 'function') {
+    return loadCSVAuto(path).catch((err) => {
+      console.warn(`Falha ao carregar ${label} via loader principal:`, err);
+      return fallbackLoadCsv(path);
+    });
+  }
+  return fallbackLoadCsv(path);
 }
 
 const OMEGA_PRIORITY_META = {
@@ -117,6 +126,7 @@ const OMEGA_STATUS_TONE_LABELS = {
   danger: "Crítico",
 };
 
+const OMEGA_STRUCTURE_SOURCE = "Bases/dEstruturaChamados.csv";
 
 const OMEGA_TRANSFER_EMPRESAS_LABEL = "Transferência - Empresas para Empresas";
 
@@ -208,6 +218,7 @@ let OMEGA_TICKET_TYPES_BY_DEPARTMENT = Object.fromEntries(
   Object.entries(OMEGA_STRUCTURE_FALLBACK).map(([queue, items]) => [queue, [...items]])
 );
 let OMEGA_QUEUE_OPTIONS = Object.keys(OMEGA_TICKET_TYPES_BY_DEPARTMENT);
+let omegaStructurePromise = null;
 let omegaStructureReady = false;
 
 const OMEGA_LEVEL_LABELS = {
@@ -222,6 +233,7 @@ const OMEGA_LEVEL_LABELS = {
   contrato: "Contrato",
 };
 
+const OMEGA_USERS_SOURCE = "Bases/omega_usuarios.csv";
 const OMEGA_USER_METADATA = {
   "usr-01": { teamId: "pobj" },
   "usr-02": { teamId: "orcamento" },
@@ -244,7 +256,9 @@ const OMEGA_AVATAR_PLACEHOLDER = "img/omega-avatar-placeholder.svg";
 
 const OMEGA_EXTERNAL_CONTACTS = new Map();
 
+const OMEGA_MESU_SOURCE = "Bases/mesu.csv";
 let OMEGA_MESU_DATA = [];
+let omegaMesuPromise = null;
 const OMEGA_MESU_BY_AGENCY = new Map();
 const OMEGA_MESU_BY_MANAGER = new Map();
 const OMEGA_MESU_BY_GESTAO = new Map();
@@ -372,6 +386,9 @@ const omegaState = {
 
 let OMEGA_TICKETS = [];
 let omegaTicketCounter = 0;
+let omegaDataPromise = null;
+let omegaUsersPromise = null;
+const OMEGA_TICKETS_SOURCE = "Bases/omega_chamados.csv";
 
 let OMEGA_COMMENT_FACT = [];
 let OMEGA_NOTIFICATION_FACT = [];
@@ -389,50 +406,78 @@ function resetOmegaFacts(){
   omegaState.notificationPanelOpen = false;
 }
 
-async function ensureOmegaData(){
+function ensureOmegaData(){
+  if (OMEGA_TICKETS.length) return Promise.resolve(OMEGA_TICKETS);
+  if (omegaDataPromise) return omegaDataPromise;
+
   resetOmegaFacts();
-  try {
-    const rows = await omegaApiGet('/omega/tickets');
-    OMEGA_TICKETS = normalizeOmegaTicketRows(Array.isArray(rows) ? rows : []);
-    OMEGA_TICKETS.forEach((ticket) => ingestHistoryFacts(ticket, { initial: true }));
-    omegaTicketCounter = OMEGA_TICKETS.reduce((max, ticket) => {
-      const seq = parseInt(ticket.id, 10);
-      return Number.isFinite(seq) ? Math.max(max, seq) : max;
-    }, 0);
-    return OMEGA_TICKETS;
-  } catch (err) {
-    console.error('Não foi possível carregar os chamados Omega:', err);
-    OMEGA_TICKETS = [];
-    omegaTicketCounter = 0;
-    return [];
-  }
+  const loader = omegaShouldUseApi()
+    ? omegaApiGet('/omega/tickets').catch((err) => {
+        console.warn('Falha ao carregar chamados Omega pela API:', err);
+        return loadOmegaCsv(OMEGA_TICKETS_SOURCE, 'chamados Omega');
+      })
+    : loadOmegaCsv(OMEGA_TICKETS_SOURCE, 'chamados Omega');
+
+  omegaDataPromise = loader
+    .then((rows) => {
+      OMEGA_TICKETS = normalizeOmegaTicketRows(Array.isArray(rows) ? rows : []);
+      OMEGA_TICKETS.forEach((ticket) => ingestHistoryFacts(ticket, { initial: true }));
+      omegaTicketCounter = OMEGA_TICKETS.reduce((max, ticket) => {
+        const seq = parseInt(ticket.id, 10);
+        return Number.isFinite(seq) ? Math.max(max, seq) : max;
+      }, 0);
+      return OMEGA_TICKETS;
+    })
+    .catch((err) => {
+      console.error('Não foi possível carregar os chamados Omega:', err);
+      omegaDataPromise = null;
+      OMEGA_TICKETS = [];
+      return [];
+    });
+
+  return omegaDataPromise;
 }
 
 function reloadOmegaTickets(){
+  omegaDataPromise = null;
   OMEGA_TICKETS = [];
   omegaTicketCounter = 0;
   return ensureOmegaData();
 }
 
-async function ensureOmegaUsers(){
-  try {
-    const rows = await omegaApiGet('/omega/users');
-    OMEGA_USERS = normalizeOmegaUserRows(Array.isArray(rows) ? rows : []);
-    if (!OMEGA_USERS.length) throw new Error('Nenhum usuário disponível para o Omega');
-    const hintedId = resolveUserIdFromHint(omegaLaunchUserHint);
-    if (hintedId) {
-      omegaState.currentUserId = hintedId;
-      omegaLaunchUserHint = null;
-    } else if (!OMEGA_USERS.some((user) => user.id === omegaState.currentUserId)) {
-      omegaState.currentUserId = OMEGA_USERS[0]?.id || null;
-    }
-    return OMEGA_USERS;
-  } catch (err) {
-    console.error('Não foi possível carregar os usuários Omega:', err);
-    OMEGA_USERS = [];
-    omegaState.currentUserId = null;
-    return [];
-  }
+function ensureOmegaUsers(){
+  if (OMEGA_USERS.length) return Promise.resolve(OMEGA_USERS);
+  if (omegaUsersPromise) return omegaUsersPromise;
+
+  const loader = omegaShouldUseApi()
+    ? omegaApiGet('/omega/users').catch((err) => {
+        console.warn('Falha ao carregar usuários Omega pela API:', err);
+        return loadOmegaCsv(OMEGA_USERS_SOURCE, 'usuários Omega');
+      })
+    : loadOmegaCsv(OMEGA_USERS_SOURCE, 'usuários Omega');
+
+  omegaUsersPromise = loader
+    .then((rows) => {
+      OMEGA_USERS = normalizeOmegaUserRows(Array.isArray(rows) ? rows : []);
+      if (!OMEGA_USERS.length) throw new Error('Nenhum usuário disponível para o Omega');
+      const hintedId = resolveUserIdFromHint(omegaLaunchUserHint);
+      if (hintedId) {
+        omegaState.currentUserId = hintedId;
+        omegaLaunchUserHint = null;
+      } else if (!OMEGA_USERS.some((user) => user.id === omegaState.currentUserId)) {
+        omegaState.currentUserId = OMEGA_USERS[0]?.id || null;
+      }
+      return OMEGA_USERS;
+    })
+    .catch((err) => {
+      console.error('Não foi possível carregar os usuários Omega:', err);
+      omegaUsersPromise = null;
+      OMEGA_USERS = [];
+      omegaState.currentUserId = null;
+      return [];
+    });
+
+  return omegaUsersPromise;
 }
 
 function setButtonLoading(button, loading){
@@ -466,18 +511,31 @@ function refreshTicketList(button){
     });
 }
 
-async function ensureOmegaStatuses(){
-  try {
-    const rows = await omegaApiGet('/omega/statuses');
-    const normalized = normalizeOmegaStatusRows(Array.isArray(rows) ? rows : []);
-    if (!normalized.length) throw new Error('Nenhum status cadastrado');
-    applyStatusCatalog(normalized);
-    return OMEGA_STATUS_CATALOG;
-  } catch (err) {
-    console.warn('Aplicando status padrão da Omega:', err);
-    applyStatusCatalog(OMEGA_DEFAULT_STATUSES);
-    return OMEGA_STATUS_CATALOG;
-  }
+function ensureOmegaStatuses(){
+  if (OMEGA_STATUS_CATALOG.length) return Promise.resolve(OMEGA_STATUS_CATALOG);
+  if (omegaStatusPromise) return omegaStatusPromise;
+
+  const loader = omegaShouldUseApi()
+    ? omegaApiGet('/omega/statuses').catch((err) => {
+        console.warn('Falha ao carregar status da Omega pela API:', err);
+        return loadOmegaCsv(OMEGA_STATUS_SOURCE, 'status da Omega');
+      })
+    : loadOmegaCsv(OMEGA_STATUS_SOURCE, 'status da Omega');
+
+  omegaStatusPromise = loader
+    .then((rows) => {
+      const normalized = normalizeOmegaStatusRows(Array.isArray(rows) ? rows : []);
+      if (!normalized.length) throw new Error('Nenhum status cadastrado');
+      applyStatusCatalog(normalized);
+      return OMEGA_STATUS_CATALOG;
+    })
+    .catch((err) => {
+      console.warn('Aplicando status padrão da Omega:', err);
+      applyStatusCatalog(OMEGA_DEFAULT_STATUSES);
+      return OMEGA_STATUS_CATALOG;
+    });
+
+  return omegaStatusPromise;
 }
 
 function applyStatusCatalog(entries){
@@ -802,17 +860,33 @@ function applyOmegaStructureCatalog(rows){
   reconcileTicketsWithCatalog();
 }
 
-async function ensureOmegaStructure(){
-  try {
-    const rows = await omegaApiGet('/omega/structure');
-    if (!Array.isArray(rows) || !rows.length) throw new Error('Base de estrutura vazia');
-    applyOmegaStructureCatalog(rows);
-    return OMEGA_TICKET_TYPES_BY_DEPARTMENT;
-  } catch (err) {
-    console.warn('Aplicando estrutura padrão da Omega:', err);
-    applyOmegaStructureCatalog(null);
-    return OMEGA_TICKET_TYPES_BY_DEPARTMENT;
-  }
+function ensureOmegaStructure(){
+  if (omegaStructureReady) return Promise.resolve(OMEGA_TICKET_TYPES_BY_DEPARTMENT);
+  if (omegaStructurePromise) return omegaStructurePromise;
+
+  const loader = omegaShouldUseApi()
+    ? omegaApiGet('/omega/structure').catch((err) => {
+        console.warn('Falha ao carregar estrutura da Omega pela API:', err);
+        return loadOmegaCsv(OMEGA_STRUCTURE_SOURCE, 'estrutura Omega');
+      })
+    : loadOmegaCsv(OMEGA_STRUCTURE_SOURCE, 'estrutura Omega');
+
+  omegaStructurePromise = loader
+    .then((rows) => {
+      if (!Array.isArray(rows) || !rows.length) throw new Error('Base de estrutura vazia');
+      applyOmegaStructureCatalog(rows);
+      return OMEGA_TICKET_TYPES_BY_DEPARTMENT;
+    })
+    .catch((err) => {
+      console.warn('Aplicando estrutura padrão da Omega:', err);
+      applyOmegaStructureCatalog(null);
+      return OMEGA_TICKET_TYPES_BY_DEPARTMENT;
+    })
+    .finally(() => {
+      omegaStructurePromise = null;
+    });
+
+  return omegaStructurePromise;
 }
 
 function normalizeOmegaUserRows(rows){
@@ -1121,14 +1195,32 @@ function ingestHistoryFacts(ticket, { initial = false } = {}){
 
 function ensureOmegaTemplate(){
   const existing = document.getElementById("omega-modal");
-  if (existing) {
-    // Remove o atributo data-omega-standalone se existir (vindo do omega.html standalone)
-    existing.removeAttribute("data-omega-standalone");
-    return Promise.resolve(existing);
-  }
-  
-  // Se não encontrou no DOM, retorna erro
-  return Promise.reject(new Error("Template Omega não encontrado no DOM. Certifique-se de que o componente omega-modal está incluído na página."));
+  if (existing) return Promise.resolve(existing);
+  if (omegaTemplatePromise) return omegaTemplatePromise;
+
+  omegaTemplatePromise = fetch("omega.html")
+    .then((res) => {
+      if (!res.ok) throw new Error(`Falha ao carregar omega.html: ${res.status}`);
+      return res.text();
+    })
+    .then((html) => {
+      const wrapper = document.createElement("div");
+      wrapper.innerHTML = html;
+      const templateRoot = wrapper.querySelector("#omega-modal");
+      if (!templateRoot) throw new Error("Template Omega não encontrado em omega.html");
+      const clone = templateRoot.cloneNode(true);
+      clone.removeAttribute("data-omega-standalone");
+      clone.hidden = true;
+      document.body.appendChild(clone);
+      return clone;
+    })
+    .catch((err) => {
+      console.error("Não foi possível carregar o template da Omega:", err);
+      omegaTemplatePromise = null;
+      throw err;
+    });
+
+  return omegaTemplatePromise;
 }
 
 function openOmega(detail = null){
@@ -3741,16 +3833,32 @@ function applyMesuCatalog(rows){
   });
 }
 
-async function ensureOmegaMesu(){
-  try {
-    const rows = await omegaApiGet('/omega/mesu');
-    applyMesuCatalog(Array.isArray(rows) ? rows : []);
-    return OMEGA_MESU_DATA;
-  } catch (err) {
-    console.warn('Não foi possível carregar a base MESU:', err);
-    OMEGA_MESU_DATA = [];
-    return [];
-  }
+function ensureOmegaMesu(){
+  if (OMEGA_MESU_DATA.length) return Promise.resolve(OMEGA_MESU_DATA);
+  if (omegaMesuPromise) return omegaMesuPromise;
+
+  const loader = omegaShouldUseApi()
+    ? omegaApiGet('/omega/mesu').catch((err) => {
+        console.warn('Falha ao carregar MESU da Omega pela API:', err);
+        return loadOmegaCsv(OMEGA_MESU_SOURCE, 'MESU');
+      })
+    : loadOmegaCsv(OMEGA_MESU_SOURCE, 'MESU');
+
+  omegaMesuPromise = loader
+    .then((rows) => {
+      applyMesuCatalog(Array.isArray(rows) ? rows : []);
+      return OMEGA_MESU_DATA;
+    })
+    .catch((err) => {
+      console.warn('Não foi possível carregar a base MESU:', err);
+      OMEGA_MESU_DATA = [];
+      return [];
+    })
+    .finally(() => {
+      omegaMesuPromise = null;
+    });
+
+  return omegaMesuPromise;
 }
 
 function getMesuRecordForUser(user){
@@ -5028,7 +5136,7 @@ function resolveOmegaDefaultUserHint(detail){
 function buildOmegaLaunchUrl(detail){
   const baseHref = typeof window !== 'undefined' && window.TICKET_URL
     ? window.TICKET_URL
-    : '/omega.html';
+    : 'omega.html';
   const origin = (typeof window !== 'undefined' && window.location)
     ? window.location.href
     : 'http://localhost/';
@@ -5093,3 +5201,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 window.openOmegaModule = openOmega;
 window.launchOmegaStandalone = launchOmegaStandalone;
+window.openOmega = window.openOmega || openOmega;
+window.closeOmegaModule = closeOmega;
+window.closeOmega = closeOmega;

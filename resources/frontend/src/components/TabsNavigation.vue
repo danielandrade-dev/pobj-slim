@@ -8,7 +8,7 @@ const route = useRoute()
 
 const views: TabConfig[] = [
   { id: 'cards', label: 'Resumo', icon: 'ti ti-dashboard', ariaLabel: 'Resumo', path: '/' },
-  { id: 'table', label: 'Detalhamento', icon: 'ti ti-list-tree', ariaLabel: 'Detalhamento', path: '/table' },
+  { id: 'table', label: 'Detalhamento', icon: 'ti ti-list-tree', ariaLabel: 'Detalhamento', path: '/detalhes' },
   { id: 'ranking', label: 'Rankings', icon: 'ti ti-trophy', ariaLabel: 'Rankings', path: '/ranking' },
   { id: 'exec', label: 'Visão executiva', icon: 'ti ti-chart-line', ariaLabel: 'Visão executiva', path: '/exec' },
   { id: 'simuladores', label: 'Simuladores', icon: 'ti ti-calculator', ariaLabel: 'Simuladores', path: '/simuladores' },

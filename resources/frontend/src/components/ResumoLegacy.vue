@@ -8,8 +8,8 @@ import { formatBRDate } from '../services/calendarioService'
 import type { LegacySection, LegacyItem } from '../composables/useProdutosLegacy'
 
 const { filterState, period } = useGlobalFilters()
-const { produtoFilters } = useFilteredProdutos(filterState, period)
-const { produtosPorFamilia, loading, error } = useProdutosLegacy(produtoFilters)
+useFilteredProdutos(filterState, period) // Garante sincronização dos filtros com o resumo
+const { produtosPorFamilia, loading, error } = useProdutosLegacy()
 
 // Estado para controlar quais linhas estão expandidas
 const expandedRows = ref<Set<string>>(new Set())
@@ -57,20 +57,20 @@ const monthKeys = computed(() => {
   const start = period.value.start
   const end = period.value.end
   if (!start || !end) return []
-  
+
   const startDate = new Date(start + 'T00:00:00Z')
   const endDate = new Date(end + 'T00:00:00Z')
   const months: string[] = []
-  
+
   let current = new Date(startDate)
   while (current <= endDate) {
     const year = current.getUTCFullYear()
     const month = String(current.getUTCMonth() + 1).padStart(2, '0')
     months.push(`${year}-${month}`)
-    
+
     current.setUTCMonth(current.getUTCMonth() + 1)
   }
-  
+
   return months
 })
 
@@ -108,15 +108,15 @@ const sectionHasExpandableRows = (section: LegacySection): boolean => {
     <div v-if="loading" class="resumo-legacy__loading">
       Carregando...
     </div>
-    
+
     <div v-else-if="error" class="resumo-legacy__error">
       Erro: {{ error }}
     </div>
-    
+
     <div v-else-if="!produtosPorFamilia || produtosPorFamilia.length === 0" class="resumo-legacy__empty">
       Nenhum dado disponível
     </div>
-    
+
     <template v-else>
       <section
         v-for="section in produtosPorFamilia"
@@ -172,7 +172,7 @@ const sectionHasExpandableRows = (section: LegacySection): boolean => {
             </div>
           </div>
         </header>
-        
+
         <div class="resumo-legacy__table-wrapper">
           <table class="resumo-legacy__table">
             <thead>
@@ -225,7 +225,7 @@ const sectionHasExpandableRows = (section: LegacySection): boolean => {
                     {{ formatINT(Math.round(item.pontosMeta || item.peso || 0)) }}
                   </td>
                   <td>
-                    <span 
+                    <span
                       :class="[
                         'resumo-legacy__metric',
                         `resumo-legacy__metric--${item.metrica === 'valor' ? 'valor' : item.metrica === 'qtd' ? 'qtd' : item.metrica === 'perc' ? 'perc' : ''}`
@@ -255,7 +255,7 @@ const sectionHasExpandableRows = (section: LegacySection): boolean => {
                   </td>
                   <td class="resumo-legacy__col--ating">
                     <div class="resumo-legacy__ating" title="Atingimento">
-                      <div 
+                      <div
                         :class="[
                           'resumo-legacy__ating-meter',
                           (item.ating || 0) >= 1 ? 'is-ok' : (item.ating || 0) >= 0.5 ? 'is-warn' : 'is-low'
@@ -276,7 +276,7 @@ const sectionHasExpandableRows = (section: LegacySection): boolean => {
                     {{ item.ultimaAtualizacao ? (item.ultimaAtualizacao.match(/^\d{4}-\d{2}-\d{2}$/) ? formatBRDate(item.ultimaAtualizacao) : item.ultimaAtualizacao) : '—' }}
                   </td>
                 </tr>
-                
+
                 <!-- Linhas filhas (subindicadores) -->
                 <template v-if="item.children && item.children.length > 0">
                   <tr
@@ -297,7 +297,7 @@ const sectionHasExpandableRows = (section: LegacySection): boolean => {
                       {{ formatINT(Math.round(child.pontosMeta || child.peso || 0)) }}
                     </td>
                     <td>
-                      <span 
+                      <span
                         :class="[
                           'resumo-legacy__metric',
                           `resumo-legacy__metric--${child.metrica === 'valor' ? 'valor' : child.metrica === 'qtd' ? 'qtd' : child.metrica === 'perc' ? 'perc' : ''}`
@@ -323,11 +323,11 @@ const sectionHasExpandableRows = (section: LegacySection): boolean => {
                       {{ child.metaDiariaNecessaria != null ? formatByMetric(child.metrica, child.metaDiariaNecessaria) : '—' }}
                     </td>
                     <td class="resumo-legacy__col--pontos" :title="formatPoints(child.pontos, { withUnit: true })">
-                      {{ formatPoints(child.pontos, { withUnit: true }) }}
+                      {{ '-'}}
                     </td>
                     <td class="resumo-legacy__col--ating">
                       <div class="resumo-legacy__ating" title="Atingimento">
-                        <div 
+                        <div
                           :class="[
                             'resumo-legacy__ating-meter',
                             (child.ating || 0) >= 1 ? 'is-ok' : (child.ating || 0) >= 0.5 ? 'is-warn' : 'is-low'
@@ -339,7 +339,7 @@ const sectionHasExpandableRows = (section: LegacySection): boolean => {
                           :aria-valuenow="Math.max(0, Math.min(200, (child.ating || 0) * 100))"
                         >
                           <span class="resumo-legacy__ating-value">
-                            {{ child.meta > 0 ? `${Math.max(0, Math.min(200, (child.ating || 0) * 100)).toFixed(1)}%` : '—' }}
+                            {{ '—' }}
                           </span>
                         </div>
                       </div>

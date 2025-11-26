@@ -5,6 +5,7 @@ namespace App\Infrastructure\Persistence;
 use App\Domain\DTO\FilterDTO;
 use App\Domain\DTO\MetaDTO;
 use App\Domain\Enum\Tables;
+use App\Domain\Enum\Cargo;
 use App\Infrastructure\Helpers\DateFormatter;
 use App\Infrastructure\Helpers\ValueFormatter;
 
@@ -30,44 +31,41 @@ class MetasRepository extends BaseRepository
                     m.data_meta AS competencia,
                     m.funcional,
                     m.meta_mensal,
-                    m.id_familia AS familia_id,
-                    m.id_indicador AS indicador_id,
-                    m.id_subindicador AS subindicador_id,
-                    m.segmento_id,
-                    m.diretoria_id,
-                    m.gerencia_regional_id,
-                    m.agencia_id,
-                    COALESCE(u.segmento, '') AS segmento,
-                    COALESCE(u.diretoria, '') AS diretoria_nome,
-                    COALESCE(u.regional, '') AS gerencia_regional_nome,
-                    COALESCE(u.regional, '') AS regional_nome,
-                    COALESCE(u.agencia, '') AS agencia_nome,
+                    dp.familia_id,
+                    dp.indicador_id,
+                    dp.subindicador_id,
+                    e.segmento_id,
+                    e.diretoria_id,
+                    e.regional_id AS gerencia_regional_id,
+                    e.agencia_id,
+                    COALESCE(seg.nome, '') AS segmento,
+                    COALESCE(dir.nome, '') AS diretoria_nome,
+                    COALESCE(reg.nome, '') AS gerencia_regional_nome,
+                    COALESCE(reg.nome, '') AS regional_nome,
+                    COALESCE(ag.nome, '') AS agencia_nome,
                     COALESCE(gg.funcional, '') AS gerente_gestao_id,
                     COALESCE(gg.nome, '') AS gerente_gestao_nome,
-                    COALESCE(u.funcional, '') AS gerente_id,
-                    COALESCE(u.nome, '') AS gerente_nome,
-                    COALESCE(p.familia, '') AS familia_nome,
-                    COALESCE(CAST(p.id_indicador AS CHAR), '') AS id_indicador,
-                    COALESCE(p.indicador, '') AS ds_indicador,
-                    COALESCE(p.subindicador, '') AS subproduto,
-                    COALESCE(CAST(p.id_subindicador AS CHAR), '0') AS id_subindicador,
+                    COALESCE(e.funcional, '') AS gerente_id,
+                    COALESCE(e.nome, '') AS gerente_nome,
+                    COALESCE(fam.nm_familia, '') AS familia_nome,
+                    COALESCE(CAST(dp.indicador_id AS CHAR), '') AS id_indicador,
+                    COALESCE(ind.nm_indicador, '') AS ds_indicador,
+                    COALESCE(sub.nm_subindicador, '') AS subproduto,
+                    COALESCE(CAST(COALESCE(dp.subindicador_id, 0) AS CHAR), '0') AS id_subindicador,
                     m.meta_mensal
                 FROM " . Tables::F_META . " m
-                    LEFT JOIN d_estrutura u
-                        ON u.funcional = m.funcional
-                        AND u.id_agencia = m.agencia_id
-                        AND u.id_regional = m.gerencia_regional_id
-                        AND u.id_diretoria = m.diretoria_id
-                        AND u.id_segmento = m.segmento_id
-                        AND u.id_cargo = 1
-                    LEFT JOIN d_estrutura gg
-                        ON gg.id_agencia = u.id_agencia
-                        AND gg.id_regional = u.id_regional
-                        AND gg.id_diretoria = u.id_diretoria
-                        AND gg.id_segmento = u.id_segmento
-                        AND gg.id_cargo = 3
-                LEFT JOIN " . Tables::D_PRODUTOS . " p ON p.id_indicador = m.id_indicador
-                    AND (p.id_subindicador = m.id_subindicador OR (p.id_subindicador IS NULL AND m.id_subindicador IS NULL))
+                LEFT JOIN " . Tables::D_PRODUTOS . " dp ON dp.id = m.produto_id
+                LEFT JOIN familia fam ON fam.id = dp.familia_id
+                LEFT JOIN indicador ind ON ind.id = dp.indicador_id
+                LEFT JOIN subindicador sub ON sub.id = dp.subindicador_id
+                LEFT JOIN " . Tables::D_ESTRUTURA . " e ON e.funcional = m.funcional
+                LEFT JOIN segmentos seg ON seg.id = e.segmento_id
+                LEFT JOIN diretorias dir ON dir.id = e.diretoria_id
+                LEFT JOIN regionais reg ON reg.id = e.regional_id
+                LEFT JOIN agencias ag ON ag.id = e.agencia_id
+                LEFT JOIN d_estrutura gg
+                    ON gg.agencia_id = e.agencia_id
+                    AND gg.cargo_id = " . Cargo::GERENTE_GESTAO . "
                 WHERE 1=1";
     }
 
@@ -86,22 +84,22 @@ class MetasRepository extends BaseRepository
         }
 
         if ($filters->getSegmento() !== null) {
-            $sql .= " AND m.segmento_id = :segmento";
+            $sql .= " AND e.segmento_id = :segmento";
             $params[':segmento'] = $filters->getSegmento();
         }
 
         if ($filters->getDiretoria() !== null) {
-            $sql .= " AND m.diretoria_id = :diretoria";
+            $sql .= " AND e.diretoria_id = :diretoria";
             $params[':diretoria'] = $filters->getDiretoria();
         }
 
         if ($filters->getRegional() !== null) {
-            $sql .= " AND m.gerencia_regional_id = :regional";
+            $sql .= " AND e.regional_id = :regional";
             $params[':regional'] = $filters->getRegional();
         }
 
         if ($filters->getAgencia() !== null) {
-            $sql .= " AND m.agencia_id = :agencia";
+            $sql .= " AND e.agencia_id = :agencia";
             $params[':agencia'] = $filters->getAgencia();
         }
 
@@ -116,17 +114,17 @@ class MetasRepository extends BaseRepository
         }
 
         if ($filters->getFamilia() !== null) {
-            $sql .= " AND m.id_familia = :familia";
+            $sql .= " AND dp.familia_id = :familia";
             $params[':familia'] = $filters->getFamilia();
         }
 
         if ($filters->getIndicador() !== null) {
-            $sql .= " AND m.id_indicador = :indicador";
+            $sql .= " AND dp.indicador_id = :indicador";
             $params[':indicador'] = $filters->getIndicador();
         }
 
         if ($filters->getSubindicador() !== null) {
-            $sql .= " AND m.id_subindicador = :subindicador";
+            $sql .= " AND dp.subindicador_id = :subindicador";
             $params[':subindicador'] = $filters->getSubindicador();
         }
         

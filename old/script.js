@@ -1,6 +1,6 @@
-// BEGIN app.js
+// BEGIN script.js
 /* =========================================================
-   POBJ • app.js  —  cards, tabela em árvore, ranking e visão executiva
+   POBJ • script.js  —  cards, tabela em árvore, ranking e visão executiva
    (com fixes: svh/topbar, z-index, listeners únicos, a11y)
    ========================================================= */
 
@@ -65,15 +65,13 @@ if (typeof window !== "undefined") {
 const DATA_SOURCE = "sql";
 const API_PATH = typeof window !== "undefined" && window.API_URL
   ? String(window.API_URL)
-  : "../src/index.php";
-const DEFAULT_HTTP_BASE = typeof window !== "undefined" && window.location && window.location.origin
-  ? window.location.origin
-  : "http://localhost:8000";
-const API_HTTP_BASE = (typeof window !== "undefined" && window.API_HTTP_BASE)
+  : "config/api/index.php";
+const DEFAULT_HTTP_BASE = "http://localhost/POBJ%20SQL%20php71/";
+const API_HTTP_BASE = typeof window !== "undefined" && window.API_HTTP_BASE
   ? String(window.API_HTTP_BASE)
   : DEFAULT_HTTP_BASE;
 const API_ENDPOINT_PARAM = "endpoint";
-const TICKET_URL = "/omega.html";
+const TICKET_URL = "omega.html";
 
 function ensureHttpContext(){
   if (typeof window === "undefined") return;
@@ -84,10 +82,7 @@ function ensureHttpContext(){
     : DEFAULT_HTTP_BASE;
 
   try {
-    const fallbackBase = typeof window !== "undefined" && window.location.origin
-      ? window.location.origin
-      : "http://localhost:8000";
-    const candidate = new URL(targetBase, fallbackBase);
+    const candidate = new URL(targetBase, "http://localhost/");
     if (candidate.protocol === "http:" || candidate.protocol === "https:") {
       const candidateHref = candidate.href;
       const alreadyThere = candidateHref.replace(/\/?$/, "/") === window.location.href.replace(/\/?$/, "/");
@@ -110,12 +105,8 @@ function uniqById(arr) {
     const id = item.id != null ? String(item.id).trim() : '';
     if (!id || seen.has(id)) return;
     seen.add(id);
-    // Preserva todos os campos do objeto original, não apenas id e label
-    const preserved = { ...item };
-    // Garante que id e label estão normalizados
-    preserved.id = id;
-    preserved.label = item.label != null ? String(item.label).trim() : '';
-    result.push(preserved);
+    const label = item.label != null ? String(item.label).trim() : '';
+    result.push({ id, label });
   });
   return result;
 }
@@ -201,11 +192,11 @@ function resolveApiBaseUrl(){
   if (normalizedPath) {
     attempts.push(() => new URL(normalizedPath, window.location.href));
   } else {
-    attempts.push(() => new URL("../src/index.php", window.location.href));
+    attempts.push(() => new URL("config/api/index.php", window.location.href));
   }
 
   if (fallbackBase) {
-    attempts.push(() => new URL(normalizedPath || "../src/index.php", fallbackBase));
+    attempts.push(() => new URL(normalizedPath || "config/api/index.php", fallbackBase));
   }
 
   let lastError;
@@ -302,27 +293,57 @@ const MOTIVOS_CANCELAMENTO = [
   "Migração de produto"
 ];
 
-// MESU_DATA e variáveis relacionadas movidas para mesu.js
+let MESU_DATA = [];
 let PRODUTOS_DATA = [];
-// DIM_*_LOOKUP movidos para estrutura.js
-// DIMENSION_FILTER_OPTIONS movido para estrutura.js
-// A variável já está disponível globalmente via estrutura.js
-// Usamos window.DIMENSION_FILTER_OPTIONS ou a referência direta se disponível
+let DIM_SEGMENTOS_LOOKUP = new Map();
+let DIM_DIRETORIAS_LOOKUP = new Map();
+let DIM_REGIONAIS_LOOKUP = new Map();
+let DIM_AGENCIAS_LOOKUP = new Map();
+let DIM_GGESTAO_LOOKUP = new Map();
+let DIM_GERENTES_LOOKUP = new Map();
+const DIMENSION_FILTER_OPTIONS = {
+  segmento: [],
+  diretoria: [],
+  gerencia: [],
+  agencia: [],
+  gerenteGestao: [],
+  gerente: [],
+};
 // Aqui eu mapeio as chaves de status para nomes amigáveis que vão aparecer nos filtros e cards.
-// Constantes e variáveis de status movidas para status.js
-// STATUS_LABELS, DEFAULT_STATUS_ORDER, DEFAULT_STATUS_INDICADORES
-// STATUS_INDICADORES_DATA, STATUS_BY_KEY
+const STATUS_LABELS = {
+  todos: "Todos",
+  atingidos: "Atingidos",
+  nao: "Não atingidos",
+};
+// Aqui eu defino uma ordem padrão de status caso o CSV não traga essa informação.
+const DEFAULT_STATUS_ORDER = ["todos", "atingidos", "nao"];
+const DEFAULT_STATUS_INDICADORES = DEFAULT_STATUS_ORDER.map((key, idx) => ({
+  id: key,
+  codigo: key,
+  nome: STATUS_LABELS[key] || key,
+  key,
+  ordem: idx,
+}));
+let STATUS_INDICADORES_DATA = DEFAULT_STATUS_INDICADORES.map(item => ({ ...item }));
+// Aqui eu mantenho um Map para buscar status pelo código sem precisar ficar percorrendo arrays.
+let STATUS_BY_KEY = new Map(DEFAULT_STATUS_INDICADORES.map(entry => [entry.key, { ...entry }]));
 
 const FATAL_ERROR_ID = "__fatal_error";
 let FATAL_ERROR_VISIBLE = false;
 
 // Aqui eu preparo vários mapas auxiliares para navegar na hierarquia (diretoria → gerente) sem sofrimento.
-// MESU_BY_AGENCIA, MESU_AGENCIA_LOOKUP, MESU_FALLBACK_ROWS, GERENCIAS_BY_DIRETORIA, AGENCIAS_BY_GERENCIA, GGESTAO_BY_AGENCIA, GERENTES_BY_AGENCIA movidos para mesu.js
+let MESU_BY_AGENCIA = new Map();
+let MESU_AGENCIA_LOOKUP = new Map();
+let MESU_FALLBACK_ROWS = [];
 let DIRETORIA_INDEX = new Map();
 let GERENCIA_INDEX = new Map();
 let AGENCIA_INDEX = new Map();
 let GGESTAO_INDEX = new Map();
 let GERENTE_INDEX = new Map();
+let GERENCIAS_BY_DIRETORIA = new Map();
+let AGENCIAS_BY_GERENCIA = new Map();
+let GGESTAO_BY_AGENCIA = new Map();
+let GERENTES_BY_AGENCIA = new Map();
 let DIRETORIA_LABEL_INDEX = new Map();
 let GERENCIA_LABEL_INDEX = new Map();
 let AGENCIA_LABEL_INDEX = new Map();
@@ -374,9 +395,7 @@ let RANKING_AGENCIAS = [];
 let RANKING_GERENTES = [];
 let GERENTES_GESTAO = [];
 let SEGMENTOS_DATA = [];
-// SEGMENT_SCENARIO_DEFAULT movido para produtos.js
-// A variável já está disponível globalmente via produtos.js
-// Usa window.SEGMENT_SCENARIO_DEFAULT ou a referência direta se disponível
+const SEGMENT_SCENARIO_DEFAULT = "varejo";
 const SEGMENT_SCENARIO_PRESETS = [
   { id: "D.R. VAREJO DIGITAL",          nome: "D.R. VAREJO DIGITAL",          slug: "dr_varejo_digital",          scenario: "varejo",   order: 10 },
   { id: "SUPER. PJ NEGÓCIOS DIG.",      nome: "SUPER. PJ NEGÓCIOS DIG.",      slug: "super_pj_negocios_dig",      scenario: "varejo",   order: 20 },
@@ -388,7 +407,8 @@ const SEGMENT_SCENARIO_PRESETS = [
   { id: "Empresas",                     nome: "Empresas",                     slug: "empresas",                   scenario: "empresas", order: 80, hidden: true },
 ];
 let SEGMENT_SCENARIO_INDEX = new Map();
-// SEGMENT_DIMENSION_MAP e CURRENT_SEGMENT_SCENARIO movidos para produtos.js
+const SEGMENT_DIMENSION_MAP = new Map();
+let CURRENT_SEGMENT_SCENARIO = SEGMENT_SCENARIO_DEFAULT;
 
 // Aqui eu tenho mapas auxiliares para ligar produto, família e seção.
 let PRODUTOS_BY_FAMILIA = new Map();
@@ -398,19 +418,22 @@ let PRODUTO_TO_FAMILIA = new Map();
 let RESUMO_HIERARCHY = [];
 let SUBINDICADORES_BY_INDICADOR = new Map();
 let FORCED_EMPTY_SUBINDICADORES = new Set();
+let SUB_INDICADOR_FLAT_CACHE = new Map();
 
 // Aqui eu deixo caches das bases fact/dim para usar em várias telas.
 let fDados = [];
 let fCampanhas = [];
 let fVariavel = [];
-// FACT_REALIZADOS movido para realizados.js
-// FACT_METAS movido para metas.js
-// FACT_VARIAVEL movido para variavel.js
-// FACT_CAMPANHAS movido para campanhas.js
-// DIM_CALENDARIO movido para calendario.js
-// FACT_HISTORICO_RANKING_POBJ movido para historico.js
-// FACT_DETALHES, DETAIL_BY_REGISTRO e DETAIL_CONTRACT_IDS movidos para detalhes.js
-// DIM_PRODUTOS movido para produtos.js
+let FACT_REALIZADOS = [];
+let FACT_METAS = [];
+let FACT_VARIAVEL = [];
+let FACT_CAMPANHAS = [];
+let DIM_CALENDARIO = [];
+let FACT_HISTORICO_RANKING_POBJ = [];
+let FACT_DETALHES = [];
+let DIM_PRODUTOS = [];
+let DETAIL_BY_REGISTRO = new Map();
+let DETAIL_CONTRACT_IDS = new Set();
 let AVAILABLE_DATE_MAX = "";
 let AVAILABLE_DATE_MIN = "";
 
@@ -428,6 +451,10 @@ function getCurrentUserDisplayName(){
   return name || 'Equipe Comercial';
 }
 
+// Aqui eu aponto onde normalmente ficam os CSVs e guardo a Promise de carregamento para evitar múltiplos downloads.
+const BASE_CSV_PATH = "Base";
+let baseDataPromise = null;
+
 // Aqui eu limpo qualquer valor que vem das bases porque sei que sempre chega com espaços e formatos diferentes.
 function limparTexto(value){
   if (value == null) return "";
@@ -443,6 +470,19 @@ function simplificarTexto(value){
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+}
+
+function parseAliasList(source){
+  if (!source) return [];
+  if (Array.isArray(source)) {
+    return source.map(limparTexto).filter(Boolean);
+  }
+  const texto = limparTexto(source);
+  if (!texto) return [];
+  return texto
+    .split(/[;,|]/)
+    .map(segment => limparTexto(segment))
+    .filter(Boolean);
 }
 
 function formatTitleCase(text){
@@ -529,17 +569,99 @@ function selecaoPadrao(value){
   return DEFAULT_SELECTION_MARKERS.has(simplificarTexto(value));
 }
 
-// matchesSelection movido para filters.js
+function matchesSelection(filterValue, ...candidates){
+  const esperado = limparTexto(filterValue);
+  if (!esperado) return false;
+  const esperadoSimple = simplificarTexto(esperado);
+  const lista = [];
+  candidates.forEach(item => {
+    if (Array.isArray(item)) lista.push(...item);
+    else lista.push(item);
+  });
+  return lista.some(candidate => {
+    const valor = limparTexto(candidate);
+    if (!valor) return false;
+    if (valor === esperado) return true;
+    return simplificarTexto(valor) === esperadoSimple;
+  });
+}
 
-// resolveSelectLabel movido para filters.js
+function resolveSelectLabel(selector, value){
+  if (!selector || value == null || selecaoPadrao(value)) return "";
+  const select = document.querySelector(selector);
+  if (!select) return "";
+  const text = limparTexto(value);
+  if (!text) return "";
+  const simple = simplificarTexto(text);
+  const options = Array.from(select.options || []);
+  for (const option of options) {
+    const optionValue = option?.value ?? "";
+    const optionText = option?.textContent?.trim() || "";
+    if (matchesSelection(text, optionValue, optionText)) return optionText;
+    if (simple && simplificarTexto(optionText) === simple) return optionText;
+  }
+  return "";
+}
 
-// FILTER_LEVEL_CONFIG, buildLineageFromFilters e buildHierarchyLabel movidos para filters.js
+const FILTER_LEVEL_CONFIG = [
+  { key: "diretoria", selector: "#f-diretoria", levelKey: "diretoria" },
+  { key: "gerencia", selector: "#f-gerencia", levelKey: "gerencia" },
+  { key: "agencia", selector: "#f-agencia", levelKey: "agencia" },
+  { key: "ggestao", selector: "#f-ggestao", levelKey: "gGestao" },
+  { key: "gerente", selector: "#f-gerente", levelKey: "gerente" },
+];
 
-// matchesSegmentFilter movido para filters.js
+function buildLineageFromFilters(filters = {}){
+  const lineage = [];
+  FILTER_LEVEL_CONFIG.forEach(({ key, selector, levelKey }) => {
+    const value = filters?.[key];
+    if (!value || selecaoPadrao(value)) return;
+    const label = resolveSelectLabel(selector, value) || limparTexto(value);
+    lineage.push({ levelKey, value, label });
+  });
+  return lineage;
+}
+
+function buildHierarchyLabel(id, nome){
+  const codigo = limparTexto(id);
+  const label = limparTexto(nome);
+  if (codigo && label){
+    if (label.startsWith(`${codigo} `) || label.startsWith(`${codigo}-`)) return label;
+    if (label.includes(`${codigo} -`) || label.includes(`${codigo}-`)) return label;
+    if (/^\d/.test(codigo)) return `${codigo} - ${label}`;
+  }
+  if (label) return label;
+  if (codigo) return codigo;
+  return "";
+}
+
+function matchesSegmentFilter(filterValue, ...candidates){
+  const esperado = limparTexto(filterValue);
+  if (!esperado) return false;
+  if (matchesSelection(filterValue, ...candidates)) return true;
+  const esperadoScenario = getSegmentScenarioFromValue(esperado);
+  if (!esperadoScenario) return false;
+  const lista = [];
+  candidates.forEach(item => {
+    if (Array.isArray(item)) lista.push(...item);
+    else lista.push(item);
+  });
+  return lista.some(candidate => {
+    const valor = limparTexto(candidate);
+    if (!valor) return false;
+    const scenario = getSegmentScenarioFromValue(valor);
+    return scenario === esperadoScenario;
+  });
+}
+
+function resetSubIndicatorOptionCache(){
+  SUB_INDICADOR_FLAT_CACHE = new Map();
+}
 
 function getFlatSubIndicatorOptions(indicadorId){
   const key = limparTexto(indicadorId);
   if (!key) return [];
+  if (SUB_INDICADOR_FLAT_CACHE.has(key)) return SUB_INDICADOR_FLAT_CACHE.get(key);
   const defs = SUBINDICADORES_BY_INDICADOR.get(key) || [];
   const list = [];
   const stack = Array.isArray(defs) ? defs.map(entry => ({ entry, parents: [] })) : [];
@@ -567,6 +689,7 @@ function getFlatSubIndicatorOptions(indicadorId){
     }
   }
   list.sort((a, b) => String(a.label || "").localeCompare(String(b.label || ""), "pt-BR", { sensitivity: "base" }));
+  SUB_INDICADOR_FLAT_CACHE.set(key, list);
   return list;
 }
 
@@ -788,9 +911,8 @@ function buildResumoHierarchyDefault(rows = []) {
     if (!dim || typeof dim !== "object") return;
     const id = limparTexto(dim.id || dim.funcional);
     if (!id) return;
-    const nome = limparTexto(dim.nome) || extractNameFromLabel(dim.label);
-    const displayId = limparTexto(dim.funcional);
-    const label = buildHierarchyLabel(displayId, nome);
+    const nome = limparTexto(dim.nome) || extractNameFromLabel(dim.label) || id;
+    const label = buildHierarchyLabel(id, nome);
     const agencia = limparTexto(dim.id_agencia || dim.agencia);
     const regional = limparTexto(dim.id_regional || dim.regional || dim.gerencia);
     const diretoria = limparTexto(dim.id_diretoria || dim.diretoria);
@@ -826,9 +948,7 @@ function buildResumoHierarchyDefault(rows = []) {
     const id = limparTexto(dim.id || dim.funcional);
     if (!id) return;
     const nome = limparTexto(dim.nome) || extractNameFromLabel(dim.label) || id;
-    // Para gerente, usa funcional se disponível, senão usa id
-    const displayId = limparTexto(dim.funcional);
-    const label = buildHierarchyLabel(displayId, nome);
+    const label = buildHierarchyLabel(id, nome);
     const agencia = limparTexto(dim.id_agencia || dim.agencia);
     const regional = limparTexto(dim.id_regional || dim.regional || dim.gerencia);
     const diretoria = limparTexto(dim.id_diretoria || dim.diretoria);
@@ -842,7 +962,6 @@ function buildResumoHierarchyDefault(rows = []) {
       diretoria: diretoria || '',
       segmento: segmento || '',
     };
-
     if (!entry.nome) entry.nome = nome;
     entry.label = label;
     entry.gerenteId = entry.gerenteId || id;
@@ -941,6 +1060,7 @@ function buildResumoHierarchyFromProducts(rows = []) {
         if (!cardId) return null;
         const indicadorMeta = INDICATOR_CARD_INDEX.get(cardId) || {};
         const nome = item.nome || indicadorMeta.nome || cardId;
+        const metric = item.metric || indicadorMeta.metric || "valor";
 
         const aliases = new Set();
         const addAlias = (value) => {
@@ -958,18 +1078,18 @@ function buildResumoHierarchyFromProducts(rows = []) {
         const slug = simplificarTexto(cardId) || simplificarTexto(nome) || cardId;
         const forcedEmpty = FORCED_EMPTY_SUBINDICADORES.has(cardId)
           || FORCED_EMPTY_SUBINDICADORES.has(slug);
+        const subDefs = forcedEmpty ? [] : (SUBINDICADORES_BY_INDICADOR.get(cardId) || []);
+        const subindicadores = cloneSubIndicatorTree(subDefs, metric);
+
         const pesoBase = Number(item.peso);
         const peso = Number.isFinite(pesoBase) ? pesoBase : Number(indicadorMeta.peso) || 0;
-        const metrica = item.metrica || item.metric || indicadorMeta.metrica || indicadorMeta.metric || "valor";
-        const subDefs = forcedEmpty ? [] : (SUBINDICADORES_BY_INDICADOR.get(cardId) || []);
-        const subindicadores = cloneSubIndicatorTree(subDefs, metrica);
 
         return {
           id: cardId,
           slug,
           nome,
           cardId,
-          metrica,
+          metric,
           peso,
           aliases: Array.from(aliases),
           subindicadores,
@@ -1127,6 +1247,7 @@ function applyHierarchyFallbackToRow(row){
   if (!row.gerenteGestaoLabel && row.gerenteGestaoId) {
     row.gerenteGestaoLabel = labelGerenteGestao(row.gerenteGestaoId, row.gerenteGestaoNome);
   }
+
   if (gerMetaId && (!gerRowId || idsCoincidem)) {
     row.gerente = meta.gerenteId;
     row.gerenteId = meta.gerenteId;
@@ -1169,6 +1290,8 @@ function applyHierarchyFallback(rows){
 }
 
 // Aqui eu tento ler uma célula usando várias chaves possíveis porque cada base vem com um nome diferente.
+const NORMALIZED_KEY_CACHE = new WeakMap();
+
 function normalizeKeyForLookup(key){
   if (key == null) return "";
   return String(key)
@@ -1180,10 +1303,12 @@ function normalizeKeyForLookup(key){
 
 function getNormalizedKeyEntries(raw){
   if (!raw || typeof raw !== "object") return [];
+  if (NORMALIZED_KEY_CACHE.has(raw)) return NORMALIZED_KEY_CACHE.get(raw);
   const entries = Object.keys(raw).map(original => ({
     key: original,
     normalized: normalizeKeyForLookup(original),
   }));
+  NORMALIZED_KEY_CACHE.set(raw, entries);
   return entries;
 }
 
@@ -1283,23 +1408,414 @@ function aplicarIndicadorAliases(target = {}, idBruto = "", nomeBruto = "") {
 }
 
 // Aqui eu converto o texto do status para um formato previsível (sem acento e em minúsculas) para montar os filtros.
-// Funções de normalização de status movidas para status.js:
-// - normalizarChaveStatus
-// - obterRotuloStatus
+function normalizarChaveStatus(value) {
+  const text = limparTexto(value);
+  if (!text) return "";
+  const ascii = text.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const lower = ascii.toLowerCase().replace(/\s+/g, " ").trim();
+  if (!lower) return "";
+  if (/^(?:1|todos?)$/.test(lower) || lower.includes("todos")) return "todos";
+  if (/^(?:2)$/.test(lower)) return "atingidos";
+  if (/^(?:3)$/.test(lower)) return "nao";
+  if (/(?:^|\b)(?:nao|na|no)\s+atingid/.test(lower)) return "nao";
+  if (lower.includes("atingid")) return "atingidos";
+  if (lower.includes("nao")) return "nao";
+  const slug = lower.replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  if (slug === "no_atingidos") return "nao";
+  return slug;
+}
 
+// Aqui eu traduzo a chave do status para o rótulo certo exibido na tela, sempre tentando usar as descrições oficiais.
+function obterRotuloStatus(key, fallback = "") {
+  const normalized = normalizarChaveStatus(key);
+  if (normalized && STATUS_BY_KEY.has(normalized)) {
+    const entry = STATUS_BY_KEY.get(normalized);
+    if (entry?.nome) return entry.nome;
+  }
+  if (normalized && STATUS_LABELS[normalized]) return STATUS_LABELS[normalized];
+  if (STATUS_LABELS[key]) return STATUS_LABELS[key];
+  const fallbackText = limparTexto(fallback);
+  if (fallbackText) return fallbackText;
+  return normalized || key;
+}
+
+// Aqui eu faço uma gambiarra controlada para descobrir qual separador o CSV está usando (vírgula, ponto e vírgula, tab...).
+function descobrirDelimitadorCsv(headerLine, sampleLines = []){
+  const lines = [headerLine].concat(Array.isArray(sampleLines) ? sampleLines.slice(0, 5) : []).filter(Boolean);
+  if (!lines.length) return ",";
+  const candidates = [",", ";", "\t", "|"];
+  let best = ",";
+  let bestScore = -1;
+  candidates.forEach(delim => {
+    let score = 0;
+    lines.forEach(line => {
+      const pieces = line.split(delim);
+      if (pieces.length > 1){
+        score += pieces.length - 1;
+      }
+    });
+    if (score > bestScore){
+      best = delim;
+      bestScore = score;
+    }
+  });
+  if (bestScore <= 0){
+    if (headerLine?.includes(";")) return ";";
+    if (headerLine?.includes("\t")) return "\t";
+    if (headerLine?.includes("|")) return "|";
+  }
+  return best;
+}
+
+// Aqui eu separo uma linha de CSV respeitando aspas duplas porque algumas colunas trazem vírgula dentro do texto.
+function dividirLinhaCsv(line, delimiter){
+  const cols = [];
+  let current = "";
+  let insideQuotes = false;
+  for (let i = 0; i < line.length; i++){
+    const ch = line[i];
+    if (ch === '"'){
+      if (insideQuotes && line[i + 1] === '"'){
+        current += '"';
+        i += 1;
+      } else {
+        insideQuotes = !insideQuotes;
+      }
+    } else if (ch === delimiter && !insideQuotes){
+      cols.push(current);
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  cols.push(current);
+  return cols;
+}
+
+// Aqui eu transformo o texto cru do CSV em uma lista de objetos bonitinha, sempre limpando a sujeira de BOM e quebras.
+function converterCSV(text){
+  if (!text) return [];
+  const normalized = text.replace(/\uFEFF/g, "").replace(/\r\n?/g, "\n");
+  const lines = normalized.split("\n").filter(line => line.trim() !== "");
+  if (!lines.length) return [];
+  const header = lines.shift();
+  if (!header) return [];
+  const delimiter = descobrirDelimitadorCsv(header, lines);
+  const headers = dividirLinhaCsv(header, delimiter).map(h => limparTexto(h));
+  const rows = [];
+  for (const line of lines){
+    const cols = dividirLinhaCsv(line, delimiter);
+    if (!cols.length) continue;
+    const obj = {};
+    headers.forEach((key, idx) => {
+      obj[key] = limparTexto(idx < cols.length ? cols[idx] : "");
+    });
+    rows.push(obj);
+  }
+  return rows;
+}
+
+const SCRIPT_BASE_URL = (() => {
+  const current = document.currentScript;
+  if (current?.src) {
+    return new URL('.', current.src).href;
+  }
+  const fallback = Array.from(document.getElementsByTagName('script'))
+    .map(el => el.src)
+    .filter(Boolean)[0];
+  if (fallback) {
+    return new URL('.', fallback).href;
+  }
+  return new URL('.', window.location.href).href;
+})();
+
+const PAGE_BASE_URL = new URL('.', window.location.href).href;
+const PAGE_PATH_DEPTH = (() => {
+  try {
+    const path = new URL(PAGE_BASE_URL).pathname || '/';
+    return path.split('/').filter(Boolean).length;
+  } catch (err) {
+    const fallback = (window.location.pathname || '/').replace(/[^/]*$/, '');
+    return fallback.split('/').filter(Boolean).length;
+  }
+})();
+
+// Aqui eu gero uma lista de caminhos alternativos porque cada ambiente hospeda os CSVs em pastas diferentes.
+function montarTentativasCsvUrl(path){
+  if (!path) return [];
+  if (/^(?:https?|data|blob):/i.test(path)) {
+    return [path];
+  }
+
+  const raw = String(path);
+  const clean = raw.replace(/^\.\//, '').replace(/^\/+/, '');
+  const baseLess = clean.replace(/^Base\//i, '');
+  const filename = clean.split('/').filter(Boolean).pop() || '';
+
+  const variants = new Set([raw, clean]);
+  if (clean && !clean.startsWith('./')) variants.add(`./${clean}`);
+  if (clean && !clean.startsWith('/')) variants.add(`/${clean}`);
+  if (baseLess && baseLess !== clean) {
+    variants.add(baseLess);
+    variants.add(`./${baseLess}`);
+    variants.add(`/${baseLess}`);
+  } else if (clean && !/^Base\//i.test(clean)) {
+    variants.add(`Base/${clean}`);
+  }
+  if (filename) variants.add(filename);
+
+  for (let i = 1; i <= Math.min(5, PAGE_PATH_DEPTH); i += 1) {
+    const prefix = '../'.repeat(i);
+    variants.add(`${prefix}${clean}`);
+    if (baseLess && baseLess !== clean) {
+      variants.add(`${prefix}${baseLess}`);
+    }
+  }
+
+  const attempts = new Set();
+  const bases = [SCRIPT_BASE_URL, PAGE_BASE_URL];
+  const origin = window.location.origin || '';
+  if (origin) {
+    bases.push(origin.endsWith('/') ? origin : `${origin}/`);
+  }
+
+  variants.forEach(candidate => {
+    if (!candidate) return;
+    const normalized = candidate.startsWith('./') ? candidate.slice(2) : candidate;
+    bases.forEach(base => {
+      if (!base) return;
+      try {
+        attempts.add(new URL(normalized, base).href);
+      } catch (err) {
+        // ignore
+      }
+    });
+    if (!/^(?:https?|data|blob):/i.test(candidate)) {
+      attempts.add(candidate);
+    }
+  });
+
+  return [...attempts];
+}
+
+async function loadCsvFile(path){
+  const attempts = montarTentativasCsvUrl(path);
+  let lastError = null;
+  for (const attempt of attempts){
+    try {
+      const response = await fetch(attempt, { cache: 'no-store' });
+      if (!response.ok) {
+        lastError = new Error(`HTTP ${response.status}`);
+        continue;
+      }
+      const text = await response.text();
+      return converterCSV(text);
+    } catch (err) {
+      lastError = err;
+    }
+  }
+  const attemptList = attempts.join(', ');
+  if (lastError) {
+    console.error(`Falha ao carregar CSV em ${path}. Tentativas: ${attemptList}`, lastError);
+  } else {
+    console.error(`Falha ao carregar CSV em ${path}. Tentativas: ${attemptList}`);
+  }
+  return [];
+}
 
 // Aqui eu pego os dados MESU brutos e padronizo os campos para facilitar os filtros hierárquicos depois.
-// Função normalizarLinhasMesu movida para mesu.js
+function normalizarLinhasMesu(rows){
+  return rows.map(raw => {
+    const segmentoNome = lerCelula(raw, ["Segmento", "segmento"]);
+    const segmentoId = lerCelula(raw, ["Id Segmento", "ID Segmento", "id segmento", "Id segmento", "segmento_id", "segmentoId", "segmentoID"]) || segmentoNome;
+    const segmentoLabelRaw = lerCelula(raw, ["Segmento Label", "segmento_label", "segmentoLabel"]);
+    const diretoriaNome = lerCelula(raw, ["Diretoria", "Diretoria Regional", "diretoria", "Diretoria regional", "diretoria_regional", "Diretoria_regional"]);
+    const diretoriaId = lerCelula(raw, ["Id Diretoria", "ID Diretoria", "Diretoria ID", "Id Diretoria Regional", "id diretoria", "diretoria_id", "diretoriaId"]) || diretoriaNome;
+    const diretoriaLabelRaw = lerCelula(raw, ["Diretoria Label", "diretoria_label", "diretoriaLabel", "Diretoria Rotulo", "diretoria_rotulo"]);
+    const regionalNomeOriginal = lerCelula(raw, ["Regional", "Gerencia Regional", "Gerência Regional", "Gerencia regional", "Regional Nome", "gerencia_regional", "Gerencia_regional"]);
+    const regionalId = lerCelula(raw, ["Id Regional", "ID Regional", "Id Gerencia Regional", "Id Gerência Regional", "Gerencia ID", "gerencia_regional_id", "regional_id", "regionalId"]) || regionalNomeOriginal;
+    const regionalLabelRaw = lerCelula(raw, ["Gerencia Regional Label", "Gerência Regional Label", "regional_label", "gerencia_regional_label", "gerenciaRegionalLabel"]);
+    const regionalNome = (regionalLabelRaw || buildHierarchyLabel(regionalId, regionalNomeOriginal));
+    const regionalNomeAliases = [];
+    if (regionalNomeOriginal && regionalNomeOriginal !== regionalNome) regionalNomeAliases.push(regionalNomeOriginal);
+    const agenciaNomeOriginal = lerCelula(raw, ["Agencia", "Agência", "Agencia Nome", "Agência Nome", "agencia", "agencia_nome"]);
+    const agenciaId = lerCelula(raw, ["Id Agencia", "ID Agencia", "Id Agência", "Agencia ID", "Agência ID", "agencia_id", "agenciaId"]) || agenciaNomeOriginal;
+    const agenciaCodigo = lerCelula(raw, ["Agencia Codigo", "Agência Codigo", "Codigo Agencia", "Código Agência", "agencia_codigo", "codigo_agencia"]) || agenciaId || agenciaNomeOriginal;
+    const agenciaLabelRaw = lerCelula(raw, ["Agencia Label", "Agência Label", "agencia_label", "agenciaLabel"]);
+    const agenciaNome = (agenciaLabelRaw || buildHierarchyLabel(agenciaId, agenciaNomeOriginal));
+    const agenciaNomeAliases = [];
+    if (agenciaNomeOriginal && agenciaNomeOriginal !== agenciaNome) agenciaNomeAliases.push(agenciaNomeOriginal);
+    const gerenteGestaoNome = lerCelula(raw, [
+      "Gerente Gestao Nome",
+      "Gerente de Gestao Nome",
+      "Gerente de Gestão Nome",
+      "Gerente de Gestao",
+      "Gerente de Gestão",
+      "Gerente Gestao",
+      "gerente_gestao_nome",
+      "gerente_gestao"
+    ]);
+    const gerenteGestaoId = lerCelula(raw, ["Id Gerente de Gestao", "ID Gerente de Gestao", "Id Gerente de Gestão", "Gerente de Gestao Id", "gerenteGestaoId", "gerente_gestao_id"]) || gerenteGestaoNome;
+    const gerenteGestaoLabelRaw = lerCelula(raw, ["Gerente Gestao Label", "gerente_gestao_label", "gerenteGestaoLabel"]);
+    const gerenteNome = lerCelula(raw, ["Gerente", "Gerente Nome", "Nome Gerente", "Gerente Geral", "Gerente geral", "gerente"]);
+    const gerenteId = lerCelula(raw, ["Id Gerente", "ID Gerente", "Gerente Id", "gerente_id", "gerenteId"]) || gerenteNome;
+    const gerenteLabelRaw = lerCelula(raw, ["Gerente Label", "gerente_label", "gerenteLabel"]);
 
-// Funções de estrutura movidas para estrutura.js:
-// - buildDimensionLookup
-// - registerDimensionLookups
-// - getGerenteGestaoEntry
-// - getGerenteEntry
-// - labelFromEntry
-// - labelGerenteGestao
-// - labelGerente
-// - deriveGerenteGestaoIdFromAgency
+    return {
+      segmentoNome,
+      segmentoId,
+      segmentoLabel: segmentoLabelRaw || buildHierarchyLabel(segmentoId, segmentoNome),
+      segmentoNomeOriginal: segmentoNome,
+      diretoriaNome,
+      diretoriaId,
+      diretoriaLabel: diretoriaLabelRaw || buildHierarchyLabel(diretoriaId, diretoriaNome),
+      diretoriaNomeOriginal: diretoriaNome,
+      regionalNome,
+      regionalId,
+      regionalLabel: regionalLabelRaw || regionalNome,
+      regionalNomeOriginal,
+      regionalNomeAliases,
+      agenciaNome,
+      agenciaId,
+      agenciaCodigo,
+      agenciaLabel: agenciaLabelRaw || agenciaNome,
+      agenciaNomeOriginal,
+      agenciaNomeAliases,
+      gerenteGestaoNome,
+      gerenteGestaoId,
+      gerenteGestaoLabel: gerenteGestaoLabelRaw || buildHierarchyLabel(gerenteGestaoId, gerenteGestaoNome),
+      gerenteNome,
+      gerenteId,
+      gerenteLabel: gerenteLabelRaw || buildHierarchyLabel(gerenteId, gerenteNome)
+    };
+  }).filter(row => row.diretoriaId || row.regionalId || row.agenciaId);
+}
+
+function buildDimensionLookup(rows){
+  const map = new Map();
+  const list = Array.isArray(rows) ? rows : [];
+  list.forEach(raw => {
+    if (!raw || typeof raw !== "object") return;
+    const candidates = [
+      raw.id,
+      raw.codigo,
+      raw.id_segmento,
+      raw.segmento_id,
+      raw.id_diretoria,
+      raw.diretoria_id,
+      raw.id_regional,
+      raw.regional_id,
+      raw.gerencia_regional_id,
+      raw.id_agencia,
+      raw.agencia_id,
+    ];
+    const key = limparTexto(candidates.find(value => limparTexto(value)));
+    if (!key) return;
+    const nome = limparTexto(raw.nome || raw.name || raw.descricao || raw.label) || key;
+    const labelRaw = limparTexto(raw.label) || nome || key;
+    map.set(key, {
+      ...raw,
+      id: key,
+      nome,
+      label: labelRaw,
+    });
+  });
+  return map;
+}
+
+function registerDimensionLookups({
+  segmentos = [],
+  diretorias = [],
+  regionais = [],
+  agencias = [],
+  gerentesGestao = [],
+  gerentes = [],
+} = {}){
+  DIM_SEGMENTOS_LOOKUP = buildDimensionLookup(segmentos);
+  DIM_DIRETORIAS_LOOKUP = buildDimensionLookup(diretorias);
+  DIM_REGIONAIS_LOOKUP = buildDimensionLookup(regionais);
+  DIM_AGENCIAS_LOOKUP = buildDimensionLookup(agencias);
+  DIM_GGESTAO_LOOKUP = buildDimensionLookup(gerentesGestao);
+  DIM_GERENTES_LOOKUP = buildDimensionLookup(gerentes);
+}
+
+function getGerenteGestaoEntry(id){
+  const key = limparTexto(id);
+  if (!key) return null;
+  if (DIM_GGESTAO_LOOKUP?.has?.(key)) return DIM_GGESTAO_LOOKUP.get(key);
+  if (ggMap instanceof Map && ggMap.has(key)) return ggMap.get(key);
+  return null;
+}
+
+function getGerenteEntry(id){
+  const key = limparTexto(id);
+  if (!key) return null;
+  if (DIM_GERENTES_LOOKUP?.has?.(key)) return DIM_GERENTES_LOOKUP.get(key);
+  if (gerMap instanceof Map && gerMap.has(key)) return gerMap.get(key);
+  return null;
+}
+
+function labelFromEntry(entry, fallbackId = "", fallbackName = ""){
+  if (!entry) {
+    const cleanId = limparTexto(fallbackId);
+    const cleanName = limparTexto(fallbackName);
+    if (cleanName && cleanName.includes(" - ")) return cleanName;
+    if (cleanId && cleanName && cleanId !== cleanName) return `${cleanId} - ${cleanName}`;
+    return cleanName || cleanId || "";
+  }
+  const entryId = limparTexto(entry.id) || limparTexto(fallbackId);
+  const explicitLabel = limparTexto(entry.label);
+  if (explicitLabel) return explicitLabel;
+  const entryName = limparTexto(entry.nome) || limparTexto(fallbackName);
+  if (entryName && entryName.includes(" - ")) return entryName;
+  if (entryId && entryName && entryId !== entryName) return `${entryId} - ${entryName}`;
+  return entryName || entryId || limparTexto(fallbackName) || "";
+}
+
+function labelGerenteGestao(id, fallbackName = ""){
+  return labelFromEntry(getGerenteGestaoEntry(id), id, fallbackName);
+}
+
+function labelGerente(id, fallbackName = ""){
+  return labelFromEntry(getGerenteEntry(id), id, fallbackName);
+}
+
+function deriveGerenteGestaoIdFromAgency(agencia){
+  const key = limparTexto(agencia);
+  if (!key) return "";
+  const candidates = [];
+
+  const dim = DIM_AGENCIAS_LOOKUP?.get?.(key);
+  if (dim) {
+    candidates.push(dim.gerente_gestao_id, dim.gerenteGestaoId, dim.gerente_gestao, dim.gerenteGestao);
+  }
+
+  if (GGESTAO_BY_AGENCIA instanceof Map && GGESTAO_BY_AGENCIA.has(key)) {
+    candidates.push(...Array.from(GGESTAO_BY_AGENCIA.get(key) || []));
+  }
+
+  if (MESU_BY_AGENCIA instanceof Map && MESU_BY_AGENCIA.has(key)) {
+    const meta = MESU_BY_AGENCIA.get(key);
+    if (meta) candidates.push(meta.gerenteGestaoId, meta.gerenteGestao);
+  }
+
+  const simple = simplificarTexto(key);
+  if (simple && MESU_AGENCIA_LOOKUP instanceof Map && MESU_AGENCIA_LOOKUP.has(simple)) {
+    const meta = MESU_AGENCIA_LOOKUP.get(simple);
+    if (meta) candidates.push(meta.gerenteGestaoId, meta.gerenteGestao);
+  }
+
+  if (!candidates.length) {
+    const meta = resolveAgencyHierarchyMeta({ agenciaId: key, agencia: key, agenciaCodigo: key });
+    if (meta) candidates.push(meta.gerenteGestaoId, meta.gerenteGestao);
+  }
+
+  for (const candidate of candidates) {
+    const clean = limparTexto(candidate);
+    if (clean) return clean;
+  }
+  return "";
+}
 
 // Aqui eu aproveito os dados MESU já limpos para montar índices (diretoria → gerência → agência...) e acelerar os combos.
 function montarHierarquiaMesu(rows){
@@ -1697,10 +2213,7 @@ function montarHierarquiaMesu(rows){
     const lookup = DIM_GGESTAO_LOOKUP.get(id) || {};
     const baseEntry = ggMap.get(id) || {};
     const nome = extractNameFromLabel(normalized.label) || lookup.nome || baseEntry.nome || id;
-    // Remove qualquer ID/funcional do início do nome se ainda estiver lá
-    const nomeLimpo = nome.replace(/^[a-z0-9]+\s*-\s*/i, '').trim() || nome;
-    // Para gerente de gestão, mostra apenas o nome (sem ID/funcional)
-    const label = nomeLimpo;
+    const label = buildHierarchyLabel(id, nome);
     const agencia = limparTexto(lookup.id_agencia || baseEntry.agencia);
     const gerencia = limparTexto(lookup.id_regional || baseEntry.gerencia);
     const diretoria = limparTexto(lookup.id_diretoria || baseEntry.diretoria);
@@ -1731,10 +2244,7 @@ function montarHierarquiaMesu(rows){
     const lookup = DIM_GERENTES_LOOKUP.get(id) || {};
     const baseEntry = gerMap.get(id) || {};
     const nome = extractNameFromLabel(normalized.label) || lookup.nome || baseEntry.nome || id;
-    // Remove qualquer ID/funcional do início do nome se ainda estiver lá
-    const nomeLimpo = nome.replace(/^[a-z0-9]+\s*-\s*/i, '').trim() || nome;
-    // Para gerente, mostra apenas o nome (sem ID/funcional)
-    const label = nomeLimpo;
+    const label = buildHierarchyLabel(id, nome);
     const agencia = limparTexto(lookup.id_agencia || baseEntry.agencia);
     const gerencia = limparTexto(lookup.id_regional || baseEntry.gerencia);
     const diretoria = limparTexto(lookup.id_diretoria || baseEntry.diretoria);
@@ -2076,9 +2586,28 @@ function montarCatalogoDeProdutos(dimRows){
   PRODUTO_TO_FAMILIA = new Map();
   SUBPRODUTO_TO_INDICADOR.clear();
   FORCED_EMPTY_SUBINDICADORES = new Set();
+  resetSubIndicatorOptionCache();
 
   CARD_SECTIONS_DEF.forEach(section => {
     if (!section || !section.id) return;
+    if (section.id === "outros") {
+      section.items.forEach(item => {
+        if (!item || !item.id) return;
+        PRODUTO_TO_FAMILIA.set(item.id, {
+          id: section.id,
+          nome: section.label || section.id,
+          secaoId: section.id,
+          secaoNome: section.label || section.id
+        });
+        FORCED_EMPTY_SUBINDICADORES.add(item.id);
+        const forcedSlug = simplificarTexto(item.id);
+        if (forcedSlug && forcedSlug !== item.id) {
+          FORCED_EMPTY_SUBINDICADORES.add(forcedSlug);
+        }
+        SUBINDICADORES_BY_INDICADOR.set(item.id, []);
+      });
+      return;
+    }
     const familiaId = section.id;
     const familiaNome = section.label || familiaId;
     const entry = famMap.get(familiaId) || {
@@ -2118,7 +2647,6 @@ function montarCatalogoDeProdutos(dimRows){
           id: sub.id,
           nome: sub.nome || sub.id,
           metric: sub.metric || item.metric || 'valor',
-          metrica: sub.metrica || sub.metric || item.metrica || item.metric || 'valor',
           peso: Number(sub.peso) || 1,
           aliases: Array.isArray(sub.aliases) ? sub.aliases.filter(Boolean).map(alias => limparTexto(alias)) : undefined,
           children: Array.isArray(sub.children)
@@ -2126,14 +2654,12 @@ function montarCatalogoDeProdutos(dimRows){
                 id: child.id,
                 nome: child.nome || child.id,
                 metric: child.metric || sub.metric || item.metric || 'valor',
-                metrica: child.metrica || child.metric || sub.metrica || sub.metric || item.metrica || item.metric || 'valor',
                 peso: Number(child.peso) || 1,
                 children: Array.isArray(child.children)
                   ? child.children.map(grand => ({
                       id: grand.id,
                       nome: grand.nome || grand.id,
                       metric: grand.metric || child.metric || sub.metric || item.metric || 'valor',
-                      metrica: grand.metrica || grand.metric || child.metrica || child.metric || sub.metrica || sub.metric || item.metrica || item.metric || 'valor',
                       peso: Number(grand.peso) || 1,
                       children: []
                     }))
@@ -2191,6 +2717,9 @@ function montarCatalogoDeProdutos(dimRows){
 
   FAMILIA_DATA = Array.from(famMap.values()).sort((a,b) => String(a.nome || a.id).localeCompare(String(b.nome || b.id), 'pt-BR', { sensitivity: 'base' }));
   FAMILIA_BY_ID = new Map(FAMILIA_DATA.map(f => [f.id, f]));
+  if (!FAMILIA_BY_ID.has('outros') && PRODUCT_INDEX.has('desconhecido')) {
+    FAMILIA_BY_ID.set('outros', { id: 'outros', nome: 'Outros', secaoId: 'outros', secaoNome: 'Outros' });
+  }
   PRODUTOS_BY_FAMILIA = byFamilia;
   PRODUTOS_DATA = rows;
 
@@ -2217,11 +2746,469 @@ function montarCatalogoDeProdutos(dimRows){
   });
 }
 
-// Função normalizarLinhasFatoRealizados movida para realizados.js
+function normalizarLinhasFatoRealizados(rows){
+  return rows.map(raw => {
+    const registroId = lerCelula(raw, ["Registro ID", "ID", "registro", "registro_id"]);
+    if (!registroId) return null;
 
-// Função normalizarLinhasFatoMetas movida para metas.js
+    const segmento = lerCelula(raw, ["Segmento"]);
+    const segmentoId = lerCelula(raw, ["Segmento ID", "Id Segmento"]);
+    const diretoriaId = lerCelula(raw, ["Diretoria ID", "Diretoria", "Id Diretoria", "Diretoria Codigo"]);
+    const diretoriaNome = lerCelula(raw, ["Diretoria Nome", "Diretoria Regional"]) || diretoriaId;
+    const gerenciaId = lerCelula(raw, ["Gerencia ID", "Gerencia Regional", "Id Gerencia Regional"]);
+    const gerenciaNome = lerCelula(raw, ["Gerencia Nome", "Gerencia Regional", "Regional Nome"]) || gerenciaId;
+    const regionalNome = lerCelula(raw, ["Regional Nome", "Regional"]) || gerenciaNome;
+    const agenciaIdRaw = lerCelula(raw, ["Agencia ID", "Id Agencia", "Agência ID", "Agencia"]);
+    const agenciaNome = lerCelula(raw, ["Agencia Nome", "Agência Nome", "Agencia"]);
+    const agenciaCodigoRaw = lerCelula(raw, ["Agencia Codigo", "Código Agência", "Codigo Agencia"]);
+    const agenciaCodigo = agenciaCodigoRaw || agenciaIdRaw || agenciaNome;
+    const agenciaId = agenciaIdRaw || agenciaCodigoRaw || agenciaNome;
+    const gerenteGestaoIdRaw = lerCelula(raw, [
+      "Gerente Gestao ID",
+      "Gerente Gestao",
+      "Id Gerente de Gestao",
+      "Id Gerente de Gestão",
+      "gerenteGestaoId",
+      "gerente_gestao_id"
+    ]);
+    const gerenteGestaoNomeRaw = lerCelula(raw, [
+      "Gerente Gestao Nome",
+      "Gerente de Gestao Nome",
+      "Gerente de Gestão Nome",
+      "Gerente de Gestao",
+      "Gerente de Gestão",
+      "Gerente Gestao",
+      "gerenteGestaoNome",
+      "gerente_gestao_nome"
+    ]);
+    const gerenteGestaoParsed = normalizeFuncionalPair(gerenteGestaoIdRaw, gerenteGestaoNomeRaw);
+    const gerenteGestaoId = gerenteGestaoParsed.id;
+    const gerenteGestaoNome = gerenteGestaoParsed.nome || gerenteGestaoParsed.label || gerenteGestaoId;
+    const gerenteIdRaw = lerCelula(raw, ["Gerente ID", "Gerente"]);
+    const gerenteNomeRaw = lerCelula(raw, ["Gerente Nome", "Gerente"]);
+    const gerenteParsed = normalizeFuncionalPair(gerenteIdRaw, gerenteNomeRaw);
+    const gerenteId = gerenteParsed.id;
+    const gerenteNome = gerenteParsed.nome || gerenteParsed.label || gerenteId;
+    let familiaId = lerCelula(raw, ["Familia ID", "Familia", "Família ID"]) || "";
+    let familiaNome = lerCelula(raw, ["Familia Nome", "Família", "Familia"]) || familiaId;
+    let produtoId = lerCelula(raw, ["id_indicador", "Produto ID", "Produto", "Id Produto"]);
+    if (!produtoId) return null;
+    let produtoNome = lerCelula(raw, ["ds_indicador", "Produto Nome", "Produto"]) || produtoId;
+    let subproduto = lerCelula(raw, ["Subproduto", "Sub produto", "Sub-Produto"]);
+    const familiaCodigoExtra = lerCelula(raw, ["Familia Codigo", "Familia Código", "FamiliaCod"]);
+    const indicadorCodigoExtra = lerCelula(raw, ["Indicador Codigo", "Indicador Código", "IndicadorCod"]);
+    const subCodigoExtra = lerCelula(raw, ["Subindicador Codigo", "Subindicador Código", "SubindicadorCod"]);
+    const familiaCodigo = limparTexto(familiaCodigoExtra);
+    if (familiaCodigo) {
+      const familiaSlug = FAMILIA_CODE_TO_SLUG.get(familiaCodigo);
+      if (familiaSlug && (!familiaId || familiaId === familiaCodigo)) {
+        familiaId = familiaSlug;
+        if (!familiaNome || familiaNome === familiaCodigo) {
+          const famMeta = FAMILIA_BY_ID.get(familiaSlug);
+          if (famMeta?.nome) familiaNome = famMeta.nome;
+        }
+      }
+    }
+    const indicadorCodigo = limparTexto(indicadorCodigoExtra);
+    if (indicadorCodigo) {
+      const indicadorSlug = INDICADOR_CODE_TO_SLUG.get(indicadorCodigo);
+      if (indicadorSlug) {
+        produtoId = indicadorSlug;
+      }
+    }
+    const subCodigo = limparTexto(subCodigoExtra);
+    const subSlug = subCodigo ? SUB_CODE_TO_SLUG.get(subCodigo) : "";
+    const carteira = lerCelula(raw, ["Carteira"]);
+    const canalVenda = lerCelula(raw, ["Canal Venda", "Canal"]);
+    const tipoVenda = lerCelula(raw, ["Tipo Venda", "Tipo"]);
+    const modalidadePagamento = lerCelula(raw, ["Modalidade Pagamento", "Modalidade"]);
+    let data = converterDataISO(lerCelula(raw, ["Data", "Data Movimento", "Data Movimentacao", "Data Movimentação"]));
+    let competencia = converterDataISO(lerCelula(raw, ["Competencia", "Competência"]));
+    if (!data && competencia) {
+      data = competencia;
+    }
+    if (!competencia && data) {
+      competencia = `${data.slice(0, 7)}-01`;
+    }
+    const realizadoMens = toNumber(lerCelula(raw, ["Realizado Mensal", "Realizado"]));
+    const realizadoAcum = toNumber(lerCelula(raw, ["Realizado Acumulado", "Realizado Acum"]));
+    const quantidade = toNumber(lerCelula(raw, ["Quantidade", "Qtd"]));
+    const variavelReal = toNumber(lerCelula(raw, ["Variavel Real", "Variável Real"]));
 
-// Função normalizarLinhasFatoVariavel movida para variavel.js
+    const scenarioHint = getSegmentScenarioFromValue(segmento) || getSegmentScenarioFromValue(segmentoId) || "";
+    const indicadorRes = resolveIndicatorFromDimension([produtoId, produtoNome, indicadorCodigoExtra], scenarioHint);
+    if (indicadorRes) {
+      if (indicadorRes.indicadorId) produtoId = indicadorRes.indicadorId;
+      if (indicadorRes.indicadorNome) produtoNome = indicadorRes.indicadorNome;
+      if (indicadorRes.familiaId) familiaId = indicadorRes.familiaId;
+      if (indicadorRes.familiaNome) familiaNome = indicadorRes.familiaNome;
+    }
+
+    let resolvedSubId = subSlug;
+    let resolvedSubNome = subproduto;
+    const subRes = resolveSubIndicatorFromDimension([subSlug, subCodigo, subproduto], indicadorRes, scenarioHint);
+    if (subRes) {
+      if (subRes.subId) resolvedSubId = subRes.subId;
+      if (subRes.subNome) resolvedSubNome = subRes.subNome;
+      if (subRes.familiaId && !familiaId) familiaId = subRes.familiaId;
+      if (subRes.familiaNome && !familiaNome) familiaNome = subRes.familiaNome;
+    }
+
+    const base = {
+      registroId,
+      segmento,
+      segmentoId,
+      diretoria: diretoriaId || diretoriaNome,
+      diretoriaId: diretoriaId || diretoriaNome,
+      diretoriaNome,
+      gerenciaRegional: gerenciaId || gerenciaNome,
+      gerenciaId: gerenciaId || gerenciaNome,
+      gerenciaNome,
+      regional: regionalNome,
+      agencia: agenciaId,
+      agenciaId,
+      agenciaNome: agenciaNome || agenciaCodigo || agenciaId,
+      agenciaCodigo,
+      gerenteGestao: gerenteGestaoId,
+      gerenteGestaoId,
+      gerenteGestaoNome,
+      gerenteGestaoLabel: gerenteGestaoParsed.label,
+      gerente: gerenteId,
+      gerenteId,
+      gerenteNome,
+      gerenteLabel: gerenteParsed.label,
+      familiaId,
+      familiaNome,
+      subproduto,
+      carteira,
+      canalVenda,
+      tipoVenda,
+      modalidadePagamento,
+      data,
+      competencia,
+      realizado: realizadoMens,
+      real_mens: realizadoMens,
+      real_acum: realizadoAcum || realizadoMens,
+      qtd: quantidade,
+      variavelReal,
+    };
+    if (scenarioHint) base.segmentoScenario = scenarioHint;
+    if (familiaCodigo) base.familiaCodigo = familiaCodigo;
+    if (indicadorCodigo) base.indicadorCodigo = indicadorCodigo;
+    if (subCodigo) base.subindicadorCodigo = subCodigo;
+    if (resolvedSubId) {
+      base.subprodutoId = resolvedSubId;
+      base.subId = resolvedSubId;
+      base.subindicadorId = resolvedSubId;
+    }
+    if (resolvedSubNome) {
+      base.subproduto = resolvedSubNome;
+      base.subProduto = resolvedSubNome;
+      base.subindicadorNome = resolvedSubNome;
+    }
+    aplicarIndicadorAliases(base, produtoId, produtoNome);
+    base.familiaId = familiaId;
+    base.familiaNome = familiaNome;
+    base.prodOrSub = resolvedSubNome || subproduto || base.produtoNome || base.produtoId;
+    if (!base.gerenteGestaoId && base.agenciaId) {
+      const derivedGg = deriveGerenteGestaoIdFromAgency(base.agenciaId || base.agencia);
+      if (derivedGg) {
+        base.gerenteGestao = derivedGg;
+        base.gerenteGestaoId = derivedGg;
+        if (!base.gerenteGestaoLabel) {
+          base.gerenteGestaoLabel = labelGerenteGestao(derivedGg);
+        }
+        if (!base.gerenteGestaoNome || base.gerenteGestaoNome === base.gerenteGestao) {
+          const ggEntry = getGerenteGestaoEntry(derivedGg);
+          if (ggEntry) {
+            base.gerenteGestaoNome = ggEntry.nome || extractNameFromLabel(ggEntry.label) || base.gerenteGestaoNome;
+          }
+        }
+      }
+    }
+    return base;
+  }).filter(Boolean);
+}
+
+// Aqui eu deixo o fato de metas com os mesmos padrões de datas e chaves dos realizados para facilitar os cruzamentos.
+function normalizarLinhasFatoMetas(rows){
+  return rows.map(raw => {
+    const registroId = lerCelula(raw, ["Registro ID", "ID", "registro"]);
+    if (!registroId) return null;
+
+    const segmento = lerCelula(raw, ["Segmento"]);
+    const segmentoId = lerCelula(raw, ["Segmento ID", "Id Segmento"]);
+    const diretoriaId = lerCelula(raw, ["Diretoria ID", "Diretoria", "Id Diretoria"]);
+    const diretoriaNome = lerCelula(raw, ["Diretoria Nome", "Diretoria Regional"]) || diretoriaId;
+    const gerenciaId = lerCelula(raw, ["Gerencia ID", "Gerencia Regional", "Id Gerencia Regional"]);
+    const gerenciaNome = lerCelula(raw, ["Gerencia Nome", "Gerencia Regional", "Regional Nome"]) || gerenciaId;
+    const regionalNome = lerCelula(raw, ["Regional Nome", "Regional"]) || gerenciaNome;
+    const agenciaIdRaw = lerCelula(raw, ["Agencia ID", "Agência ID", "Id Agencia"]);
+    const agenciaCodigoRaw = lerCelula(raw, ["Agencia Codigo", "Agência Codigo", "Codigo Agencia"]);
+    const agenciaNome = lerCelula(raw, ["Agencia Nome", "Agência Nome", "Agencia"])
+      || agenciaCodigoRaw
+      || agenciaIdRaw;
+    const agenciaCodigo = agenciaCodigoRaw || agenciaIdRaw || agenciaNome;
+    const agenciaId = agenciaIdRaw || agenciaCodigoRaw || agenciaNome;
+    const gerenteGestaoIdRaw = lerCelula(raw, [
+      "Gerente Gestao ID",
+      "Gerente Gestao",
+      "Id Gerente de Gestao",
+      "Id Gerente de Gestão",
+      "gerenteGestaoId",
+      "gerente_gestao_id"
+    ]);
+    const gerenteGestaoNomeRaw = lerCelula(raw, [
+      "Gerente Gestao Nome",
+      "Gerente de Gestao Nome",
+      "Gerente de Gestão Nome",
+      "Gerente de Gestao",
+      "Gerente de Gestão",
+      "Gerente Gestao",
+      "gerenteGestaoNome",
+      "gerente_gestao_nome"
+    ]);
+    const gerenteGestaoParsed = normalizeFuncionalPair(gerenteGestaoIdRaw, gerenteGestaoNomeRaw);
+    const gerenteGestaoId = gerenteGestaoParsed.id;
+    const gerenteGestaoNome = gerenteGestaoParsed.nome || gerenteGestaoParsed.label || gerenteGestaoId;
+    const gerenteIdRaw = lerCelula(raw, ["Gerente ID", "Gerente"]);
+    const gerenteNomeRaw = lerCelula(raw, ["Gerente Nome", "Gerente"]);
+    const gerenteParsed = normalizeFuncionalPair(gerenteIdRaw, gerenteNomeRaw);
+    const gerenteId = gerenteParsed.id;
+    const gerenteNome = gerenteParsed.nome || gerenteParsed.label || gerenteId;
+
+    let familiaId = lerCelula(raw, ["Familia ID", "Familia", "Família ID"]);
+    let familiaNome = lerCelula(raw, ["Familia Nome", "Família Nome", "Familia"]) || familiaId;
+    let produtoId = lerCelula(raw, ["id_indicador", "Produto ID", "Produto", "Id Produto"]);
+    let produtoNome = lerCelula(raw, ["ds_indicador", "Produto Nome", "Produto"]) || produtoId;
+    let subproduto = lerCelula(raw, ["Subproduto", "Sub produto", "Sub-Produto"]);
+
+    const familiaCodigoExtra = lerCelula(raw, ["Familia Codigo", "Familia Código", "FamiliaCod"]);
+    const indicadorCodigoExtra = lerCelula(raw, ["Indicador Codigo", "Indicador Código", "IndicadorCod"]);
+    const subCodigoExtra = lerCelula(raw, ["Subindicador Codigo", "Subindicador Código", "SubindicadorCod"]);
+    const familiaCodigo = limparTexto(familiaCodigoExtra);
+    if (familiaCodigo) {
+      const familiaSlug = FAMILIA_CODE_TO_SLUG.get(familiaCodigo);
+      if (familiaSlug && (!familiaId || familiaId === familiaCodigo)) {
+        familiaId = familiaSlug;
+        if (!familiaNome || familiaNome === familiaCodigo) {
+          const famMeta = FAMILIA_BY_ID.get(familiaSlug);
+          if (famMeta?.nome) familiaNome = famMeta.nome;
+        }
+      }
+    }
+
+    const indicadorCodigo = limparTexto(indicadorCodigoExtra);
+    if (indicadorCodigo) {
+      const indicadorSlug = INDICADOR_CODE_TO_SLUG.get(indicadorCodigo);
+      if (indicadorSlug) {
+        produtoId = indicadorSlug;
+      }
+    }
+
+    const subCodigo = limparTexto(subCodigoExtra);
+    const subSlug = subCodigo ? SUB_CODE_TO_SLUG.get(subCodigo) : "";
+    const carteira = lerCelula(raw, ["Carteira"]);
+    const canalVenda = lerCelula(raw, ["Canal Venda", "Canal"]);
+    const tipoVenda = lerCelula(raw, ["Tipo Venda", "Tipo"]);
+    const modalidadePagamento = lerCelula(raw, ["Modalidade Pagamento", "Modalidade"]);
+    const metaMens = toNumber(lerCelula(raw, ["Meta Mensal", "Meta"]));
+    const metaAcum = toNumber(lerCelula(raw, ["Meta Acumulada", "Meta Acum"]));
+    const variavelMeta = toNumber(lerCelula(raw, ["Variavel Meta", "Variável Meta"]));
+    const peso = toNumber(lerCelula(raw, ["Peso"]));
+    let data = converterDataISO(lerCelula(raw, ["Data", "Data Competencia", "Data da Meta"]));
+    let competencia = converterDataISO(lerCelula(raw, ["Competencia", "Competência"]));
+    if (!data && competencia) {
+      data = competencia;
+    }
+    if (!competencia && data) {
+      competencia = `${data.slice(0, 7)}-01`;
+    }
+
+    const scenarioHint = getSegmentScenarioFromValue(segmento) || getSegmentScenarioFromValue(segmentoId) || "";
+    const indicadorRes = resolveIndicatorFromDimension([produtoId, produtoNome, indicadorCodigoExtra], scenarioHint);
+    if (indicadorRes) {
+      if (indicadorRes.indicadorId) produtoId = indicadorRes.indicadorId;
+      if (indicadorRes.indicadorNome) produtoNome = indicadorRes.indicadorNome;
+      if (indicadorRes.familiaId) familiaId = indicadorRes.familiaId;
+      if (indicadorRes.familiaNome) familiaNome = indicadorRes.familiaNome;
+    }
+
+    let resolvedSubId = subSlug;
+    let resolvedSubNome = subproduto;
+    const subRes = resolveSubIndicatorFromDimension([subSlug, subCodigo, subproduto], indicadorRes, scenarioHint);
+    if (subRes) {
+      if (subRes.subId) resolvedSubId = subRes.subId;
+      if (subRes.subNome) resolvedSubNome = subRes.subNome;
+      if (subRes.familiaId && !familiaId) familiaId = subRes.familiaId;
+      if (subRes.familiaNome && !familiaNome) familiaNome = subRes.familiaNome;
+    }
+
+    const base = {
+      registroId,
+      segmento,
+      segmentoId,
+      diretoria: diretoriaId || diretoriaNome,
+      diretoriaId: diretoriaId || diretoriaNome,
+      diretoriaNome,
+      gerenciaRegional: gerenciaId || gerenciaNome,
+      gerenciaId: gerenciaId || gerenciaNome,
+      gerenciaNome,
+      regional: regionalNome,
+      agencia: agenciaId,
+      agenciaId,
+      agenciaNome,
+      agenciaCodigo,
+      gerenteGestao: gerenteGestaoId,
+      gerenteGestaoId,
+      gerenteGestaoNome,
+      gerenteGestaoLabel: gerenteGestaoParsed.label,
+      gerente: gerenteId,
+      gerenteId,
+      gerenteNome,
+      gerenteLabel: gerenteParsed.label,
+      familiaId,
+      familiaNome,
+      subproduto,
+      carteira,
+      canalVenda,
+      tipoVenda,
+      modalidadePagamento,
+      data,
+      competencia,
+      meta: metaMens,
+      meta_mens: metaMens,
+      meta_acum: metaAcum || metaMens,
+      variavelMeta,
+      peso,
+    };
+    if (scenarioHint) base.segmentoScenario = scenarioHint;
+    if (familiaCodigo) base.familiaCodigo = familiaCodigo;
+    if (indicadorCodigo) base.indicadorCodigo = indicadorCodigo;
+    if (subCodigo) base.subindicadorCodigo = subCodigo;
+    if (resolvedSubId) {
+      base.subprodutoId = resolvedSubId;
+      base.subId = resolvedSubId;
+      base.subindicadorId = resolvedSubId;
+    }
+    if (resolvedSubNome) {
+      base.subproduto = resolvedSubNome;
+      base.subProduto = resolvedSubNome;
+      base.subindicadorNome = resolvedSubNome;
+    }
+    aplicarIndicadorAliases(base, produtoId, produtoNome);
+    base.familiaId = familiaId;
+    base.familiaNome = familiaNome;
+    base.prodOrSub = resolvedSubNome || subproduto || base.produtoNome || base.produtoId;
+    if (!base.gerenteGestaoId && base.agenciaId) {
+      const derivedGg = deriveGerenteGestaoIdFromAgency(base.agenciaId || base.agencia);
+      if (derivedGg) {
+        base.gerenteGestao = derivedGg;
+        base.gerenteGestaoId = derivedGg;
+        if (!base.gerenteGestaoLabel) {
+          base.gerenteGestaoLabel = labelGerenteGestao(derivedGg);
+        }
+        if (!base.gerenteGestaoNome || base.gerenteGestaoNome === base.gerenteGestao) {
+          const ggEntry = getGerenteGestaoEntry(derivedGg);
+          if (ggEntry) {
+            base.gerenteGestaoNome = ggEntry.nome || extractNameFromLabel(ggEntry.label) || base.gerenteGestaoNome;
+          }
+        }
+      }
+    }
+    return base;
+  }).filter(Boolean);
+}
+
+// Aqui eu trato o fato variável (pontos) porque ele vem com os nomes de colunas diferentes das outras bases.
+function normalizarLinhasFatoVariavel(rows){
+  return rows.map(raw => {
+    const registroId = lerCelula(raw, ["Registro ID", "ID", "registro"]);
+    if (!registroId) return null;
+    let produtoId = lerCelula(raw, ["id_indicador", "Produto ID", "Produto", "Id Produto"]);
+    let produtoNome = lerCelula(raw, ["ds_indicador", "Produto Nome", "Produto"]) || produtoId;
+    let familiaId = lerCelula(raw, ["Familia ID", "Familia", "Família ID"]);
+    let familiaNome = lerCelula(raw, ["Familia Nome", "Família Nome", "Familia"]) || familiaId;
+    const familiaCodigoExtra = lerCelula(raw, ["Familia Codigo", "Familia Código", "FamiliaCod"]);
+    const indicadorCodigoExtra = lerCelula(raw, ["Indicador Codigo", "Indicador Código", "IndicadorCod"]);
+    const subCodigoExtra = lerCelula(raw, ["Subindicador Codigo", "Subindicador Código", "SubindicadorCod"]);
+    const familiaCodigo = limparTexto(familiaCodigoExtra);
+    if (familiaCodigo) {
+      const familiaSlug = FAMILIA_CODE_TO_SLUG.get(familiaCodigo);
+      if (familiaSlug && (!familiaId || familiaId === familiaCodigo)) {
+        familiaId = familiaSlug;
+        if (!familiaNome || familiaNome === familiaCodigo) {
+          const famMeta = FAMILIA_BY_ID.get(familiaSlug);
+          if (famMeta?.nome) familiaNome = famMeta.nome;
+        }
+      }
+    }
+    const indicadorCodigo = limparTexto(indicadorCodigoExtra);
+    if (indicadorCodigo) {
+      const indicadorSlug = INDICADOR_CODE_TO_SLUG.get(indicadorCodigo);
+      if (indicadorSlug) {
+        produtoId = indicadorSlug;
+      }
+    }
+    const subCodigo = limparTexto(subCodigoExtra);
+    const subSlug = subCodigo ? SUB_CODE_TO_SLUG.get(subCodigo) : "";
+    const variavelMeta = toNumber(lerCelula(raw, ["Variavel Meta", "Variável Meta"]));
+    const variavelReal = toNumber(lerCelula(raw, ["Variavel Real", "Variável Real"]));
+    let data = converterDataISO(lerCelula(raw, ["Data"]));
+    let competencia = converterDataISO(lerCelula(raw, ["Competencia", "Competência"]));
+    if (!data && competencia) {
+      data = competencia;
+    }
+    if (!competencia && data) {
+      competencia = `${data.slice(0, 7)}-01`;
+    }
+    const indicadorRes = resolveIndicatorFromDimension([produtoId, produtoNome, indicadorCodigoExtra], "");
+    if (indicadorRes) {
+      if (indicadorRes.indicadorId) produtoId = indicadorRes.indicadorId;
+      if (indicadorRes.indicadorNome) produtoNome = indicadorRes.indicadorNome;
+      if (indicadorRes.familiaId) familiaId = indicadorRes.familiaId;
+      if (indicadorRes.familiaNome) familiaNome = indicadorRes.familiaNome;
+    }
+
+    let resolvedSubId = subSlug;
+    let resolvedSubNome = "";
+    const subRes = resolveSubIndicatorFromDimension([subSlug, subCodigo], indicadorRes, "");
+    if (subRes) {
+      if (subRes.subId) resolvedSubId = subRes.subId;
+      if (subRes.subNome) resolvedSubNome = subRes.subNome;
+      if (subRes.familiaId && !familiaId) familiaId = subRes.familiaId;
+      if (subRes.familiaNome && !familiaNome) familiaNome = subRes.familiaNome;
+    }
+
+    const base = {
+      registroId,
+      familiaId,
+      familiaNome,
+      data,
+      competencia,
+      variavelMeta,
+      variavelReal,
+    };
+    if (familiaCodigo) base.familiaCodigo = familiaCodigo;
+    if (indicadorCodigo) base.indicadorCodigo = indicadorCodigo;
+    if (subCodigo) base.subindicadorCodigo = subCodigo;
+    if (resolvedSubId) {
+      base.subprodutoId = resolvedSubId;
+      base.subId = resolvedSubId;
+      base.subindicadorId = resolvedSubId;
+    }
+    if (resolvedSubNome) {
+      base.subproduto = resolvedSubNome;
+      base.subProduto = resolvedSubNome;
+      base.subindicadorNome = resolvedSubNome;
+    }
+    aplicarIndicadorAliases(base, produtoId, produtoNome);
+    base.familiaId = familiaId;
+    base.familiaNome = familiaNome;
+    base.prodOrSub = resolvedSubNome || base.produtoNome || base.produtoId;
+    return base;
+  }).filter(Boolean);
+}
 
 function extractFactKeyValues(entry = {}) {
   return {
@@ -2359,13 +3346,324 @@ function findFactMatch(row = {}, lookup){
   return null;
 }
 
-// Função normalizarLinhasFatoCampanhas movida para campanhas.js
+// Aqui eu padronizo os dados das campanhas porque preciso ligar sprint, unidade e indicadores rapidamente.
+function normalizarLinhasFatoCampanhas(rows){
+  return rows.map(raw => {
+    const id = lerCelula(raw, ["Campanha ID", "ID"]);
+    if (!id) return null;
+    const sprintId = lerCelula(raw, ["Sprint ID", "Sprint"]);
+    const diretoriaId = lerCelula(raw, ["Diretoria", "Diretoria ID", "Id Diretoria"]);
+    const diretoriaNome = lerCelula(raw, ["Diretoria Nome", "Diretoria Regional"]) || diretoriaId;
+    const gerenciaId = lerCelula(raw, ["Gerencia Regional", "Gerencia ID", "Id Gerencia"]);
+    const regionalNome = lerCelula(raw, ["Regional Nome", "Regional"]) || gerenciaId;
+    const agenciaCodigoRaw = lerCelula(raw, ["Agencia Codigo", "Agencia ID", "Código Agência", "Agência Codigo"]);
+    const agenciaNome = lerCelula(raw, ["Agencia Nome", "Agência Nome", "Agencia"]) || agenciaCodigoRaw;
+    const agenciaId = agenciaCodigoRaw || agenciaNome;
+    const gerenteGestaoIdRaw = lerCelula(raw, [
+      "Gerente Gestao",
+      "Gerente Gestao ID",
+      "Gerente de Gestao",
+      "Gerente de Gestão",
+      "gerenteGestaoId",
+      "gerente_gestao_id"
+    ]);
+    const gerenteGestaoNome = lerCelula(raw, [
+      "Gerente Gestao Nome",
+      "Gerente de Gestao Nome",
+      "Gerente de Gestão Nome",
+      "Gerente Gestao",
+      "Gerente de Gestao",
+      "Gerente de Gestão",
+      "gerenteGestaoNome",
+      "gerente_gestao_nome"
+    ]) || gerenteGestaoIdRaw;
+    const gerenteGestaoId = gerenteGestaoIdRaw || gerenteGestaoNome;
+    const gerenteIdRaw = lerCelula(raw, ["Gerente", "Gerente ID"]);
+    const gerenteNome = lerCelula(raw, ["Gerente Nome"]) || gerenteIdRaw;
+    const gerenteId = gerenteIdRaw || gerenteNome;
+    const segmento = lerCelula(raw, ["Segmento"]);
+    let familiaId = lerCelula(raw, ["Familia ID", "Família ID", "Familia"]);
+    let familiaNome = lerCelula(raw, ["Familia Nome", "Família Nome"]) || familiaId;
+    let produtoId = lerCelula(raw, ["id_indicador", "Produto ID", "Produto"]);
+    if (!produtoId) return null;
+    const produtoNome = lerCelula(raw, ["ds_indicador", "Produto Nome", "Produto"]) || produtoId;
+    const subproduto = lerCelula(raw, ["Subproduto", "Sub produto"]);
+    const familiaCodigoExtra = lerCelula(raw, ["Familia Codigo", "Familia Código", "FamiliaCod"]);
+    const indicadorCodigoExtra = lerCelula(raw, ["Indicador Codigo", "Indicador Código", "IndicadorCod"]);
+    const subCodigoExtra = lerCelula(raw, ["Subindicador Codigo", "Subindicador Código", "SubindicadorCod"]);
+    const familiaCodigo = limparTexto(familiaCodigoExtra);
+    if (familiaCodigo) {
+      const familiaSlug = FAMILIA_CODE_TO_SLUG.get(familiaCodigo);
+      if (familiaSlug && (!familiaId || familiaId === familiaCodigo)) {
+        familiaId = familiaSlug;
+        if (!familiaNome || familiaNome === familiaCodigo) {
+          const famMeta = FAMILIA_BY_ID.get(familiaSlug);
+          if (famMeta?.nome) familiaNome = famMeta.nome;
+        }
+      }
+    }
+    const indicadorCodigo = limparTexto(indicadorCodigoExtra);
+    if (indicadorCodigo) {
+      const indicadorSlug = INDICADOR_CODE_TO_SLUG.get(indicadorCodigo);
+      if (indicadorSlug) {
+        produtoId = indicadorSlug;
+      }
+    }
+    const subCodigo = limparTexto(subCodigoExtra);
+    const subSlug = subCodigo ? SUB_CODE_TO_SLUG.get(subCodigo) : "";
+    const carteira = lerCelula(raw, ["Carteira"]);
+    const linhas = toNumber(lerCelula(raw, ["Linhas"]));
+    const cash = toNumber(lerCelula(raw, ["Cash"]));
+    const conquista = toNumber(lerCelula(raw, ["Conquista"]));
+    const atividade = converterBooleano(lerCelula(raw, ["Atividade", "Ativo", "Status"]), true);
+    let data = converterDataISO(lerCelula(raw, ["Data"]));
+    let competencia = converterDataISO(lerCelula(raw, ["Competencia", "Competência"]));
+    if (!data && competencia) {
+      data = competencia;
+    }
+    if (!competencia && data) {
+      competencia = `${data.slice(0, 7)}-01`;
+    }
 
-// Função normalizarLinhasCalendario movida para calendario.js
+    const base = {
+      id,
+      sprintId,
+      diretoria: diretoriaId || diretoriaNome,
+      diretoriaId: diretoriaId || diretoriaNome,
+      diretoriaNome,
+      gerenciaRegional: gerenciaId || regionalNome,
+      gerenciaId: gerenciaId || regionalNome,
+      regional: regionalNome,
+      agenciaCodigo: agenciaCodigoRaw || agenciaId,
+      agencia: agenciaId,
+      agenciaId,
+      agenciaNome,
+      gerenteGestao: gerenteGestaoId,
+      gerenteGestaoId,
+      gerenteGestaoNome,
+      gerente: gerenteId,
+      gerenteId,
+      gerenteNome,
+      segmento,
+      familiaId,
+      familiaNome,
+      subproduto,
+      carteira,
+      linhas,
+      cash,
+      conquista,
+      atividade,
+      data,
+      competencia,
+    };
+    if (familiaCodigo) base.familiaCodigo = familiaCodigo;
+    if (indicadorCodigo) base.indicadorCodigo = indicadorCodigo;
+    if (subCodigo) base.subindicadorCodigo = subCodigo;
+    if (subSlug) base.subprodutoId = subSlug;
+    aplicarIndicadorAliases(base, produtoId, produtoNome);
+    return base;
+  }).filter(Boolean);
+}
 
-// Função normalizarLinhasStatus movida para status.js
+// Aqui eu organizo o calendário corporativo (competências) para usar nas telas de período.
+function normalizarLinhasCalendario(rows){
+  return rows.map(raw => {
+    const data = converterDataISO(lerCelula(raw, ["Data"]));
+    if (!data) return null;
+    const competencia = converterDataISO(lerCelula(raw, ["Competencia", "Competência"])) || `${data.slice(0, 7)}-01`;
+    const ano = lerCelula(raw, ["Ano"]) || data.slice(0, 4);
+    const mes = lerCelula(raw, ["Mes", "Mês"]) || data.slice(5, 7);
+    const mesNome = lerCelula(raw, ["Mes Nome", "Mês Nome"]);
+    const dia = lerCelula(raw, ["Dia"]) || data.slice(8, 10);
+    const diaSemana = lerCelula(raw, ["Dia da Semana"]);
+    const semana = lerCelula(raw, ["Semana"]);
+    const trimestre = lerCelula(raw, ["Trimestre"]);
+    const semestre = lerCelula(raw, ["Semestre"]);
+    const ehDiaUtil = converterBooleano(lerCelula(raw, ["Eh Dia Util", "É Dia Útil", "Dia Util"]), false) ? 1 : 0;
+    const mesAnoCurto = construirEtiquetaMesAno(ano, mes, mesNome);
+    return { data, competencia, ano, mes, mesNome, mesAnoCurto, dia, diaSemana, semana, trimestre, semestre, ehDiaUtil };
+  }).filter(Boolean).sort((a, b) => (a.data || "").localeCompare(b.data || ""));
+}
 
-// Função normalizarDimProdutos movida para produtos.js
+// Aqui eu trato a base de status dos indicadores para poder exibir os nomes amigáveis e a ordem certa.
+function normalizarLinhasStatus(rows){
+  const normalized = [];
+  const seen = new Set();
+  const missing = new Set();
+  const list = Array.isArray(rows) ? rows : [];
+
+  if (!list.length) {
+    console.warn("Status_Indicadores.csv não encontrado ou vazio; aplicando valores padrão.");
+  }
+
+  const register = (candidate = {}) => {
+    const rawKey = pegarPrimeiroPreenchido(
+      candidate.key,
+      candidate.slug,
+      candidate.id,
+      candidate.codigo,
+      candidate.nome
+    );
+    const resolvedKey = normalizarChaveStatus(rawKey);
+    if (!resolvedKey) return false;
+    if (seen.has(resolvedKey)) return true;
+
+    const codigo = limparTexto(candidate.codigo)
+      || limparTexto(candidate.id)
+      || resolvedKey;
+    const nome = limparTexto(candidate.nome)
+      || STATUS_LABELS[resolvedKey]
+      || limparTexto(candidate.label)
+      || codigo
+      || resolvedKey;
+    const originalId = limparTexto(candidate.id) || codigo || resolvedKey;
+    const ordemRaw = limparTexto(candidate.ordem);
+    const ordemNum = Number(ordemRaw);
+    const ordem = ordemRaw !== "" && Number.isFinite(ordemNum) ? ordemNum : undefined;
+
+    const entry = { id: originalId, codigo, nome, key: resolvedKey };
+    if (ordem !== undefined) entry.ordem = ordem;
+
+    normalized.push(entry);
+    seen.add(resolvedKey);
+    return true;
+  };
+
+  list.forEach(raw => {
+    if (!raw || typeof raw !== "object") return;
+    const nome = lerCelula(raw, ["Status Nome", "Status", "Nome", "Descrição", "Descricao"]);
+    const codigo = lerCelula(raw, ["Status Id", "StatusID", "id", "ID", "Codigo", "Código"]);
+    const chave = lerCelula(raw, ["Status Chave", "Status Key", "Chave", "Slug"]);
+    const ordem = lerCelula(raw, ["Ordem", "Order", "Posicao", "Posição", "Sequencia", "Sequência"]);
+    const key = pegarPrimeiroPreenchido(chave, codigo, nome);
+    const ok = register({ id: codigo || key, codigo, nome, key, ordem });
+    if (!ok) {
+      const fallback = pegarPrimeiroPreenchido(nome, codigo, chave);
+      if (fallback) missing.add(fallback);
+    }
+  });
+
+  DEFAULT_STATUS_INDICADORES.forEach(item => register(item));
+
+  if (missing.size) {
+    console.warn(`Status sem identificador válido: ${Array.from(missing).join(", ")}`);
+  }
+
+  return normalized;
+}
+
+function normalizarDimProdutos(rows){
+  const list = Array.isArray(rows) ? rows : [];
+  return list.map(raw => {
+    const familiaCodigoRaw = lerCelula(raw, [
+      "idFamilia", "IdFamilia", "ID Familia", "Id Familia", "Familia ID"
+    ]);
+    const familiaSlugRaw = lerCelula(raw, [
+      "FamiliaSlug", "SlugFamilia", "Familia Slug", "Familia Chave", "Familia Codigo Alternativo"
+    ]);
+    const familiaNomeRaw = lerCelula(raw, [
+      "Familia", "Família", "Nome Familia", "Nome Família"
+    ]);
+    const indicadorCodigoRaw = lerCelula(raw, [
+      "IdIndicador", "ID Indicador", "Indicador ID", "Indicador Codigo", "Indicador Código"
+    ]);
+    const indicadorSlugRaw = lerCelula(raw, [
+      "IndicadorSlug", "SlugIndicador", "Indicador Slug", "Indicador Chave", "CardId"
+    ]);
+    const indicadorNomeRaw = lerCelula(raw, [
+      "Indicador", "Nome Indicador", "Nome indicador"
+    ]);
+    const indicadorAliasesRaw = raw?.indicadorAliases
+      ?? raw?.IndicadorAliases
+      ?? raw?.aliases
+      ?? raw?.Aliases
+      ?? lerCelula(raw, ["Indicador Aliases", "Indicador Alias", "Aliases Indicador", "IndicadorAliases"]);
+    const subCodigoRaw = lerCelula(raw, [
+      "idSubindicador", "IdSubindicador", "ID Subindicador", "Subindicador ID", "Subindicador Codigo", "Subindicador Código"
+    ]);
+    const subSlugRaw = lerCelula(raw, [
+      "SubindicadorSlug", "SlugSubindicador", "Subindicador Slug", "Subindicador Chave", "SubprodutoSlug"
+    ]);
+    const subNomeRaw = lerCelula(raw, [
+      "Subindicador", "Nome Subindicador", "Sub Indicador"
+    ]);
+    const subAliasesRaw = raw?.subIndicadorAliases
+      ?? raw?.SubIndicadorAliases
+      ?? raw?.subAliases
+      ?? raw?.SubAliases
+      ?? lerCelula(raw, ["Subindicador Aliases", "Subindicador Alias", "Aliases Subindicador", "SubindicadorAliases"]);
+
+    const familiaNome = limparTexto(familiaNomeRaw) || "Indicador";
+    const familiaCodigo = limparTexto(familiaCodigoRaw);
+    let familiaId = limparTexto(familiaSlugRaw);
+    if (!familiaId) {
+      if (familiaCodigo && /[^0-9]/.test(familiaCodigo)) {
+        familiaId = familiaCodigo;
+      } else {
+        const slug = simplificarTexto(familiaNome);
+        familiaId = slug ? slug.replace(/\s+/g, "_") : "";
+      }
+    }
+
+    const indicadorNome = limparTexto(indicadorNomeRaw) || "Indicador";
+    const indicadorCodigo = limparTexto(indicadorCodigoRaw);
+    let indicadorId = limparTexto(indicadorSlugRaw);
+    if (!indicadorId) {
+      if (indicadorCodigo && /[^0-9]/.test(indicadorCodigo)) {
+        indicadorId = indicadorCodigo;
+      } else {
+        const slug = simplificarTexto(indicadorNome);
+        indicadorId = slug ? slug.replace(/\s+/g, "_") : "";
+      }
+    }
+
+    const subNomeLimpo = limparTexto(subNomeRaw);
+    const subCodigo = limparTexto(subCodigoRaw);
+    let subId = limparTexto(subSlugRaw);
+    const subCodigoValido = subCodigo && subCodigo !== "-" ? subCodigo : "";
+    const hasSub = Boolean(subId) || Boolean(subCodigoValido && subCodigoValido !== "0") || Boolean(subNomeLimpo);
+    if (!hasSub) {
+      return {
+        familiaCodigo,
+        familiaId,
+        familiaNome,
+        indicadorCodigo,
+        indicadorId,
+        indicadorNome,
+        subCodigo: "",
+        subId: "",
+        subNome: ""
+      };
+    }
+
+    if (!subId) {
+      if (subCodigoValido && /[^0-9]/.test(subCodigoValido) && !subNomeLimpo) {
+        subId = subCodigoValido;
+      } else {
+        const slug = subNomeLimpo ? simplificarTexto(subNomeLimpo) : simplificarTexto(subCodigoValido);
+        subId = slug ? slug.replace(/\s+/g, "_") : subCodigoValido;
+      }
+    }
+
+    const subNome = subNomeLimpo || subId || subCodigoValido || "";
+    const indicadorAliases = parseAliasList(indicadorAliasesRaw);
+    const subAliases = parseAliasList(subAliasesRaw);
+
+    return {
+      familiaCodigo,
+      familiaId,
+      familiaNome,
+      indicadorCodigo,
+      indicadorId,
+      indicadorNome,
+      indicadorAliases,
+      subCodigo: subCodigoValido,
+      subId,
+      subNome,
+      subAliases
+    };
+  }).filter(row => row.indicadorId);
+}
 
 function resetGlobalDimensionAliasIndex(){
   GLOBAL_INDICATOR_ALIAS_INDEX.clear();
@@ -2558,15 +3856,392 @@ function resolveSubIndicatorFromDimension(candidates, indicatorMeta = null, scen
   return null;
 }
 
-// Função normalizarLinhasFatoDetalhes movida para detalhes.js
+function normalizarLinhasFatoDetalhes(rows){
+  if (!Array.isArray(rows)) return [];
 
-// Função normalizarLinhasHistoricoRankingPobj movida para historico.js
+  return rows.map(raw => {
+    const contratoId = limparTexto(lerCelula(raw, ["Contrato ID", "contrato_id", "Contrato", "Id Contrato", "ID Contrato"]));
+    const registroId = limparTexto(lerCelula(raw, ["Registro ID", "registro_id", "Registro", "Id Registro", "ID Registro"]));
+    if (!contratoId || !registroId) return null;
 
-// Funções de status movidas para status.js:
-// - rebuildStatusIndex
-// - getStatusEntry
-// - buildStatusFilterEntries
-// - updateStatusFilterOptions
+    const segmentoId = limparTexto(lerCelula(raw, ["Segmento ID", "segmento_id", "segmentoId"]));
+    const segmento = limparTexto(lerCelula(raw, ["Segmento", "segmento"])) || segmentoId;
+    const diretoriaId = limparTexto(lerCelula(raw, ["Diretoria ID", "diretoria_id", "diretoriaId"]));
+    const diretoriaNome = limparTexto(lerCelula(raw, ["Diretoria Nome", "Diretoria Regional", "diretoria_nome"])) || diretoriaId;
+    const gerenciaId = limparTexto(lerCelula(raw, ["Gerencia Regional ID", "Gerencia ID", "gerencia_regional_id", "gerenciaId", "regional_id"]));
+    const gerenciaNome = limparTexto(lerCelula(raw, ["Gerencia Regional Nome", "Regional Nome", "gerencia_regional_nome", "gerenciaNome"])) || gerenciaId;
+    const agenciaId = limparTexto(lerCelula(raw, ["Agencia ID", "Agência ID", "agencia_id", "agenciaId"]));
+    const agenciaNome = limparTexto(lerCelula(raw, ["Agencia Nome", "Agência Nome", "agencia_nome"])) || agenciaId;
+    const agenciaCodigo = limparTexto(lerCelula(raw, ["Agencia Codigo", "Agência Codigo", "Codigo Agencia", "agencia_codigo"]))
+      || agenciaId
+      || agenciaNome;
+    let gerenteGestaoId = limparTexto(lerCelula(raw, ["Gerente Gestao ID", "gerente_gestao_id", "GerenteGestaoId"]));
+    let gerenteGestaoNome = limparTexto(lerCelula(raw, ["Gerente Gestao Nome", "Gerente de Gestao", "Gerente Gestao", "gerente_gestao_nome"]));
+    let gerenteId = limparTexto(lerCelula(raw, ["Gerente ID", "gerente_id", "GerenteId"]));
+    let gerenteNome = limparTexto(lerCelula(raw, ["Gerente Nome", "Gerente", "gerente_nome", "Gerente Geral", "Gerente geral"])) || gerenteId;
+
+    if (!gerenteGestaoId) {
+      const derivedGg = deriveGerenteGestaoIdFromAgency(agenciaId || agenciaCodigo || agenciaNome);
+      if (derivedGg) {
+        gerenteGestaoId = derivedGg;
+      }
+    }
+
+    if (!gerenteGestaoNome && gerenteGestaoId) {
+      const entry = getGerenteGestaoEntry(gerenteGestaoId);
+      if (entry) {
+        gerenteGestaoNome = limparTexto(entry.nome) || extractNameFromLabel(entry.label) || gerenteGestaoId;
+      }
+    }
+
+    if (gerenteGestaoNome && gerenteGestaoNome.includes(" - ")) {
+      gerenteGestaoNome = extractNameFromLabel(gerenteGestaoNome);
+    }
+
+    if (!gerenteNome && gerenteId) {
+      const entry = getGerenteEntry(gerenteId);
+      if (entry) {
+        gerenteNome = limparTexto(entry.nome) || extractNameFromLabel(entry.label) || gerenteId;
+      }
+    }
+
+    if (gerenteNome && gerenteNome.includes(" - ")) {
+      gerenteNome = extractNameFromLabel(gerenteNome);
+    }
+
+    let familiaId = limparTexto(lerCelula(raw, ["Familia ID", "familia_id", "Familia"]));
+    let familiaNome = limparTexto(lerCelula(raw, ["Familia Nome", "familia_nome", "Família Nome", "Familia"])) || familiaId;
+
+    let indicadorId = limparTexto(lerCelula(raw, ["ID Indicador", "Indicador ID", "id_indicador", "Indicador"]));
+    let indicadorNome = limparTexto(lerCelula(raw, ["Indicador Nome", "ds_indicador", "Indicador"])) || indicadorId;
+
+    let subId = limparTexto(lerCelula(raw, ["Subindicador ID", "id_subindicador", "Sub Produto ID", "Subproduto ID", "Subproduto"]));
+    let subNome = limparTexto(lerCelula(raw, ["Subindicador Nome", "subindicador", "Subproduto", "Sub Produto"])) || subId;
+
+    const carteira = limparTexto(lerCelula(raw, ["Carteira", "carteira"]));
+    const canalVenda = limparTexto(lerCelula(raw, ["Canal Venda", "Canal", "canal_venda"]));
+    const tipoVenda = limparTexto(lerCelula(raw, ["Tipo Venda", "tipo_venda", "Tipo"]));
+    const modalidade = limparTexto(lerCelula(raw, ["Modalidade Pagamento", "modalidade_pagamento", "Modalidade"]));
+
+    let data = converterDataISO(lerCelula(raw, ["Data", "Data Movimento", "data"]));
+    let competencia = converterDataISO(lerCelula(raw, ["Competencia", "competencia", "Competência"]));
+    if (!competencia && data) competencia = `${data.slice(0, 7)}-01`;
+    if (!data && competencia) data = competencia;
+
+    const dataVencimento = converterDataISO(lerCelula(raw, ["Data Vencimento", "data_vencimento"]));
+    const dataCancelamento = converterDataISO(lerCelula(raw, ["Data Cancelamento", "data_cancelamento"]));
+    const motivoCancelamento = limparTexto(lerCelula(raw, ["Motivo Cancelamento", "motivo_cancelamento", "Motivo"]));
+
+    const valorMeta = toNumber(lerCelula(raw, ["Valor Meta", "Meta", "meta", "meta_mensal", "meta_contrato", "metaValor"]));
+    const valorReal = toNumber(lerCelula(raw, ["Valor Realizado", "Realizado", "realizado", "real_mensal", "valor_realizado", "realizadoValor"]));
+    const quantidade = toNumber(lerCelula(raw, ["Quantidade", "Qtd", "quantidade", "Quantidade Contrato"]));
+    const peso = toNumber(lerCelula(raw, ["Peso", "peso", "pontos_meta", "Pontos Meta"]));
+    const pontos = toNumber(lerCelula(raw, ["Pontos", "pontos", "pontos_cumpridos", "Pontos Cumpridos"]));
+    const statusId = limparTexto(lerCelula(raw, ["Status ID", "status_id", "Status"]));
+
+    const scenarioHint = getSegmentScenarioFromValue(segmento) || getSegmentScenarioFromValue(segmentoId) || "";
+    const indicadorRes = resolveIndicatorFromDimension([indicadorId, indicadorNome], scenarioHint);
+    if (indicadorRes) {
+      if (indicadorRes.indicadorId) indicadorId = indicadorRes.indicadorId;
+      if (indicadorRes.indicadorNome) indicadorNome = indicadorRes.indicadorNome;
+      if (indicadorRes.familiaId) familiaId = indicadorRes.familiaId;
+      if (indicadorRes.familiaNome) familiaNome = indicadorRes.familiaNome;
+    }
+
+    const subRes = resolveSubIndicatorFromDimension([subId, subNome], indicadorRes, scenarioHint);
+    if (subRes) {
+      if (subRes.subId) subId = subRes.subId;
+      if (subRes.subNome) subNome = subRes.subNome;
+      if (subRes.familiaId && !familiaId) familiaId = subRes.familiaId;
+      if (subRes.familiaNome && !familiaNome) familiaNome = subRes.familiaNome;
+    }
+
+    const detail = {
+      id: contratoId,
+      registroId,
+      segmento,
+      segmentoId,
+      diretoria: diretoriaId,
+      diretoriaId,
+      diretoriaNome,
+      gerenciaRegional: gerenciaId,
+      gerenciaId,
+      gerenciaNome,
+      regional: gerenciaNome,
+      agencia: agenciaId || agenciaCodigo || agenciaNome,
+      agenciaId: agenciaId || agenciaCodigo || agenciaNome,
+      agenciaNome: agenciaNome || agenciaId || agenciaCodigo,
+      agenciaCodigo: agenciaCodigo || agenciaId || agenciaNome,
+      gerenteGestao: gerenteGestaoId,
+      gerenteGestaoId,
+      gerenteGestaoNome: gerenteGestaoNome || gerenteGestaoId,
+      gerente: gerenteId,
+      gerenteId,
+      gerenteNome,
+      familiaId,
+      familiaNome,
+      carteira,
+      canalVenda,
+      tipoVenda,
+      modalidadePagamento: modalidade,
+      data,
+      competencia,
+      realizado: Number.isFinite(valorReal) ? valorReal : 0,
+      meta: Number.isFinite(valorMeta) ? valorMeta : 0,
+      qtd: Number.isFinite(quantidade) && quantidade > 0 ? quantidade : 1,
+      peso: Number.isFinite(peso) ? peso : 0,
+      pontos: Number.isFinite(pontos) ? pontos : undefined,
+      dataVencimento,
+      dataCancelamento,
+      motivoCancelamento,
+      statusId,
+    };
+
+    detail.segmentoLabel = resolveMapLabel(segMap, segmentoId, segmento, segmentoId);
+    detail.diretoriaLabel = resolveMapLabel(dirMap, diretoriaId, diretoriaNome, diretoriaId);
+    detail.gerenciaLabel = resolveMapLabel(regMap, gerenciaId, gerenciaNome, gerenciaId);
+    detail.agenciaLabel = resolveMapLabel(agMap, agenciaId, agenciaNome, agenciaId);
+    detail.gerenteGestaoLabel = labelGerenteGestao(gerenteGestaoId, gerenteGestaoNome);
+    detail.gerenteLabel = labelGerente(gerenteId, gerenteNome);
+
+    if (detail.segmentoLabel) detail.segmento = detail.segmentoLabel;
+    if (detail.diretoriaLabel) detail.diretoriaNome = extractNameFromLabel(detail.diretoriaLabel) || detail.diretoriaNome;
+    if (detail.gerenciaLabel) detail.gerenciaNome = extractNameFromLabel(detail.gerenciaLabel) || detail.gerenciaNome;
+    if (detail.agenciaLabel) detail.agenciaNome = extractNameFromLabel(detail.agenciaLabel) || detail.agenciaNome;
+    if (detail.gerenteGestaoLabel) detail.gerenteGestaoNome = extractNameFromLabel(detail.gerenteGestaoLabel) || detail.gerenteGestaoNome;
+    if (detail.gerenteLabel) detail.gerenteNome = extractNameFromLabel(detail.gerenteLabel) || detail.gerenteNome;
+
+    aplicarIndicadorAliases(detail, indicadorId, indicadorNome);
+    if (subId) {
+      detail.subproduto = subNome || subId;
+      detail.subIndicadorId = subId;
+      detail.subIndicadorNome = subNome || subId;
+    }
+    if (!detail.familiaId) detail.familiaId = familiaId;
+    if (!detail.familiaNome) detail.familiaNome = familiaNome || familiaId;
+    detail.prodOrSub = detail.subproduto || detail.produtoNome || detail.produtoId;
+    detail.ating = detail.meta ? (detail.realizado / detail.meta) : 0;
+    if (detail.pontos === undefined) {
+      const pontosCalc = Math.max(0, detail.peso || 0) * (detail.ating || 0);
+      detail.pontos = Number.isFinite(pontosCalc) ? pontosCalc : 0;
+    }
+
+    return detail;
+  }).filter(Boolean);
+}
+
+function normalizarLinhasHistoricoRankingPobj(rows){
+  if (!Array.isArray(rows)) return [];
+
+  const mapNivel = (value) => {
+    const simple = simplificarTexto(value);
+    if (simple === "diretoria") return "diretoria";
+    if (simple === "gerencia" || simple === "gerenciaregional") return "gerencia";
+    if (simple === "agencia") return "agencia";
+    if (simple === "gerente") return "gerente";
+    return "";
+  };
+
+  return rows.map(raw => {
+    const nivel = mapNivel(lerCelula(raw, ["nivel", "Nivel", "Nível", "level"]));
+    if (!nivel) return null;
+
+    const anoText = lerCelula(raw, ["ano", "Ano", "year", "Year"]);
+    const anoNum = Number(anoText);
+    const ano = Number.isFinite(anoNum) ? anoNum : null;
+    const database = converterDataISO(lerCelula(raw, ["database", "competencia", "Competencia", "data", "Data"]));
+
+    const segmento = lerCelula(raw, ["segmento", "Segmento"]);
+    const segmentoId = lerCelula(raw, ["segmentoId", "SegmentoId", "segmento_id", "Id Segmento"]);
+    const diretoria = lerCelula(raw, ["diretoria", "Diretoria", "diretoriaId", "DiretoriaId", "ID Diretoria"]);
+    const diretoriaNome = lerCelula(raw, ["diretoriaNome", "DiretoriaNome", "Diretoria Nome", "diretoria_nome"]);
+    const gerenciaRegional = lerCelula(raw, ["gerenciaRegional", "GerenciaRegional", "gerencia", "Gerencia", "Gerencia ID"]);
+    const gerenciaNome = lerCelula(raw, ["gerenciaNome", "GerenciaNome", "Regional Nome", "regionalNome"]);
+    const agencia = lerCelula(raw, ["agencia", "Agencia", "agenciaId", "AgenciaId"]);
+    const agenciaNome = lerCelula(raw, ["agenciaNome", "AgenciaNome", "Agencia Nome"]);
+    const agenciaCodigo = lerCelula(raw, ["agenciaCodigo", "AgenciaCodigo", "Codigo Agencia", "Agencia Codigo"]);
+    const gerenteGestao = lerCelula(raw, ["gerenteGestao", "GerenteGestao", "gerenteGestaoId", "GerenteGestaoId", "gerente_gestao_id"]);
+    const gerenteGestaoNome = lerCelula(raw, [
+      "gerenteGestaoNome",
+      "GerenteGestaoNome",
+      "Gerente Gestao Nome",
+      "Gerente de Gestao Nome",
+      "Gerente de Gestão Nome",
+      "gerente_gestao_nome"
+    ]);
+    const gerente = lerCelula(raw, ["gerente", "Gerente", "gerenteId", "GerenteId"]);
+    const gerenteNome = lerCelula(raw, ["gerenteNome", "GerenteNome", "Gerente Nome"]);
+
+    const participantesNum = Number(lerCelula(raw, ["participantes", "Participantes", "totalParticipantes"]));
+    const participantes = Number.isFinite(participantesNum) && participantesNum > 0 ? participantesNum : null;
+
+    const rankNum = Number(lerCelula(raw, ["rank", "Rank", "posicao", "posição", "classificacao"]));
+    const rank = Number.isFinite(rankNum) && rankNum > 0 ? rankNum : null;
+
+    const pontosNum = Number(lerCelula(raw, ["pontos", "Pontos", "pontuacao", "Pontuacao", "p_acum"]));
+    const pontos = Number.isFinite(pontosNum) ? pontosNum : null;
+
+    const realizadoNum = Number(lerCelula(raw, ["realizado", "Realizado", "real_acum", "Real_acum", "resultado"]));
+    const metaNum = Number(lerCelula(raw, ["meta", "Meta", "meta_acum", "Meta_acum"]));
+
+    return {
+      nivel,
+      ano,
+      database: database || (ano ? `${ano}-12-31` : ""),
+      segmento,
+      segmentoId,
+      diretoria,
+      diretoriaId: diretoria || diretoriaNome,
+      diretoriaNome: diretoriaNome || diretoria,
+      gerenciaRegional,
+      gerenciaId: gerenciaRegional || gerenciaNome,
+      gerenciaNome: gerenciaNome || gerenciaRegional,
+      agencia,
+      agenciaId: agencia || agenciaCodigo || agenciaNome,
+      agenciaNome: agenciaNome || agencia,
+      agenciaCodigo: agenciaCodigo || agencia,
+      gerenteGestao,
+      gerenteGestaoId: gerenteGestao || gerenteGestaoNome,
+      gerenteGestaoNome: gerenteGestaoNome || gerenteGestao,
+      gerente,
+      gerenteId: gerente || gerenteNome,
+      gerenteNome: gerenteNome || gerente,
+      participantes,
+      rank,
+      pontos,
+      realizado: Number.isFinite(realizadoNum) ? realizadoNum : null,
+      meta: Number.isFinite(metaNum) ? metaNum : null,
+    };
+  }).filter(Boolean);
+}
+
+function rebuildStatusIndex(rows) {
+  const cleaned = [];
+  const map = new Map();
+  const source = Array.isArray(rows) ? rows : [];
+
+  source.forEach(item => {
+    if (!item || typeof item !== "object") return;
+    const key = item.key || normalizarChaveStatus(item.id ?? item.codigo ?? item.nome);
+    if (!key || map.has(key)) return;
+    const ordemRaw = limparTexto(item.ordem);
+    const ordemNum = Number(ordemRaw);
+    const ordem = ordemRaw !== "" && Number.isFinite(ordemNum) ? ordemNum : undefined;
+    const entry = { ...item, key };
+    if (ordem !== undefined) entry.ordem = ordem;
+    cleaned.push(entry);
+    map.set(key, entry);
+  });
+
+  DEFAULT_STATUS_INDICADORES.forEach(defaultItem => {
+    if (map.has(defaultItem.key)) return;
+    const entry = { ...defaultItem };
+    cleaned.push(entry);
+    map.set(entry.key, entry);
+  });
+
+  cleaned.sort((a, b) => {
+    if (a.key === "todos") return -1;
+    if (b.key === "todos") return 1;
+    const ordA = Number.isFinite(a.ordem) ? a.ordem : Number.MAX_SAFE_INTEGER;
+    const ordB = Number.isFinite(b.ordem) ? b.ordem : Number.MAX_SAFE_INTEGER;
+    if (ordA !== ordB) return ordA - ordB;
+    return String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR", { sensitivity: "base" });
+  });
+
+  STATUS_INDICADORES_DATA = cleaned;
+  STATUS_BY_KEY = map;
+  updateStatusFilterOptions();
+}
+
+function getStatusEntry(key) {
+  const normalized = normalizarChaveStatus(key);
+  if (!normalized) return null;
+  return STATUS_BY_KEY.get(normalized) || null;
+}
+
+function buildStatusFilterEntries() {
+  const base = Array.isArray(STATUS_INDICADORES_DATA) ? STATUS_INDICADORES_DATA : [];
+  const entries = base.map(st => {
+    const key = st?.key || normalizarChaveStatus(st?.id ?? st?.codigo ?? st?.nome);
+    if (!key) return null;
+    const label = st?.nome || obterRotuloStatus(key, st?.codigo ?? st?.id ?? key);
+    const codigo = st?.codigo ?? st?.id ?? key;
+    let ordem = st?.ordem;
+    if (typeof ordem === "string" && ordem !== "") {
+      const parsed = Number(ordem);
+      ordem = Number.isFinite(parsed) ? parsed : undefined;
+    }
+    if (!Number.isFinite(ordem)) {
+      ordem = Number.isFinite(st?.ordem) ? st.ordem : Number.MAX_SAFE_INTEGER;
+    }
+    return {
+      key,
+      value: key,
+      label,
+      codigo,
+      id: st?.id ?? codigo,
+      ordem,
+    };
+  }).filter(Boolean);
+
+  if (!entries.some(entry => entry.key === "todos")) {
+    entries.unshift({
+      key: "todos",
+      value: "todos",
+      label: STATUS_LABELS.todos,
+      codigo: "todos",
+      id: "todos",
+      ordem: -Infinity,
+    });
+  }
+
+  entries.sort((a, b) => {
+    if (a.key === "todos") return -1;
+    if (b.key === "todos") return 1;
+    if (a.ordem !== b.ordem) return a.ordem - b.ordem;
+    return String(a.label || "").localeCompare(String(b.label || ""), "pt-BR", { sensitivity: "base" });
+  });
+
+  return entries;
+}
+
+function updateStatusFilterOptions(preserveSelection = true) {
+  const select = document.getElementById("f-status-kpi");
+  if (!select) return;
+
+  const previousOption = select.selectedOptions?.[0] || null;
+  const previousKey = preserveSelection
+    ? (previousOption?.dataset.statusKey || normalizarChaveStatus(select.value) || "")
+    : "";
+
+  const entries = buildStatusFilterEntries();
+  select.innerHTML = "";
+
+  entries.forEach(entry => {
+    const opt = document.createElement("option");
+    opt.value = entry.value;
+    opt.textContent = entry.label;
+    opt.dataset.statusKey = entry.key;
+    if (entry.codigo !== undefined) opt.dataset.statusCodigo = entry.codigo;
+    if (entry.id !== undefined) opt.dataset.statusId = entry.id;
+    select.appendChild(opt);
+  });
+
+  if (preserveSelection && previousKey) {
+    const match = entries.find(entry => entry.key === previousKey);
+    if (match) {
+      select.value = match.value;
+    }
+  }
+
+  if (!entries.some(entry => entry.value === select.value)) {
+    const fallback = entries.find(entry => entry.key === "todos") || entries[0];
+    if (fallback) {
+      select.value = fallback.value;
+    }
+  }
+}
 
 function processBaseDataSources({
   mesuRaw = [],
@@ -2580,339 +4255,147 @@ function processBaseDataSources({
   leadsRaw = [],
   detalhesRaw = [],
   historicoRaw = [],
-  pontosRaw = [],
   dimSegmentosRaw = [],
   dimDiretoriasRaw = [],
   dimRegionaisRaw = [],
   dimAgenciasRaw = [],
   dimGerentesGestaoRaw = [],
   dimGerentesRaw = [],
-  dimFamiliasRaw = [],
-  dimIndicadoresRaw = [],
-  dimSubindicadoresRaw = [],
 } = {}) {
-  // Processa dados de estrutura usando função de estrutura.js
-  const estruturaProcessed = processEstruturaData({
-    dimSegmentosRaw,
-    dimDiretoriasRaw,
-    dimRegionaisRaw,
-    dimAgenciasRaw,
-    dimGerentesGestaoRaw,
-    dimGerentesRaw,
-    dimFamiliasRaw,
-    dimIndicadoresRaw,
-    dimSubindicadoresRaw,
-  });
-  const segmentosDim = estruturaProcessed.dimSegmentos;
-  const diretoriasDim = estruturaProcessed.dimDiretorias;
-  const regionaisDim = estruturaProcessed.dimRegionais;
-  const agenciasDim = estruturaProcessed.dimAgencias;
-  const gerentesGestaoDim = estruturaProcessed.dimGerentesGestao;
-  const gerentesDim = estruturaProcessed.dimGerentes;
+  const segmentosDim = Array.isArray(dimSegmentosRaw) ? dimSegmentosRaw : [];
+  const diretoriasDim = Array.isArray(dimDiretoriasRaw) ? dimDiretoriasRaw : [];
+  const regionaisDim = Array.isArray(dimRegionaisRaw) ? dimRegionaisRaw : [];
+  const agenciasDim = Array.isArray(dimAgenciasRaw) ? dimAgenciasRaw : [];
+  const gerentesGestaoDim = Array.isArray(dimGerentesGestaoRaw) ? dimGerentesGestaoRaw : [];
+  const gerentesDim = Array.isArray(dimGerentesRaw) ? dimGerentesRaw : [];
 
-  // Define DIMENSION_FILTER_OPTIONS globalmente a partir de Estrutura.filterOptions
-  if (typeof Estrutura !== "undefined" && Estrutura.filterOptions) {
-    const globalScope = (function() {
-      if (typeof window !== "undefined") return window;
-      if (typeof global !== "undefined") return global;
-      if (typeof globalThis !== "undefined") return globalThis;
-      return this;
-    })();
-    globalScope.DIMENSION_FILTER_OPTIONS = Estrutura.filterOptions;
+  registerDimensionLookups({
+    segmentos: segmentosDim,
+    diretorias: diretoriasDim,
+    regionais: regionaisDim,
+    agencias: agenciasDim,
+    gerentesGestao: gerentesGestaoDim,
+    gerentes: gerentesDim,
+  });
+
+  const segmentosOptions = uniqById(segmentosDim.map(row => normOpt({
+    id: row?.id ?? row?.segmento_id ?? row?.segmentoId,
+    label: row?.label ?? row?.nome ?? '',
+  })));
+  const diretoriasOptions = uniqById(diretoriasDim.map(row => normOpt({
+    id: row?.id ?? row?.diretoria_id ?? row?.diretoriaId,
+    label: row?.label ?? row?.nome ?? '',
+  })));
+  const regionaisOptions = uniqById(regionaisDim.map(row => normOpt({
+    id: row?.id ?? row?.gerencia_regional_id ?? row?.regional_id ?? row?.regionalId,
+    label: row?.label ?? row?.nome ?? '',
+  })));
+  const agenciasOptions = uniqById(agenciasDim.map(row => normOpt({
+    id: row?.id ?? row?.agencia_id ?? row?.agenciaId,
+    label: row?.label ?? row?.nome ?? '',
+  })));
+  const gerentesGestaoOptions = uniqById(gerentesGestaoDim.map(row => normOpt({
+    id: row?.id ?? row?.funcional ?? row?.gerente_gestao_id,
+    label: row?.label ?? row?.nome ?? '',
+  })));
+  const gerentesOptions = uniqById(gerentesDim.map(row => normOpt({
+    id: row?.id ?? row?.funcional ?? row?.gerente_id,
+    label: row?.label ?? row?.nome ?? '',
+  })));
+
+  DIMENSION_FILTER_OPTIONS.segmento = segmentosOptions;
+  DIMENSION_FILTER_OPTIONS.diretoria = diretoriasOptions;
+  DIMENSION_FILTER_OPTIONS.gerencia = regionaisOptions;
+  DIMENSION_FILTER_OPTIONS.agencia = agenciasOptions;
+  DIMENSION_FILTER_OPTIONS.gerenteGestao = gerentesGestaoOptions;
+  DIMENSION_FILTER_OPTIONS.gerente = gerentesOptions;
+
+  const mesuRows = normalizarLinhasMesu(Array.isArray(mesuRaw) ? mesuRaw : []);
+  const statusRows = normalizarLinhasStatus(Array.isArray(statusRaw) ? statusRaw : []);
+  if (statusRows.length) {
+    rebuildStatusIndex(statusRows);
+  } else {
+    rebuildStatusIndex(DEFAULT_STATUS_INDICADORES);
   }
 
-  // Processa dados de status usando função de status.js
-  processStatusData(statusRaw);
+  const produtosDimRows = Array.isArray(produtosDimRaw) ? produtosDimRaw : [];
+  const baseDimProdutos = normalizarDimProdutos(produtosDimRows);
+  const dimProdutosVarejo = baseDimProdutos.map(row => ({ ...row, scenario: SEGMENT_SCENARIO_DEFAULT }));
 
-  // Processa dados de produtos usando função de produtos.js
-  const produtosProcessed = processProdutosData(produtosDimRaw);
-  // Processa dados de MESU usando função de mesu.js
-  const mesuRows = processMesuData(mesuRaw);
+  const dimProdutosEmpresas = dimProdutosVarejo.map(row => ({ ...row, scenario: "empresas" }));
+
+  SEGMENT_DIMENSION_MAP.clear();
+  SEGMENT_DIMENSION_MAP.set(SEGMENT_SCENARIO_DEFAULT, dimProdutosVarejo);
+  SEGMENT_DIMENSION_MAP.set("empresas", dimProdutosEmpresas);
+  const defaultDim = dimProdutosVarejo.slice();
+  const empresasDim = dimProdutosEmpresas.slice();
+
+  const dimensionAliases = [
+    { key: SEGMENT_SCENARIO_DEFAULT, value: defaultDim },
+    { key: "default", value: defaultDim },
+    { key: "todos", value: defaultDim },
+    { key: "empresas", value: empresasDim }
+  ];
+
+  const globalMaps = [];
+  if (typeof window !== "undefined") {
+    globalMaps.push(window.segMap, window.dirMap, window.regMap, window.ageMap, window.agMap);
+  } else {
+    globalMaps.push(segMap, dirMap, regMap, ageMap, agMap);
+  }
+
+  globalMaps.forEach(map => {
+    if (!(map instanceof Map)) return;
+    map.clear();
+    dimensionAliases.forEach(({ key, value }) => {
+      map.set(key, value);
+    });
+  });
+  rebuildGlobalDimensionAliasIndex();
+  applySegmentDimension(CURRENT_SEGMENT_SCENARIO);
   montarHierarquiaMesu(mesuRows);
 
-  // Processa dados de realizados usando função de realizados.js
-  processRealizadosData(realizadosRaw);
-  // Processa dados de metas usando função de metas.js
-  processMetasData(metasRaw);
-  // Processa dados de variável usando função de variavel.js
-  processVariavelData(variavelRaw);
-  // Processa dados de pontos usando função de pontos.js
-  processPontosData(pontosRaw);
-  // Processa dados de campanhas usando função de campanhas.js
-  processCampanhasData(campanhasRaw);
-  // Processa dados de calendário usando função de calendario.js
-  processCalendarioData(calendarioRaw);
+  FACT_REALIZADOS = normalizarLinhasFatoRealizados(Array.isArray(realizadosRaw) ? realizadosRaw : []);
+  FACT_METAS = normalizarLinhasFatoMetas(Array.isArray(metasRaw) ? metasRaw : []);
+  FACT_VARIAVEL = normalizarLinhasFatoVariavel(Array.isArray(variavelRaw) ? variavelRaw : []);
+  FACT_CAMPANHAS = normalizarLinhasFatoCampanhas(Array.isArray(campanhasRaw) ? campanhasRaw : []);
+  if (FACT_CAMPANHAS.length) {
+    replaceCampaignUnitData(FACT_CAMPANHAS);
+  }
+  DIM_CALENDARIO = normalizarLinhasCalendario(Array.isArray(calendarioRaw) ? calendarioRaw : []);
   updateCampaignSprintsUnits();
 
-  // Processa dados de leads usando função de api/leads.js
-  processLeadsData(leadsRaw);
+  OPPORTUNITY_LEADS_RAW = Array.isArray(leadsRaw) ? leadsRaw : [];
+  ingestOpportunityLeadRows(OPPORTUNITY_LEADS_RAW);
 
-  // Processa dados de histórico usando função de historico.js
-  processHistoricoData(historicoRaw);
-  // Processa dados de detalhes usando função de detalhes.js
-  processDetalhesData(detalhesRaw);
-  if (typeof FACT_REALIZADOS !== "undefined" && FACT_REALIZADOS.length) {
+  FACT_HISTORICO_RANKING_POBJ = normalizarLinhasHistoricoRankingPobj(Array.isArray(historicoRaw) ? historicoRaw : []);
+  FACT_DETALHES = normalizarLinhasFatoDetalhes(Array.isArray(detalhesRaw) ? detalhesRaw : []);
   applyHierarchyFallback(FACT_REALIZADOS);
-  }
-  if (typeof FACT_METAS !== "undefined" && FACT_METAS.length) {
   applyHierarchyFallback(FACT_METAS);
-  }
-  if (typeof FACT_VARIAVEL !== "undefined" && FACT_VARIAVEL.length) {
   applyHierarchyFallback(FACT_VARIAVEL);
-  }
-
-  const calendarioArray = typeof DIM_CALENDARIO !== "undefined" ? DIM_CALENDARIO : [];
-  const availableDatesSource = (calendarioArray.length
-    ? calendarioArray.map(row => row.data)
-    : [
-        ...(typeof FACT_REALIZADOS !== "undefined" ? FACT_REALIZADOS : []).flatMap(row => [row.data, row.competencia]),
-        ...(typeof FACT_METAS !== "undefined" ? FACT_METAS : []).flatMap(row => [row.data, row.competencia]),
-        ...(typeof FACT_VARIAVEL !== "undefined" ? FACT_VARIAVEL : []).flatMap(row => [row.data, row.competencia]),
-      ]
-  );
-  const availableDates = availableDatesSource.filter(Boolean).sort();
-  AVAILABLE_DATE_MIN = availableDates[0] || "";
-  AVAILABLE_DATE_MAX = availableDates[availableDates.length - 1] || "";
-  if (typeof window !== "undefined") {
-    window.calendarCapISO = AVAILABLE_DATE_MAX || "";
-  }
-  state.period = getDefaultPeriodRange();
-  updatePeriodLabels();
-
-  // Garante que os combos sejam atualizados após processar os dados
-  if (typeof refreshHierarchyCombos === "function") {
-    refreshHierarchyCombos();
-  }
-
-  state._raw = {
-    mesu: mesuRows,
-    dimSegmentos: segmentosDim,
-    dimDiretorias: diretoriasDim,
-    dimRegionais: regionaisDim,
-    dimAgencias: agenciasDim,
-    dimGerentesGestao: gerentesGestaoDim,
-    dimGerentes: gerentesDim,
-    dimProdutos: typeof DIM_PRODUTOS !== "undefined" ? DIM_PRODUTOS : [],
-    dimProdutosPorSegmento: produtosProcessed.dimProdutosPorSegmento || {},
-    status: typeof STATUS_INDICADORES_DATA !== "undefined" ? STATUS_INDICADORES_DATA : [],
-    dados: typeof FACT_REALIZADOS !== "undefined" ? FACT_REALIZADOS : [],
-    metas: typeof FACT_METAS !== "undefined" ? FACT_METAS : [],
-    variavel: typeof FACT_VARIAVEL !== "undefined" ? FACT_VARIAVEL : [],
-    campanhas: typeof FACT_CAMPANHAS !== "undefined" ? FACT_CAMPANHAS : [],
-    calendario: typeof DIM_CALENDARIO !== "undefined" ? DIM_CALENDARIO : [],
-    detalhes: typeof FACT_DETALHES !== "undefined" ? FACT_DETALHES : [],
-    historico: typeof FACT_HISTORICO_RANKING_POBJ !== "undefined" ? FACT_HISTORICO_RANKING_POBJ : [],
-  };
-
-  if (typeof DETAIL_CONTRACT_IDS !== "undefined" && DETAIL_CONTRACT_IDS.size) {
-    state.contractIndex = [...DETAIL_CONTRACT_IDS].sort();
-  }
-
-  return state._raw;
-}
-
-// Carrega apenas dados iniciais necessários para filtros (estrutura, produtos, status, calendário, MESU)
-async function loadInitialData(){
-  showLoader("Carregando dados iniciais…");
-  try {
-    if (DATA_SOURCE === "sql") {
-      const [
-        estruturaData,
-        produtos,
-        calendario,
-        mesu
-      ] = await Promise.all([
-        await Estrutura.init(),
-        loadCalendarioData(),
-      ]);
-
-      return processInitialData({
-        mesuRaw: mesu || [],
-        statusRaw: estruturaData.statusIndicadores || [],
-        produtosDimRaw: produtos || [],
-        calendarioRaw: calendario || [],
-        dimSegmentosRaw: estruturaData.segmentos || [],
-        dimDiretoriasRaw: estruturaData.diretorias || [],
-        dimRegionaisRaw: estruturaData.regionais || [],
-        dimAgenciasRaw: estruturaData.agencias || [],
-        dimGerentesGestaoRaw: estruturaData.gerentesGestao || [],
-        dimGerentesRaw: estruturaData.gerentes || [],
-        dimFamiliasRaw: estruturaData.familias || [],
-        dimIndicadoresRaw: estruturaData.indicadores || [],
-        dimSubindicadoresRaw: estruturaData.subindicadores || [],
-      });
+  applyHierarchyFallback(FACT_DETALHES);
+  DETAIL_BY_REGISTRO = new Map();
+  DETAIL_CONTRACT_IDS = new Set();
+  FACT_DETALHES.forEach(row => {
+    if (!row) return;
+    const registroKey = limparTexto(row.registroId);
+    if (registroKey) {
+      const bucket = DETAIL_BY_REGISTRO.get(registroKey) || [];
+      bucket.push({ ...row });
+      DETAIL_BY_REGISTRO.set(registroKey, bucket);
     }
-
-    throw new Error('CSV não suportado. Use DATA_SOURCE="sql" para carregar dados via API.');
-  } finally {
-    hideLoader();
-  }
-}
-
-// Carrega dados que dependem de período/filtros (realizados, metas, variável, campanhas, detalhes, histórico, leads, pontos)
-// Função auxiliar para converter filtros do frontend para o formato do backend
-function buildApiFilterParams() {
-  const filters = getFilterValues();
-  const period = state.period || getDefaultPeriodRange();
-  const params = {};
-  
-  // Filtros de hierarquia
-  if (filters.segmento && filters.segmento !== "" && filters.segmento !== "Todos" && filters.segmento !== "Todas") {
-    params.segmento = filters.segmento;
-  }
-  if (filters.diretoria && filters.diretoria !== "" && filters.diretoria !== "Todos" && filters.diretoria !== "Todas") {
-    params.diretoria = filters.diretoria;
-  }
-  if (filters.gerencia && filters.gerencia !== "" && filters.gerencia !== "Todos" && filters.gerencia !== "Todas") {
-    params.gerencia = filters.gerencia;
-  }
-  if (filters.agencia && filters.agencia !== "" && filters.agencia !== "Todos" && filters.agencia !== "Todas") {
-    params.agencia = filters.agencia;
-  }
-  if (filters.ggestao && filters.ggestao !== "" && filters.ggestao !== "Todos" && filters.ggestao !== "Todas") {
-    params.gerenteGestao = filters.ggestao;
-  }
-  if (filters.gerente && filters.gerente !== "" && filters.gerente !== "Todos" && filters.gerente !== "Todas") {
-    params.gerente = filters.gerente;
-  }
-  
-  // Filtros de produto
-  if (filters.secaoId && filters.secaoId !== "" && filters.secaoId !== "Todos" && filters.secaoId !== "Todas") {
-    params.secao = filters.secaoId;
-  }
-  if (filters.familiaId && filters.familiaId !== "" && filters.familiaId !== "Todos" && filters.familiaId !== "Todas") {
-    params.familia = filters.familiaId;
-  }
-  if (filters.produtoId && filters.produtoId !== "" && filters.produtoId !== "Todos" && filters.produtoId !== "Todas") {
-    params.produto = filters.produtoId;
-  }
-  
-  // Filtro de status
-  if (filters.status && filters.status !== "" && filters.status !== "todos") {
-    params.status = filters.status;
-  }
-  
-  // Período
-  if (period.start) {
-    params.dataInicio = period.start;
-  }
-  if (period.end) {
-    params.dataFim = period.end;
-  }
-  
-  return params;
-}
-
-async function loadPeriodData(){
-  showLoader("Carregando dados…");
-  try {
-    if (DATA_SOURCE === "sql") {
-      // Limpa o cache de meta do card antes de carregar novos dados
-      GLOBAL_INDICATOR_META.clear();
-      
-      // Obtém os filtros para passar para as APIs
-      const filterParams = buildApiFilterParams();
-      
-      const [
-        realizados,
-        metas,
-        variavel,
-        campanhas,
-        detalhes,
-        historico,
-        leads,
-        pontos
-      ] = await Promise.all([
-        loadRealizadosData(filterParams),
-        loadMetasData(filterParams),
-        loadVariavelData(filterParams),
-        loadCampanhasData(filterParams),
-        loadDetalhesData(filterParams),
-        loadHistoricoData(filterParams),
-        loadLeadsData(filterParams),
-        loadPontosData(filterParams)
-      ]);
-
-      return processPeriodData({
-        realizadosRaw: realizados || [],
-        metasRaw: metas || [],
-        variavelRaw: variavel || [],
-        campanhasRaw: campanhas || [],
-        detalhesRaw: detalhes || [],
-        historicoRaw: historico || [],
-        leadsRaw: leads || [],
-        pontosRaw: pontos || [],
-      });
-    }
-
-    throw new Error('CSV não suportado. Use DATA_SOURCE="sql" para carregar dados via API.');
-  } finally {
-    hideLoader();
-  }
-}
-
-// Processa apenas dados iniciais (estrutura, produtos, status, calendário, MESU)
-function processInitialData({
-  mesuRaw = [],
-  statusRaw = [],
-  produtosDimRaw = [],
-  calendarioRaw = [],
-  dimSegmentosRaw = [],
-  dimDiretoriasRaw = [],
-  dimRegionaisRaw = [],
-  dimAgenciasRaw = [],
-  dimGerentesGestaoRaw = [],
-  dimGerentesRaw = [],
-  dimFamiliasRaw = [],
-  dimIndicadoresRaw = [],
-  dimSubindicadoresRaw = [],
-} = {}) {
-  // Processa dados de estrutura usando função de estrutura.js
-  const estruturaProcessed = processEstruturaData({
-    dimSegmentosRaw,
-    dimDiretoriasRaw,
-    dimRegionaisRaw,
-    dimAgenciasRaw,
-    dimGerentesGestaoRaw,
-    dimGerentesRaw,
-    dimFamiliasRaw,
-    dimIndicadoresRaw,
-    dimSubindicadoresRaw,
+    const contratoKey = limparTexto(row.id);
+    if (contratoKey) DETAIL_CONTRACT_IDS.add(contratoKey);
   });
-  const segmentosDim = estruturaProcessed.dimSegmentos;
-  const diretoriasDim = estruturaProcessed.dimDiretorias;
-  const regionaisDim = estruturaProcessed.dimRegionais;
-  const agenciasDim = estruturaProcessed.dimAgencias;
-  const gerentesGestaoDim = estruturaProcessed.dimGerentesGestao;
-  const gerentesDim = estruturaProcessed.dimGerentes;
 
-  // Define DIMENSION_FILTER_OPTIONS globalmente a partir de Estrutura.filterOptions
-  if (typeof Estrutura !== "undefined" && Estrutura.filterOptions) {
-    const globalScope = (function() {
-      if (typeof window !== "undefined") return window;
-      if (typeof global !== "undefined") return global;
-      if (typeof globalThis !== "undefined") return globalThis;
-      return this;
-    })();
-    globalScope.DIMENSION_FILTER_OPTIONS = Estrutura.filterOptions;
-  }
-
-  // Processa dados de status usando função de status.js
-  processStatusData(statusRaw);
-
-  // Processa dados de produtos usando função de produtos.js
-  const produtosProcessed = processProdutosData(produtosDimRaw);
-  // Processa dados de MESU usando função de mesu.js
-  const mesuRows = processMesuData(mesuRaw);
-  montarHierarquiaMesu(mesuRows);
-
-  // Processa dados de calendário usando função de calendario.js
-  processCalendarioData(calendarioRaw);
-
-  const calendarioArray = typeof DIM_CALENDARIO !== "undefined" ? DIM_CALENDARIO : [];
-  const availableDatesSource = calendarioArray.length
-    ? calendarioArray.map(row => row.data)
-    : [];
+  const availableDatesSource = (DIM_CALENDARIO.length
+    ? DIM_CALENDARIO.map(row => row.data)
+    : [
+        ...FACT_REALIZADOS.flatMap(row => [row.data, row.competencia]),
+        ...FACT_METAS.flatMap(row => [row.data, row.competencia]),
+        ...FACT_VARIAVEL.flatMap(row => [row.data, row.competencia]),
+      ]
+  );
   const availableDates = availableDatesSource.filter(Boolean).sort();
   AVAILABLE_DATE_MIN = availableDates[0] || "";
   AVAILABLE_DATE_MAX = availableDates[availableDates.length - 1] || "";
@@ -2922,12 +4405,6 @@ function processInitialData({
   state.period = getDefaultPeriodRange();
   updatePeriodLabels();
 
-  // Garante que os combos sejam atualizados após processar os dados
-  if (typeof refreshHierarchyCombos === "function") {
-    refreshHierarchyCombos();
-  }
-
-  // Inicializa state._raw com dados iniciais
   state._raw = {
     mesu: mesuRows,
     dimSegmentos: segmentosDim,
@@ -2936,258 +4413,101 @@ function processInitialData({
     dimAgencias: agenciasDim,
     dimGerentesGestao: gerentesGestaoDim,
     dimGerentes: gerentesDim,
-    dimProdutos: typeof DIM_PRODUTOS !== "undefined" ? DIM_PRODUTOS : [],
-    dimProdutosPorSegmento: produtosProcessed.dimProdutosPorSegmento || {},
-    status: typeof STATUS_INDICADORES_DATA !== "undefined" ? STATUS_INDICADORES_DATA : [],
-    calendario: typeof DIM_CALENDARIO !== "undefined" ? DIM_CALENDARIO : [],
-    dados: [],
-    metas: [],
-    variavel: [],
-    campanhas: [],
-    detalhes: [],
-    historico: [],
+    dimProdutos: DIM_PRODUTOS,
+    dimProdutosPorSegmento: Object.fromEntries(Array.from(SEGMENT_DIMENSION_MAP.entries()).map(([key, rows]) => [key, rows])),
+    status: STATUS_INDICADORES_DATA,
+    dados: FACT_REALIZADOS,
+    realizados: FACT_REALIZADOS,
+    metas: FACT_METAS,
+    variavel: FACT_VARIAVEL,
+    campanhas: FACT_CAMPANHAS,
+    calendario: DIM_CALENDARIO,
+    detalhes: FACT_DETALHES,
+    historico: FACT_HISTORICO_RANKING_POBJ,
   };
 
-  return state._raw;
-}
-
-// Limpa todos os dados de período/filtros
-function clearPeriodData() {
-  // Limpa arrays de dados
-  if (typeof FACT_REALIZADOS !== "undefined") {
-    FACT_REALIZADOS.length = 0;
-    if (typeof window !== "undefined") window.FACT_REALIZADOS = FACT_REALIZADOS;
-  }
-  if (typeof FACT_METAS !== "undefined") {
-    FACT_METAS.length = 0;
-    if (typeof window !== "undefined") window.FACT_METAS = FACT_METAS;
-  }
-  if (typeof FACT_VARIAVEL !== "undefined") {
-    FACT_VARIAVEL.length = 0;
-    if (typeof window !== "undefined") window.FACT_VARIAVEL = FACT_VARIAVEL;
-  }
-  if (typeof FACT_CAMPANHAS !== "undefined") {
-    FACT_CAMPANHAS.length = 0;
-    if (typeof window !== "undefined") window.FACT_CAMPANHAS = FACT_CAMPANHAS;
-  }
-  if (typeof FACT_DETALHES !== "undefined") {
-    FACT_DETALHES.length = 0;
-    if (typeof window !== "undefined") window.FACT_DETALHES = FACT_DETALHES;
-  }
-  if (typeof FACT_HISTORICO_RANKING_POBJ !== "undefined") {
-    FACT_HISTORICO_RANKING_POBJ.length = 0;
-    if (typeof window !== "undefined") window.FACT_HISTORICO_RANKING_POBJ = FACT_HISTORICO_RANKING_POBJ;
-  }
-  if (typeof FACT_PONTOS !== "undefined") {
-    FACT_PONTOS.length = 0;
-    if (typeof window !== "undefined") window.FACT_PONTOS = FACT_PONTOS;
-  }
-  if (typeof OPPORTUNITY_LEADS_RAW !== "undefined") {
-    OPPORTUNITY_LEADS_RAW.length = 0;
-    if (typeof window !== "undefined" && typeof window.OPPORTUNITY_LEADS_RAW !== "undefined") {
-      window.OPPORTUNITY_LEADS_RAW = OPPORTUNITY_LEADS_RAW;
-    }
-  }
-  
-  // Limpa fDados e outras variáveis globais
-  if (typeof fDados !== "undefined") {
-    fDados.length = 0;
-  }
-  if (typeof fCampanhas !== "undefined") {
-    fCampanhas.length = 0;
-  }
-  if (typeof fVariavel !== "undefined") {
-    fVariavel.length = 0;
-  }
-  
-  // Limpa índices e mapas
-  if (typeof DETAIL_BY_REGISTRO !== "undefined" && DETAIL_BY_REGISTRO instanceof Map) {
-    DETAIL_BY_REGISTRO.clear();
-    if (typeof window !== "undefined") window.DETAIL_BY_REGISTRO = DETAIL_BY_REGISTRO;
-  }
-  if (typeof DETAIL_CONTRACT_IDS !== "undefined" && DETAIL_CONTRACT_IDS instanceof Set) {
-    DETAIL_CONTRACT_IDS.clear();
-    if (typeof window !== "undefined") window.DETAIL_CONTRACT_IDS = DETAIL_CONTRACT_IDS;
-  }
-  
-  // Limpa state._raw
-  if (state._raw) {
-    state._raw.dados = [];
-    state._raw.metas = [];
-    state._raw.variavel = [];
-    state._raw.campanhas = [];
-    state._raw.detalhes = [];
-    state._raw.historico = [];
-  }
-  
-  // Limpa state._dataset
-  if (state._dataset) {
-    state._dataset = null;
-  }
-  
-  // Limpa state.facts
-  if (state.facts) {
-    state.facts = null;
-  }
-  
-  // Limpa state._rankingRaw
-  if (state._rankingRaw) {
-    state._rankingRaw = [];
-  }
-  
-  // Limpa state.dashboard
-  if (state.dashboard) {
-    state.dashboard = null;
-  }
-  
-  // Limpa cache de meta do card
-  if (typeof GLOBAL_INDICATOR_META !== "undefined" && GLOBAL_INDICATOR_META instanceof Map) {
-    GLOBAL_INDICATOR_META.clear();
-  }
-}
-
-// Processa dados que dependem de período/filtros
-function processPeriodData({
-  realizadosRaw = [],
-  metasRaw = [],
-  variavelRaw = [],
-  campanhasRaw = [],
-  detalhesRaw = [],
-  historicoRaw = [],
-  leadsRaw = [],
-  pontosRaw = [],
-} = {}) {
-  // Processa dados de realizados usando função de realizados.js
-  processRealizadosData(realizadosRaw);
-  // Processa dados de metas usando função de metas.js
-  processMetasData(metasRaw);
-  // Processa dados de variável usando função de variavel.js
-  processVariavelData(variavelRaw);
-  // Processa dados de pontos usando função de pontos.js
-  processPontosData(pontosRaw);
-  // Processa dados de campanhas usando função de campanhas.js
-  processCampanhasData(campanhasRaw);
-  updateCampaignSprintsUnits();
-
-  // Processa dados de leads usando função de api/leads.js
-  processLeadsData(leadsRaw);
-
-  // Processa dados de histórico usando função de historico.js
-  processHistoricoData(historicoRaw);
-  // Processa dados de detalhes usando função de detalhes.js
-  processDetalhesData(detalhesRaw);
-  
-  if (typeof FACT_REALIZADOS !== "undefined" && FACT_REALIZADOS.length) {
-    applyHierarchyFallback(FACT_REALIZADOS);
-  }
-  if (typeof FACT_METAS !== "undefined" && FACT_METAS.length) {
-    applyHierarchyFallback(FACT_METAS);
-  }
-  if (typeof FACT_VARIAVEL !== "undefined" && FACT_VARIAVEL.length) {
-    applyHierarchyFallback(FACT_VARIAVEL);
-  }
-
-  // Atualiza available dates com dados de período
-  const calendarioArray = typeof DIM_CALENDARIO !== "undefined" ? DIM_CALENDARIO : [];
-  const availableDatesSource = (calendarioArray.length
-    ? calendarioArray.map(row => row.data)
-    : [
-        ...(typeof FACT_REALIZADOS !== "undefined" ? FACT_REALIZADOS : []).flatMap(row => [row.data, row.competencia]),
-        ...(typeof FACT_METAS !== "undefined" ? FACT_METAS : []).flatMap(row => [row.data, row.competencia]),
-        ...(typeof FACT_VARIAVEL !== "undefined" ? FACT_VARIAVEL : []).flatMap(row => [row.data, row.competencia]),
-      ]
-  );
-  const availableDates = availableDatesSource.filter(Boolean).sort();
-  AVAILABLE_DATE_MIN = availableDates[0] || "";
-  AVAILABLE_DATE_MAX = availableDates[availableDates.length - 1] || "";
-  if (typeof window !== "undefined") {
-    window.calendarCapISO = AVAILABLE_DATE_MAX || "";
-  }
-
-  // Atualiza state._raw com dados de período
-  if (!state._raw) state._raw = {};
-  state._raw.dados = typeof FACT_REALIZADOS !== "undefined" ? FACT_REALIZADOS : [];
-  state._raw.metas = typeof FACT_METAS !== "undefined" ? FACT_METAS : [];
-  state._raw.variavel = typeof FACT_VARIAVEL !== "undefined" ? FACT_VARIAVEL : [];
-  state._raw.campanhas = typeof FACT_CAMPANHAS !== "undefined" ? FACT_CAMPANHAS : [];
-  state._raw.detalhes = typeof FACT_DETALHES !== "undefined" ? FACT_DETALHES : [];
-  state._raw.historico = typeof FACT_HISTORICO_RANKING_POBJ !== "undefined" ? FACT_HISTORICO_RANKING_POBJ : [];
-
-  if (typeof DETAIL_CONTRACT_IDS !== "undefined" && DETAIL_CONTRACT_IDS.size) {
+  if (DETAIL_CONTRACT_IDS.size) {
     state.contractIndex = [...DETAIL_CONTRACT_IDS].sort();
   }
 
   return state._raw;
 }
 
-// Função de compatibilidade - carrega todos os dados (mantida para casos especiais)
+// Carrega os dados da pasta "Bases" ou via API
 async function loadBaseData(){
-  showLoader("Carregando dados…");
-  try {
-    if (DATA_SOURCE === "sql") {
-      // Limpa o cache de meta do card antes de carregar novos dados
-      GLOBAL_INDICATOR_META.clear();
-      
-      // Obtém os filtros para passar para as APIs
-      const filterParams = buildApiFilterParams();
-      
+  if (baseDataPromise) return baseDataPromise;
+  baseDataPromise = (async () => {
+    showLoader("Carregando dados…");
+    try {
+      if (DATA_SOURCE === "sql") {
+        const payload = await apiGet('/bootstrap');
+        return processBaseDataSources({
+          mesuRaw: payload?.mesu || [],
+          statusRaw: payload?.status || [],
+          produtosDimRaw: payload?.produtos || [],
+          realizadosRaw: payload?.realizados || [],
+          metasRaw: payload?.metas || [],
+          variavelRaw: payload?.variavel || [],
+          campanhasRaw: payload?.campanhas || [],
+          calendarioRaw: payload?.calendario || [],
+          leadsRaw: payload?.leads || [],
+          detalhesRaw: payload?.detalhes || [],
+          historicoRaw: payload?.historico || [],
+          dimSegmentosRaw: payload?.dimSegmentos || payload?.segmentosDim || [],
+          dimDiretoriasRaw: payload?.dimDiretorias || payload?.diretoriasDim || [],
+          dimRegionaisRaw: payload?.dimRegionais || payload?.regionaisDim || [],
+          dimAgenciasRaw: payload?.dimAgencias || payload?.agenciasDim || [],
+          dimGerentesGestaoRaw: payload?.dimGerentesGestao || payload?.gerentesGestaoDim || [],
+          dimGerentesRaw: payload?.dimGerentes || payload?.gerentesDim || [],
+        });
+      }
+
+      const basePath = "Bases/";
       const [
-        estruturaData,
-        produtos,
-        calendario,
-        realizados,
-        metas,
-        variavel,
-        mesu,
-        campanhas,
-        detalhes,
-        historico,
-        leads,
-        pontos
+        mesuRaw,
+        statusRaw,
+        produtosDimRaw,
+        realizadosRaw,
+        metasRaw,
+        variavelRaw,
+        campanhasRaw,
+        calendarioRaw,
+        leadsRaw,
+        detalhesRaw,
+        historicoRaw,
       ] = await Promise.all([
-        await Estrutura.init(),
-        loadProdutosData(),
-        loadCalendarioData(),
-        loadRealizadosData(filterParams),
-        loadMetasData(filterParams),
-        loadVariavelData(filterParams),
-        loadMesuData(),
-        loadCampanhasData(filterParams),
-        loadDetalhesData(filterParams),
-        loadHistoricoData(filterParams),
-        loadLeadsData(filterParams),
-        loadPontosData(filterParams)
+        loadCSVAuto(`${basePath}mesu.csv`),
+        loadCSVAuto(`${basePath}Status_Indicadores.csv`),
+        loadCSVAuto(`${basePath}dProdutos.csv`).catch(() => []),
+        loadCSVAuto(`${basePath}fRealizados.csv`).catch(() => []),
+        loadCSVAuto(`${basePath}fMetas.csv`).catch(() => []),
+        loadCSVAuto(`${basePath}fVariavel.csv`).catch(() => []),
+        loadCSVAuto(`${basePath}fCampanhas.csv`).catch(() => []),
+        loadCSVAuto(`${basePath}dCalendario.csv`).catch(() => []),
+        loadCSVAuto(`${basePath}leads_propensos.csv`).catch(() => []),
+        loadCSVAuto(`${basePath}fDetalhes.csv`).catch(() => []),
+        loadCSVAuto(`${basePath}FHistoricoRankingPobj.csv`).catch(() => []),
       ]);
 
       return processBaseDataSources({
-        mesuRaw: mesu || [],
-        statusRaw: estruturaData.statusIndicadores || [],
-        produtosDimRaw: produtos || [],
-        realizadosRaw: realizados || [],
-        metasRaw: metas || [],
-        variavelRaw: variavel || [],
-        campanhasRaw: campanhas || [],
-        calendarioRaw: calendario || [],
-        leadsRaw: leads || [],
-        detalhesRaw: detalhes || [],
-        historicoRaw: historico || [],
-        pontosRaw: pontos || [],
-        dimSegmentosRaw: estruturaData.segmentos || [],
-        dimDiretoriasRaw: estruturaData.diretorias || [],
-        dimRegionaisRaw: estruturaData.regionais || [],
-        dimAgenciasRaw: estruturaData.agencias || [],
-        dimGerentesGestaoRaw: estruturaData.gerentesGestao || [],
-        dimGerentesRaw: estruturaData.gerentes || [],
-        dimFamiliasRaw: estruturaData.familias || [],
-        dimIndicadoresRaw: estruturaData.indicadores || [],
-        dimSubindicadoresRaw: estruturaData.subindicadores || [],
+        mesuRaw,
+        statusRaw,
+        produtosDimRaw,
+        realizadosRaw,
+        metasRaw,
+        variavelRaw,
+        campanhasRaw,
+        calendarioRaw,
+        leadsRaw,
+        detalhesRaw,
+        historicoRaw,
       });
+    } finally {
+      hideLoader();
     }
-
-    throw new Error('CSV não suportado. Use DATA_SOURCE="sql" para carregar dados via API.');
-  } finally {
-    hideLoader();
-  }
+  })();
+  baseDataPromise.catch(() => { baseDataPromise = null; });
+  return baseDataPromise;
 }
 
 /* ===== Aqui eu ajusto a altura da topbar para o CSS responsivo funcionar ===== */
@@ -3218,6 +4538,17 @@ const TABLE_VIEWS = [
 // Aqui eu construo os grupos de indicadores dinamicamente a partir da dimensão dProdutos.
 const DEFAULT_CARD_ICON = "ti ti-chart-bar";
 
+const CARD_SECTION_ORDER = [
+  { id: "captacao", label: "CAPTAÇÃO", order: 10 },
+  { id: "financeiro", label: "FINANCEIRO", order: 20 },
+  { id: "credito", label: "CRÉDITO", order: 30 },
+  { id: "ligadas", label: "LIGADAS", order: 40 },
+  { id: "produtividade", label: "PRODUTIVIDADE", order: 50 },
+  { id: "clientes", label: "CLIENTES", order: 60 },
+  { id: "relacionamento_emp", label: "RELACIONAMENTO", order: 15 },
+  { id: "negocios_emp", label: "NEGÓCIOS", order: 35 },
+  { id: "adicionais_emp", label: "ADICIONAIS", order: 45 },
+];
 
 const CARD_INDICATOR_META = {
   captacao_bruta: {
@@ -3669,284 +5000,10 @@ let FAMILIA_CODE_TO_SLUG = new Map();
 let INDICADOR_CODE_TO_SLUG = new Map();
 let SUB_CODE_TO_SLUG = new Map();
 let PRODUCT_INDEX = new Map();
-let PONTOS_BY_INDICADOR = new Map();
-let INDICADOR_CODE_TO_CARD_ID = new Map(); // Mapa código numérico -> ID do card
-
-function buildPontosByIndicadorMap(period = state.period || {}) {
-  PONTOS_BY_INDICADOR.clear();
-  const pontosArray = typeof FACT_PONTOS !== "undefined" ? FACT_PONTOS : [];
-  const startISO = period.start || "";
-  const endISO = period.end || "";
-  
-  pontosArray.forEach(ponto => {
-    if (ponto && ponto.idIndicador) {
-      // Filtra por data se o período estiver definido
-      if (startISO || endISO) {
-        const pontoData = ponto.dataRealizado || "";
-        if (startISO && pontoData && pontoData < startISO) return;
-        if (endISO && pontoData && pontoData > endISO) return;
-      }
-      
-      // Busca o ID do card usando o código numérico do indicador
-      // Tenta primeiro pelo mapa INDICADOR_CODE_TO_CARD_ID
-      let cardId = INDICADOR_CODE_TO_CARD_ID.get(String(ponto.idIndicador));
-      
-      // Se não encontrou, tenta resolver pelo nome do indicador
-      if (!cardId && ponto.indicador) {
-        cardId = resolverIndicadorPorAlias(ponto.indicador);
-      }
-      
-      // Se ainda não encontrou, tenta pelo código numérico convertido para slug
-      if (!cardId) {
-        const codigoSlug = INDICADOR_CODE_TO_SLUG.get(String(ponto.idIndicador));
-        if (codigoSlug) {
-          cardId = resolverIndicadorPorAlias(codigoSlug);
-        }
-      }
-      
-      // Fallback: usa o código numérico como string
-      if (!cardId) {
-        cardId = String(ponto.idIndicador);
-      }
-      
-      // Se já existe, mantém o mais recente (compara por data)
-      const existente = PONTOS_BY_INDICADOR.get(cardId);
-      if (!existente || (ponto.dataRealizado && existente.dataRealizado && ponto.dataRealizado > existente.dataRealizado)) {
-        PONTOS_BY_INDICADOR.set(cardId, {
-          meta: ponto.meta || 0,
-          realizado: ponto.realizado || 0,
-          dataRealizado: ponto.dataRealizado
-        });
-      }
-    }
-  });
-}
-
-function calculatePontosFromApi(period = state.period || {}) {
-  const pontosArray = typeof FACT_PONTOS !== "undefined" ? FACT_PONTOS : [];
-  const startISO = period.start || "";
-  const endISO = period.end || "";
-  const filters = getFilterValues();
-  
-  // Busca dados de realizados para cruzar com filtros de estrutura
-  const realizadosArray = typeof FACT_REALIZADOS !== "undefined" ? FACT_REALIZADOS : [];
-  
-  // Cria um mapa de indicadores que passam nos filtros de estrutura
-  const indicadoresFiltrados = new Set();
-  if (!selecaoPadrao(filters.segmento) || !selecaoPadrao(filters.diretoria) || 
-      !selecaoPadrao(filters.gerencia) || !selecaoPadrao(filters.agencia) ||
-      !selecaoPadrao(filters.ggestao) || !selecaoPadrao(filters.gerente)) {
-    realizadosArray.forEach(row => {
-      const okSeg = selecaoPadrao(filters.segmento) || matchesSegmentFilter(filters.segmento, row.segmento, row.segmentoId, row.segmentoNome);
-      const okDR = selecaoPadrao(filters.diretoria) || matchesSelection(filters.diretoria, row.diretoria, row.diretoriaNome);
-      const okGR = selecaoPadrao(filters.gerencia) || matchesSelection(filters.gerencia, row.gerenciaRegional, row.gerenciaNome, row.regional);
-      const okAg = selecaoPadrao(filters.agencia) || matchesSelection(filters.agencia, row.agencia, row.agenciaNome, row.agenciaCodigo);
-      const okGG = selecaoPadrao(filters.ggestao) || matchesSelection(
-        filters.ggestao,
-        row.gerente_gestao_id,
-        row.gerenteGestaoId,
-        row.gerenteGestao,
-        row.gerenteGestaoNome,
-        row.gerenteGestaoLabel
-      );
-      const okGer = selecaoPadrao(filters.gerente) || matchesSelection(
-        filters.gerente,
-        row.gerente_id,
-        row.gerenteId,
-        row.gerente,
-        row.gerenteNome,
-        row.gerenteLabel
-      );
-      
-      if (okSeg && okDR && okGR && okAg && okGG && okGer && row.produtoId) {
-        indicadoresFiltrados.add(row.produtoId);
-      }
-    });
-  }
-  
-  let totalMeta = 0;
-  let totalRealizado = 0;
-  
-  pontosArray.forEach(ponto => {
-    if (ponto && ponto.idIndicador) {
-      // Filtra por data se o período estiver definido
-      if (startISO || endISO) {
-        const pontoData = ponto.dataRealizado || "";
-        if (startISO && pontoData && pontoData < startISO) return;
-        if (endISO && pontoData && pontoData > endISO) return;
-      }
-      
-      const cardId = INDICADOR_CODE_TO_CARD_ID.get(String(ponto.idIndicador)) || String(ponto.idIndicador);
-      
-      // Filtra por estrutura (gerente, diretoria, etc.) se houver filtros ativos
-      if (indicadoresFiltrados.size > 0 && !indicadoresFiltrados.has(cardId)) {
-        return;
-      }
-      
-      // Filtra por família se o filtro estiver ativo
-      if (!selecaoPadrao(filters.familiaId) && filters.familiaId) {
-        const produtoMeta = PRODUCT_INDEX.get(cardId);
-        const familiaMeta = PRODUTO_TO_FAMILIA.get(cardId);
-        const pontoFamiliaId = ponto.idFamilia ? String(ponto.idFamilia) : "";
-        const cardFamiliaId = familiaMeta?.id || produtoMeta?.familiaId || "";
-        
-        if (!matchesSelection(filters.familiaId, cardFamiliaId, pontoFamiliaId, familiaMeta?.nome)) {
-          return;
-        }
-      }
-      
-      // Filtra por indicador/produto se o filtro estiver ativo
-      if (!selecaoPadrao(filters.produtoId) && filters.produtoId) {
-        if (!matchesSelection(filters.produtoId, cardId, String(ponto.idIndicador), ponto.indicador)) {
-          return;
-        }
-      }
-      
-      // Filtra por seção se o filtro estiver ativo
-      if (!selecaoPadrao(filters.secaoId) && filters.secaoId) {
-        const produtoMeta = PRODUCT_INDEX.get(cardId);
-        const familiaMeta = PRODUTO_TO_FAMILIA.get(cardId);
-        const secaoId = produtoMeta?.sectionId || familiaMeta?.secaoId || "";
-        if (!matchesSelection(filters.secaoId, secaoId)) {
-          return;
-        }
-      }
-      
-      totalMeta += Number(ponto.meta) || 0;
-      totalRealizado += Number(ponto.realizado) || 0;
-    }
-  });
-  
-  return {
-    meta: totalMeta,
-    realizado: totalRealizado
-  };
-}
-
-function calculateVariavelFromApi(period = state.period || {}) {
-  const variavelArray = typeof FACT_VARIAVEL !== "undefined" ? FACT_VARIAVEL : [];
-  
-  // Se não houver dados, retorna null para indicar que não há dados
-  if (!Array.isArray(variavelArray) || variavelArray.length === 0) {
-    return null;
-  }
-  
-  const startISO = period.start || "";
-  const endISO = period.end || "";
-  const filters = getFilterValues();
-  
-  let totalMeta = 0;
-  let totalRealizado = 0;
-  let hasDataInPeriod = false;
-  
-  variavelArray.forEach(variavel => {
-    if (!variavel) return;
-    
-    // Filtra por data se o período estiver definido
-    if (startISO || endISO) {
-      const variavelData = variavel.data || variavel.competencia || "";
-      if (startISO && variavelData && variavelData < startISO) return;
-      if (endISO && variavelData && variavelData > endISO) return;
-      hasDataInPeriod = true;
-    }
-    
-    // Filtra por estrutura diretamente dos campos da variável
-    // Se não houver filtro ativo (selecaoPadrao retorna true), passa automaticamente
-    const okSeg = selecaoPadrao(filters.segmento) || matchesSegmentFilter(filters.segmento, variavel.segmento, variavel.segmentoId, variavel.segmento);
-    const okDR = selecaoPadrao(filters.diretoria) || matchesSelection(filters.diretoria, variavel.diretoriaId, variavel.diretoriaNome);
-    const okGR = selecaoPadrao(filters.gerencia) || matchesSelection(filters.gerencia, variavel.gerenciaId, variavel.regionalNome);
-    const okAg = selecaoPadrao(filters.agencia) || matchesSelection(filters.agencia, variavel.agenciaId, variavel.agenciaNome);
-    
-    // Para gerente de gestão e gerente, busca usando funcional
-    let okGG = selecaoPadrao(filters.ggestao);
-    let okGer = selecaoPadrao(filters.gerente);
-    
-    // Se há filtro de gerente de gestão ou gerente, precisa buscar e comparar
-    if (!okGG && filters.ggestao) {
-      // Busca informações do gerente usando funcional
-      if (variavel.funcional) {
-        const gerenteMeta = findGerenteMeta(variavel.funcional);
-        if (gerenteMeta) {
-          okGG = matchesSelection(
-            filters.ggestao,
-            gerenteMeta.gerenteGestaoId,
-            gerenteMeta.gerenteGestao,
-            gerenteMeta.gerenteGestaoNome,
-            gerenteMeta.gerenteGestaoLabel
-          );
-        }
-      }
-    }
-    
-    if (!okGer && filters.gerente) {
-      // Busca informações do gerente usando funcional
-      if (variavel.funcional) {
-        const gerenteMeta = findGerenteMeta(variavel.funcional);
-        if (gerenteMeta) {
-          okGer = matchesSelection(
-            filters.gerente,
-            gerenteMeta.gerenteId || gerenteMeta.id,
-            variavel.funcional,
-            gerenteMeta.nome || gerenteMeta.label,
-            variavel.nomeFuncional
-          );
-        } else {
-          // Se não encontrou no índice, tenta usar funcional diretamente
-          okGer = matchesSelection(filters.gerente, variavel.funcional, variavel.nomeFuncional);
-        }
-      }
-    }
-    
-    // Se algum filtro de estrutura falhou, exclui o registro
-    if (!okSeg || !okDR || !okGR || !okAg || !okGG || !okGer) {
-      return;
-    }
-    
-    // Filtra por família se o filtro estiver ativo
-    if (!selecaoPadrao(filters.familiaId) && filters.familiaId) {
-      const variavelFamiliaId = variavel.familiaId || "";
-      if (!matchesSelection(filters.familiaId, variavelFamiliaId, variavel.familiaNome)) {
-        return;
-      }
-    }
-    
-    // Filtra por indicador/produto se o filtro estiver ativo
-    if (!selecaoPadrao(filters.produtoId) && filters.produtoId) {
-      const produtoId = variavel.produtoId || "";
-      if (!matchesSelection(filters.produtoId, produtoId, variavel.produtoNome)) {
-        return;
-      }
-    }
-    
-    // Filtra por seção se o filtro estiver ativo
-    if (!selecaoPadrao(filters.secaoId) && filters.secaoId) {
-      const produtoMeta = variavel.produtoId ? PRODUCT_INDEX.get(variavel.produtoId) : null;
-      const familiaMeta = variavel.produtoId ? PRODUTO_TO_FAMILIA.get(variavel.produtoId) : null;
-      const secaoId = produtoMeta?.sectionId || familiaMeta?.secaoId || variavel.secaoId || "";
-      if (!matchesSelection(filters.secaoId, secaoId)) {
-        return;
-      }
-    }
-    
-    // Soma os valores
-    totalMeta += Number(variavel.variavelMeta) || 0;
-    totalRealizado += Number(variavel.variavelReal) || 0;
-    hasDataInPeriod = true;
-  });
-  
-  // Se há período definido mas não encontrou dados no período, retorna null
-  if ((startISO || endISO) && !hasDataInPeriod) {
-    return null;
-  }
-  
-  return {
-    meta: totalMeta,
-    realizado: totalRealizado
-  };
-}
 
 function buildCardSectionsFromDimension(rows = []) {
   const normalizedRows = Array.isArray(rows) ? rows : [];
+  const sectionOrderMap = new Map(CARD_SECTION_ORDER.map(entry => [entry.id, entry.order]));
   const sectionsMap = new Map();
   let dynamicOrderSeed = 1000;
 
@@ -3966,7 +5023,7 @@ function buildCardSectionsFromDimension(rows = []) {
     const baseId = resolveSectionId(sectionId, meta.sectionLabel || label);
     let section = sectionsMap.get(baseId);
     if (!section) {
-      const orderHint = meta.sectionOrder ?? meta.order ?? (dynamicOrderSeed++);
+      const orderHint = meta.sectionOrder ?? sectionOrderMap.get(baseId) ?? sectionOrderMap.get(sectionId) ?? meta.order ?? (dynamicOrderSeed++);
       section = {
         id: baseId,
         label: meta.sectionLabel || label || baseId,
@@ -3994,7 +5051,7 @@ function buildCardSectionsFromDimension(rows = []) {
         nome: nome || meta.nome || safeId,
         icon: meta.icon || DEFAULT_CARD_ICON,
         peso: meta.peso != null ? meta.peso : 1,
-        metrica: meta.metrica || meta.metric || "valor",
+        metric: meta.metric || "valor",
         hiddenInCards: Boolean(meta.hiddenInCards),
         order: meta.order ?? Number.MAX_SAFE_INTEGER,
         aliases: Array.isArray(meta.aliases) ? [...meta.aliases] : undefined,
@@ -4006,12 +5063,7 @@ function buildCardSectionsFromDimension(rows = []) {
       if (nome && nome !== item.nome) item.nome = nome;
       if (!item.icon && meta.icon) item.icon = meta.icon;
       if (meta.metric) item.metric = meta.metric;
-      // Usa MAX do peso quando há múltiplos registros para o mesmo indicador
-      if (meta.peso != null) {
-        const pesoAtual = Number(item.peso) || 0;
-        const pesoNovo = Number(meta.peso) || 0;
-        item.peso = Math.max(pesoAtual, pesoNovo);
-      }
+      if (meta.peso != null) item.peso = meta.peso;
       if (meta.hiddenInCards != null) item.hiddenInCards = meta.hiddenInCards;
       if (meta.order != null) item.order = meta.order;
       if (meta.forceEmptySubIndicators) item.forceEmptySubIndicators = true;
@@ -4032,13 +5084,13 @@ function buildCardSectionsFromDimension(rows = []) {
     const entry = current || {
       id: safeSubId,
       nome: subNome || subMeta.nome || safeSubId,
-      metrica: subMeta.metrica || item.metrica || item.metric || "valor",
+      metric: subMeta.metric || item.metric || "valor",
       peso: Number(subMeta.peso) || 1,
       order: subMeta.order ?? Number.MAX_SAFE_INTEGER,
       aliases: current?.aliases ? new Set(current.aliases) : new Set()
     };
     if (subNome && subNome !== entry.nome) entry.nome = subNome;
-    if (subMeta.metrica) entry.metrica = subMeta.metrica;
+    if (subMeta.metric) entry.metric = subMeta.metric;
     if (subMeta.peso != null) entry.peso = Number(subMeta.peso) || entry.peso;
     if (subMeta.order != null) entry.order = subMeta.order;
     const aliasSet = entry.aliases instanceof Set ? entry.aliases : new Set();
@@ -4069,6 +5121,7 @@ function buildCardSectionsFromDimension(rows = []) {
   };
 
   normalizedRows.forEach(row => {
+    const meta = CARD_INDICATOR_META[row.indicadorId] || {};
     const familiaCodigo = limparTexto(row.familiaCodigo);
     if (familiaCodigo && row.familiaId && !FAMILIA_CODE_TO_SLUG.has(familiaCodigo)) {
       FAMILIA_CODE_TO_SLUG.set(familiaCodigo, row.familiaId);
@@ -4077,55 +5130,38 @@ function buildCardSectionsFromDimension(rows = []) {
     if (indicadorCodigo && row.indicadorId && !INDICADOR_CODE_TO_SLUG.has(indicadorCodigo)) {
       INDICADOR_CODE_TO_SLUG.set(indicadorCodigo, row.indicadorId);
     }
-    // Mapeia código numérico do indicador para ID do card
-    if (indicadorCodigo && row.indicadorId && /^\d+$/.test(indicadorCodigo)) {
-      INDICADOR_CODE_TO_CARD_ID.set(indicadorCodigo, row.indicadorId);
-    }
     const subCodigo = limparTexto(row.subCodigo);
     if (subCodigo && row.subId && !SUB_CODE_TO_SLUG.has(subCodigo)) {
       SUB_CODE_TO_SLUG.set(subCodigo, row.subId);
     }
-    
-    const familiaId = row.familiaId || row.familia_id || "";
-    const familiaNome = row.familiaNome || row.familia_nome || "";
-    const indicadorId = row.indicadorId || row.id_indicador || "";
-    const indicadorNome = row.indicadorNome || row.ds_indicador || row.indicador || "";
-    const peso = toNumber(row.peso) || 0;
-    const metrica = row.metrica || row.metric || "valor";
-    const icon = row.icon || DEFAULT_CARD_ICON;
-    const order = toNumber(row.order) || Number.MAX_SAFE_INTEGER;
-    
-    const sectionMeta = {
-      sectionLabel: familiaNome || familiaId,
-      order: toNumber(row.sectionOrder) || order
-    };
-    const section = ensureSection(familiaId, familiaNome, sectionMeta);
-    
-    const itemMeta = {
-      nome: indicadorNome,
-      icon: icon,
-      peso: peso,
-      metrica: metrica,
-      order: order
-    };
-    const item = ensureItem(section, indicadorId, indicadorNome, itemMeta);
+    const section = ensureSection(meta.sectionId || row.familiaId, row.familiaNome, meta);
+    const item = ensureItem(section, row.indicadorId, row.indicadorNome, meta);
     if (!item) return;
-    
-    if (row.subId || row.id_subindicador) {
-      const subId = row.subId || row.id_subindicador || "";
-      const subNome = row.subNome || row.subindicador || "";
-      const subPeso = toNumber(row.subPeso) || peso;
-      const subMetrica = row.subMetrica || row.metrica || metrica;
-      const subOrder = toNumber(row.subOrder) || Number.MAX_SAFE_INTEGER;
-      const subMeta = {
-        nome: subNome,
-        peso: subPeso,
-        metrica: subMetrica,
-        order: subOrder
-      };
-      registerSubIndicator(item, subId, subNome, subMeta, row);
+    const subMeta = meta.subMeta && row.subId ? meta.subMeta[row.subId] : undefined;
+    if (row.subId) {
+      registerSubIndicator(item, row.subId, row.subNome, subMeta || {}, row);
     }
   });
+
+  const fallbackSection = ensureSection("outros", "Outros", { sectionLabel: "Outros", order: Number.MAX_SAFE_INTEGER });
+  const fallbackMeta = {
+    sectionId: "outros",
+    sectionLabel: "Outros",
+    order: Number.MAX_SAFE_INTEGER,
+    icon: "ti ti-help",
+    metric: "valor",
+    forceEmptySubIndicators: true
+  };
+  const fallbackItem = ensureItem(fallbackSection, "desconhecido", "Desconhecido", fallbackMeta);
+  if (fallbackItem) {
+    fallbackItem.icon = fallbackMeta.icon;
+    fallbackItem.metric = fallbackMeta.metric;
+    fallbackItem.peso = 0;
+    fallbackItem.hiddenInCards = false;
+    fallbackItem.forceEmptySubIndicators = true;
+  }
+
+
 
   const sections = Array.from(sectionsMap.values());
   sections.sort((a, b) => {
@@ -4158,7 +5194,7 @@ function buildCardSectionsFromDimension(rows = []) {
         nome: item.nome || item.id,
         icon: item.icon || DEFAULT_CARD_ICON,
         peso: item.peso != null ? item.peso : 1,
-        metrica: item.metrica || item.metric || "valor",
+        metric: item.metric || "valor",
         hiddenInCards: Boolean(item.hiddenInCards)
       };
 
@@ -4195,6 +5231,7 @@ function buildCardSectionsFromDimension(rows = []) {
 function applyCardSections(sections = []) {
   CARD_SECTIONS_DEF = sections;
   INDICATOR_STRUCTURE_OVERRIDES = {};
+
   sections.forEach(section => {
     section.items.forEach(item => {
       if (item.forceEmptySubIndicators) {
@@ -4237,16 +5274,11 @@ function applyCardSections(sections = []) {
         sectionLabel: section.label,
         name: item.nome,
         icon: item.icon,
-        metrica: item.metrica || item.metric,
+        metric: item.metric,
         peso: item.peso,
       });
     });
   });
-  
-  // Inicializa dados de campanha após PRODUCT_INDEX estar disponível
-  if (typeof initializeCampaignUnitData === "function") {
-    initializeCampaignUnitData();
-  }
 }
 
 function rebuildCardCatalogFromDimension(rows = DIM_PRODUTOS) {
@@ -4334,7 +5366,93 @@ function resolveSectionMetaFromRow(row) {
   return { id: sectionId, label: label || sectionId };
 }
 
-// DEFAULT_CAMPAIGN_UNIT_DATA, CAMPAIGN_UNIT_DATA e replaceCampaignUnitData movidos para campanhas.js
+// Aqui eu garanto que cada linha tenha uma família associada, buscando informações extras quando necessário.
+function resolveFamilyMetaFromRow(row) {
+  if (!row) return { id: "", label: "" };
+  const prodMeta = row.produtoId ? PRODUTO_TO_FAMILIA.get(row.produtoId) : null;
+  let familiaId = row.familiaId || row.familia || prodMeta?.id || "";
+  let familiaLabel = row.familiaNome || prodMeta?.nome || "";
+
+  if (familiaId && !familiaLabel) {
+    const famRow = FAMILIA_BY_ID.get(familiaId);
+    if (famRow?.nome) familiaLabel = famRow.nome;
+  }
+
+  if (!familiaId) {
+    const sectionMeta = resolveSectionMetaFromRow(row);
+    familiaId = sectionMeta.id || "";
+    familiaLabel = sectionMeta.label || familiaId;
+  }
+
+  if (!familiaLabel) familiaLabel = familiaId;
+
+  return { id: familiaId, label: familiaLabel };
+}
+
+const DEFAULT_CAMPAIGN_UNIT_DATA = [
+  { id: "nn-atlas", diretoria: "DR 01", diretoriaNome: "Norte & Nordeste", gerenciaRegional: "GR 01", regional: "Regional Fortaleza", gerenteGestao: "GG 01", agenciaCodigo: "Ag 1001", agencia: "Agência 1001 • Fortaleza Centro", segmento: "Negócios", produtoId: "captacao_bruta", subproduto: "Aplicação", gerente: "Gerente 1", gerenteNome: "Ana Lima", carteira: "Carteira Atlas", linhas: 132.4, cash: 118.2, conquista: 112.6, atividade: true, data: "2025-09-15" },
+  { id: "nn-delta", diretoria: "DR 01", diretoriaNome: "Norte & Nordeste", gerenciaRegional: "GR 01", regional: "Regional Fortaleza", gerenteGestao: "GG 01", agenciaCodigo: "Ag 1001", agencia: "Agência 1001 • Fortaleza Centro", segmento: "Negócios", produtoId: "captacao_liquida", subproduto: "Resgate", gerente: "Gerente 1", gerenteNome: "Ana Lima", carteira: "Carteira Delta", linhas: 118.3, cash: 109.5, conquista: 104.1, atividade: true, data: "2025-09-16" },
+  { id: "nn-iguatu", diretoria: "DR 01", diretoriaNome: "Norte & Nordeste", gerenciaRegional: "GR 02", regional: "Regional Recife", gerenteGestao: "GG 02", agenciaCodigo: "Ag 1002", agencia: "Agência 1002 • Recife Boa Vista", segmento: "Empresas", produtoId: "prod_credito_pj", subproduto: "À vista", gerente: "Gerente 2", gerenteNome: "Paulo Nunes", carteira: "Carteira Iguatu", linhas: 124.2, cash: 110.3, conquista: 102.1, atividade: true, data: "2025-09-12" },
+  { id: "nn-sertao", diretoria: "DR 01", diretoriaNome: "Norte & Nordeste", gerenciaRegional: "GR 02", regional: "Regional Recife", gerenteGestao: "GG 02", agenciaCodigo: "Ag 1002", agencia: "Agência 1002 • Recife Boa Vista", segmento: "Empresas", produtoId: "centralizacao", subproduto: "Parcelado", gerente: "Gerente 2", gerenteNome: "Paulo Nunes", carteira: "Carteira Sertão", linhas: 98.4, cash: 94.6, conquista: 96.8, atividade: false, data: "2025-09-09" },
+  { id: "sd-horizonte", diretoria: "DR 02", diretoriaNome: "Sudeste", gerenciaRegional: "GR 03", regional: "Regional São Paulo", gerenteGestao: "GG 03", agenciaCodigo: "Ag 1004", agencia: "Agência 1004 • Avenida Paulista", segmento: "Empresas", produtoId: "rotativo_pj_vol", subproduto: "Aplicação", gerente: "Gerente 3", gerenteNome: "Juliana Prado", carteira: "Carteira Horizonte", linhas: 115.2, cash: 120.5, conquista: 108.4, atividade: true, data: "2025-09-14" },
+  { id: "sd-paulista", diretoria: "DR 02", diretoriaNome: "Sudeste", gerenciaRegional: "GR 03", regional: "Regional São Paulo", gerenteGestao: "GG 03", agenciaCodigo: "Ag 1004", agencia: "Agência 1004 • Avenida Paulista", segmento: "Empresas", produtoId: "rotativo_pj_qtd", subproduto: "Resgate", gerente: "Gerente 3", gerenteNome: "Juliana Prado", carteira: "Carteira Paulista", linhas: 104.8, cash: 99.1, conquista: 101.3, atividade: true, data: "2025-09-06" },
+  { id: "sd-bandeirantes", diretoria: "DR 02", diretoriaNome: "Sudeste", gerenciaRegional: "GR 03", regional: "Regional São Paulo", gerenteGestao: "GG 03", agenciaCodigo: "Ag 1004", agencia: "Agência 1004 • Avenida Paulista", segmento: "Negócios", produtoId: "consorcios", subproduto: "Parcelado", gerente: "Gerente 4", gerenteNome: "Bruno Garcia", carteira: "Carteira Bandeirantes", linhas: 92.7, cash: 88.6, conquista: 94.2, atividade: true, data: "2025-09-10" },
+  { id: "sd-capital", diretoria: "DR 02", diretoriaNome: "Sudeste", gerenciaRegional: "GR 03", regional: "Regional São Paulo", gerenteGestao: "GG 03", agenciaCodigo: "Ag 1004", agencia: "Agência 1004 • Avenida Paulista", segmento: "Negócios", produtoId: "cartoes", subproduto: "À vista", gerente: "Gerente 4", gerenteNome: "Bruno Garcia", carteira: "Carteira Capital", linhas: 105.6, cash: 102.4, conquista: 100.2, atividade: true, data: "2025-09-18" },
+  { id: "sc-curitiba", diretoria: "DR 03", diretoriaNome: "Sul & Centro-Oeste", gerenciaRegional: "GR 04", regional: "Regional Curitiba", gerenteGestao: "GG 02", agenciaCodigo: "Ag 1003", agencia: "Agência 1003 • Curitiba Batel", segmento: "MEI", produtoId: "seguros", subproduto: "Aplicação", gerente: "Gerente 5", gerenteNome: "Carla Menezes", carteira: "Carteira Curitiba", linhas: 109.6, cash: 101.2, conquista: 98.5, atividade: true, data: "2025-09-11" },
+  { id: "sc-litoral", diretoria: "DR 03", diretoriaNome: "Sul & Centro-Oeste", gerenciaRegional: "GR 04", regional: "Regional Curitiba", gerenteGestao: "GG 02", agenciaCodigo: "Ag 1003", agencia: "Agência 1003 • Curitiba Batel", segmento: "MEI", produtoId: "bradesco_expresso", subproduto: "Resgate", gerente: "Gerente 5", gerenteNome: "Carla Menezes", carteira: "Carteira Litoral", linhas: 95.4, cash: 90.1, conquista: 92.8, atividade: true, data: "2025-09-07" },
+  { id: "sc-vale", diretoria: "DR 03", diretoriaNome: "Sul & Centro-Oeste", gerenciaRegional: "GR 04", regional: "Regional Curitiba", gerenteGestao: "GG 02", agenciaCodigo: "Ag 1003", agencia: "Agência 1003 • Curitiba Batel", segmento: "MEI", produtoId: "rec_credito", subproduto: "À vista", gerente: "Gerente 5", gerenteNome: "Carla Menezes", carteira: "Carteira Vale", linhas: 120.2, cash: 115.6, conquista: 110.4, atividade: true, data: "2025-09-17" },
+  { id: "nn-manaus", diretoria: "DR 01", diretoriaNome: "Norte & Nordeste", gerenciaRegional: "GR 05", regional: "Regional Manaus", gerenteGestao: "GG 05", agenciaCodigo: "Ag 2001", agencia: "Agência 2001 • Manaus Centro", segmento: "Negócios", produtoId: "captacao_bruta", subproduto: "Aplicação", gerente: "Lara Costa", gerenteNome: "Lara Costa", carteira: "Carteira Amazônia", linhas: 119.4, cash: 111.8, conquista: 103.2, atividade: true, data: "2025-09-12" },
+  { id: "sc-floripa", diretoria: "DR 03", diretoriaNome: "Sul & Centro-Oeste", gerenciaRegional: "GR 06", regional: "Regional Florianópolis", gerenteGestao: "GG 06", agenciaCodigo: "Ag 2002", agencia: "Agência 2002 • Florianópolis Beira-Mar", segmento: "Empresas", produtoId: "rotativo_pj_vol", subproduto: "Volume", gerente: "Sofia Martins", gerenteNome: "Sofia Martins", carteira: "Carteira Litoral", linhas: 108.6, cash: 116.3, conquista: 105.5, atividade: true, data: "2025-09-16" },
+  { id: "sc-goiania", diretoria: "DR 03", diretoriaNome: "Sul & Centro-Oeste", gerenciaRegional: "GR 07", regional: "Regional Goiânia", gerenteGestao: "GG 07", agenciaCodigo: "Ag 2003", agencia: "Agência 2003 • Goiânia Setor Bueno", segmento: "MEI", produtoId: "bradesco_expresso", subproduto: "Expresso", gerente: "Tiago Andrade", gerenteNome: "Tiago Andrade", carteira: "Carteira Centro-Oeste", linhas: 102.5, cash: 94.2, conquista: 97.1, atividade: true, data: "2025-09-15" },
+  { id: "sd-campinas", diretoria: "DR 02", diretoriaNome: "Sudeste", gerenciaRegional: "GR 05", regional: "Regional Campinas", gerenteGestao: "GG 05", agenciaCodigo: "Ag 2004", agencia: "Agência 2004 • Campinas Tech", segmento: "Negócios", produtoId: "centralizacao", subproduto: "Cash", gerente: "Eduardo Freitas", gerenteNome: "Eduardo Freitas", carteira: "Carteira Inovação", linhas: 123.1, cash: 129.4, conquista: 111.7, atividade: true, data: "2025-09-09" }
+];
+DEFAULT_CAMPAIGN_UNIT_DATA.forEach(unit => aplicarIndicadorAliases(unit, unit.produtoId, unit.produtoNome || unit.produtoId));
+
+const CAMPAIGN_UNIT_DATA = [];
+
+function replaceCampaignUnitData(rows = []) {
+  CAMPAIGN_UNIT_DATA.length = 0;
+  const source = Array.isArray(rows) && rows.length ? rows : DEFAULT_CAMPAIGN_UNIT_DATA;
+  source.forEach(item => {
+    const dataISO = converterDataISO(item.data);
+    let competencia = converterDataISO(item.competencia);
+    const resolvedData = dataISO || "";
+    if (!competencia && resolvedData) {
+      competencia = `${resolvedData.slice(0, 7)}-01`;
+    }
+    CAMPAIGN_UNIT_DATA.push({ ...item, data: resolvedData, competencia: competencia || "" });
+  });
+}
+
+replaceCampaignUnitData(DEFAULT_CAMPAIGN_UNIT_DATA);
+
+CAMPAIGN_UNIT_DATA.forEach(unit => {
+  const meta = PRODUCT_INDEX.get(unit.produtoId);
+  const familiaMeta = PRODUTO_TO_FAMILIA.get(unit.produtoId);
+  if (familiaMeta) {
+    if (!unit.familiaId) unit.familiaId = familiaMeta.id;
+    if (!unit.familia) unit.familia = familiaMeta.nome || familiaMeta.id;
+    if (!unit.familiaNome) unit.familiaNome = familiaMeta.nome || familiaMeta.id;
+    if (!unit.secaoId) unit.secaoId = familiaMeta.secaoId || meta?.sectionId;
+    if (!unit.secao) unit.secao = familiaMeta.secaoId || meta?.sectionId;
+    if (!unit.secaoNome) unit.secaoNome = familiaMeta.secaoNome || meta?.sectionLabel || getSectionLabel(familiaMeta.secaoId);
+  } else if (meta?.sectionId) {
+    if (!unit.familiaId) unit.familiaId = meta.sectionId;
+    if (!unit.familia) unit.familia = meta.sectionId;
+    if (!unit.secaoId) unit.secaoId = meta.sectionId;
+    if (!unit.secao) unit.secao = meta.sectionId;
+    if (!unit.secaoNome) unit.secaoNome = meta.sectionLabel || meta.sectionId;
+    if (!unit.familiaNome) unit.familiaNome = meta.sectionLabel || meta.sectionId;
+  }
+  if (!unit.produtoNome) unit.produtoNome = meta?.name || unit.produto || unit.produtoId || "Subindicador";
+  if (!unit.gerenteGestaoNome) {
+    const numeric = (unit.gerenteGestao || "").replace(/[^0-9]/g, "");
+    unit.gerenteGestaoNome = numeric ? `Gerente geral ${numeric}` : "Gerente geral";
+  }
+  if (!unit.familiaNome && unit.familia) unit.familiaNome = unit.familia;
+  if (!unit.subproduto) unit.subproduto = "";
+  if (unit.subproduto) registrarAliasIndicador(unit.produtoId, unit.subproduto);
+});
 const CAMPAIGN_SPRINTS = [
   {
     id: "sprint-pj-2025",
@@ -4683,9 +5801,8 @@ function resolveCalendarToday(){
   const isoPattern = /^\d{4}-\d{2}-\d{2}$/;
   if (cap && isoPattern.test(cap)) return cap;
 
-  const calendarioArray = typeof DIM_CALENDARIO !== "undefined" ? DIM_CALENDARIO : [];
-  if (Array.isArray(calendarioArray) && calendarioArray.length) {
-    const ordered = calendarioArray
+  if (Array.isArray(DIM_CALENDARIO) && DIM_CALENDARIO.length) {
+    const ordered = DIM_CALENDARIO
       .map(entry => (typeof entry?.data === "string" ? entry.data.slice(0, 10) : ""))
       .filter(Boolean)
       .sort();
@@ -4696,8 +5813,7 @@ function resolveCalendarToday(){
   return todayISO();
 }
 function getCurrentMonthPeriod(){
-  // No primeiro carregamento, sempre usa a data de hoje (não a última data do calendário)
-  const end = todayISO();
+  const end = resolveCalendarToday();
   const start = `${end.slice(0, 7)}-01`;
   return { from: start, to: end };
 }
@@ -4728,9 +5844,8 @@ function getCurrentMonthBusinessSnapshot(){
   const monthKey = today.slice(0,7);
   let total = 0;
   let elapsed = 0;
-  const calendarioArray = typeof DIM_CALENDARIO !== "undefined" ? DIM_CALENDARIO : [];
-  if (Array.isArray(calendarioArray) && calendarioArray.length) {
-    const entries = calendarioArray.filter(entry => {
+  if (Array.isArray(DIM_CALENDARIO) && DIM_CALENDARIO.length) {
+    const entries = DIM_CALENDARIO.filter(entry => {
       const data = entry.data || entry.dt || "";
       return typeof data === "string" && data.startsWith(monthKey);
     });
@@ -5131,6 +6246,13 @@ function businessDaysElapsedUntilToday(startISO,endISO){
   if(today > end) today = end;
   return businessDaysBetweenInclusive(startISO, isoFromUTCDate(today));
 }
+// Aqui eu calculo quantos dias úteis ainda faltam a partir de hoje até o fim de um período.
+function businessDaysRemainingFromToday(startISO,endISO){
+  if(!startISO || !endISO) return 0;
+  const total = businessDaysBetweenInclusive(startISO, endISO);
+  const elapsed = businessDaysElapsedUntilToday(startISO, endISO);
+  return Math.max(0, total - elapsed);
+}
 
 /* ===== Aqui eu deixo funções auxiliares para métricas e números ===== */
 // Aqui eu converto qualquer valor para número sem deixar NaN escapar.
@@ -5194,17 +6316,6 @@ function formatPoints(value, { withUnit = false } = {}) {
   return withUnit ? `${formatted} pts` : formatted;
 }
 
-function formatPeso(value) {
-  const n = toNumber(value);
-  if (!Number.isFinite(n)) return "0";
-  // Para valores menores que 1, preserva até 2 casas decimais
-  if (n < 1 && n > 0) {
-    return n.toFixed(2);
-  }
-  // Para valores maiores ou iguais a 1, arredonda normalmente
-  return fmtINT.format(Math.round(n));
-}
-
 function formatMetricFull(metric, value){
   const n = Math.round(toNumber(value));
   if(metric === "perc") return `${toNumber(value).toFixed(1)}%`;
@@ -5215,6 +6326,9 @@ function formatByMetric(metric, value){
   if(metric === "perc") return `${toNumber(value).toFixed(1)}%`;
   if(metric === "qtd")  return formatIntReadable(value);
   return formatBRLReadable(value);
+}
+function formatCompactBRL(value){
+  return formatNumberWithSuffix(value, { currency: true });
 }
 function makeRandomForMetric(metric){
   if(metric === "perc"){
@@ -5252,7 +6366,7 @@ async function apiGet(path, params){
   try {
     response = await fetch(url, { cache: "no-store" });
   } catch (err) {
-    const error = new Error("Não foi possível contactar a API PHP em src/index.php.");
+    const error = new Error("Não foi possível contactar a API PHP em config/api/index.php.");
     error.cause = err;
     throw error;
   }
@@ -5322,7 +6436,7 @@ async function apiPost(path, body = {}, params){
       cache: "no-store",
     });
   } catch (err) {
-    const error = new Error("Não foi possível contactar a API PHP em src/index.php.");
+    const error = new Error("Não foi possível contactar a API PHP em config/api/index.php.");
     error.cause = err;
     throw error;
   }
@@ -5368,13 +6482,8 @@ async function apiPost(path, body = {}, params){
 }
 
 function prepareApiUrl(baseUrl, path, params){
-  // Sempre usa a raiz do site para construir URLs da API com prefixo /api/
-  // Considera o pathname base caso o site não esteja na raiz (ex: /pobj9/)
-  // Remove 'public' do pathname se presente
-  let basePath = window.location.pathname.split('/').slice(0, -1).join('/') || '';
-  basePath = basePath.replace(/\/public$/, ''); // Remove /public se presente
-  const url = new URL(window.location.origin + basePath);
-  const searchParams = new URLSearchParams();
+  const url = new URL(baseUrl.toString());
+  const searchParams = new URLSearchParams(url.search);
 
   if (params && typeof params === "object"){
     Object.entries(params).forEach(([key, value]) => {
@@ -5385,10 +6494,14 @@ function prepareApiUrl(baseUrl, path, params){
   }
 
   const normalized = typeof path === "string" ? path.trim() : "";
-  const endpoint = normalized.replace(/^\/+/, "").replace(/^api\//, ""); // Remove /api/ se já estiver presente
+  const endpoint = normalized.replace(/^\/+/, "");
   if (endpoint){
-    // Usa /api/endpoint como pathname - o backend lê do PATH_INFO, não precisa do parâmetro na query string
-    url.pathname = `/api/${endpoint}`;
+    searchParams.set(API_ENDPOINT_PARAM, endpoint);
+    const basePath = url.pathname.replace(/\/+$/, "");
+    const endpointPath = endpoint.replace(/^\/+/, "");
+    if (endpointPath){
+      url.pathname = `${basePath}/${endpointPath}`;
+    }
   }
 
   const queryString = searchParams.toString();
@@ -5400,9 +6513,8 @@ function prepareApiUrl(baseUrl, path, params){
 async function getData(){
   const period = state.period || getDefaultPeriodRange();
 
-  const calendarioArray = typeof DIM_CALENDARIO !== "undefined" ? DIM_CALENDARIO : [];
-  const calendarioByDate = new Map(calendarioArray.map(entry => [entry.data, entry]));
-  const calendarioByCompetencia = new Map(calendarioArray.map(entry => [entry.competencia, entry]));
+  const calendarioByDate = new Map(DIM_CALENDARIO.map(entry => [entry.data, entry]));
+  const calendarioByCompetencia = new Map(DIM_CALENDARIO.map(entry => [entry.competencia, entry]));
 
   // Aqui eu gero linhas sintéticas das campanhas para reaproveitar no ranking e nos simuladores.
   const buildCampanhaFacts = () => {
@@ -5436,14 +6548,11 @@ async function getData(){
     return campanhaFacts;
   };
 
-  const realizadosArray = typeof FACT_REALIZADOS !== "undefined" ? FACT_REALIZADOS : [];
-  if (realizadosArray.length) {
-    const metasArray = typeof FACT_METAS !== "undefined" ? FACT_METAS : [];
-    const metasLookup = buildFactLookupMap(metasArray);
-    const variavelArray = typeof FACT_VARIAVEL !== "undefined" ? FACT_VARIAVEL : [];
-    let variavelLookup = buildFactLookupMap(variavelArray);
+  if (FACT_REALIZADOS.length) {
+    const metasLookup = buildFactLookupMap(FACT_METAS);
+    let variavelLookup = buildFactLookupMap(FACT_VARIAVEL);
 
-    let factRows = realizadosArray.map(row => {
+    let factRows = FACT_REALIZADOS.map(row => {
       const meta = findFactMatch(row, metasLookup) || {};
       const variavel = findFactMatch(row, variavelLookup) || {};
       const produtoMeta = PRODUCT_INDEX.get(row.produtoId) || {};
@@ -5513,7 +6622,6 @@ async function getData(){
 
       const base = {
         registroId: row.registroId,
-        metaRegistroId: meta.registroId, // Preserva o registroId da meta para evitar duplicação na agregação
         segmento: row.segmento,
         segmentoId: segmentoId || row.segmentoId,
         segmento_id: segmentoId || row.segmentoId,
@@ -5581,8 +6689,8 @@ async function getData(){
       return base;
     });
 
-    if (variavelArray.length) {
-      const variavelIds = new Set(variavelArray.map(row => row?.registroId || row?.registroid));
+    if (FACT_VARIAVEL.length) {
+      const variavelIds = new Set(FACT_VARIAVEL.map(row => row?.registroId || row?.registroid));
       const novosVariavel = factRows.filter(row => row?.registroId && !variavelIds.has(row.registroId)).map(row => ({
         registroId: row.registroId,
         produtoId: row.produtoId,
@@ -5596,15 +6704,13 @@ async function getData(){
       }));
       if (novosVariavel.length) {
         novosVariavel.forEach(item => aplicarIndicadorAliases(item, item.produtoId, item.produtoNome));
-        if (typeof FACT_VARIAVEL !== "undefined") {
         FACT_VARIAVEL.push(...novosVariavel);
         variavelLookup = buildFactLookupMap(FACT_VARIAVEL);
-        }
       }
     }
 
     const baseByRegistro = new Map(factRows.map(row => [row.registroId, row]));
-    const variavelFacts = (variavelArray.length ? variavelArray : factRows).map(source => {
+    const variavelFacts = (FACT_VARIAVEL.length ? FACT_VARIAVEL : factRows).map(source => {
       const registroId = source.registroId || source.registroid;
       const base = baseByRegistro.get(registroId) || {};
       if (!registroId || !base.registroId) return null;
@@ -5695,9 +6801,6 @@ async function getData(){
     const campanhaFacts = buildCampanhaFacts();
     fCampanhas = campanhaFacts;
 
-    // Cria mapa de pontos por indicador para acesso rápido (com filtro de data)
-    buildPontosByIndicadorMap(period);
-
     const baseDashboard = buildDashboardDatasetFromRows(factRows, period);
     const ranking = factRows.map(row => ({ ...row }));
 
@@ -5706,22 +6809,10 @@ async function getData(){
       summary: baseDashboard.summary,
       ranking,
       period,
-      facts: { dados: factRows, variavel: fVariavel, campanhas: campanhaFacts, historico: typeof FACT_HISTORICO_RANKING_POBJ !== "undefined" ? FACT_HISTORICO_RANKING_POBJ : [] }
+      facts: { dados: factRows, variavel: fVariavel, campanhas: campanhaFacts, historico: FACT_HISTORICO_RANKING_POBJ }
     };
   }
 
-  // Se não há dados reais, retorna estrutura vazia com valores zerados em vez de gerar dados aleatórios
-  const emptyDashboard = buildDashboardDatasetFromRows([], period);
-  return {
-    sections: emptyDashboard.sections,
-    summary: emptyDashboard.summary,
-    ranking: [],
-    period,
-    facts: { dados: [], variavel: [], campanhas: [], historico: typeof FACT_HISTORICO_RANKING_POBJ !== "undefined" ? FACT_HISTORICO_RANKING_POBJ : [] }
-  };
-
-  // Código abaixo não será mais executado - mantido apenas para referência
-  /*
   const startDt = dateUTCFromISO(period.start);
   const endDt = dateUTCFromISO(period.end);
   let startRef = startDt;
@@ -6038,9 +7129,8 @@ async function getData(){
     summary: baseDashboard.summary,
     ranking,
     period,
-    facts: { dados: fDados, variavel: fVariavel, campanhas: fCampanhas, historico: typeof FACT_HISTORICO_RANKING_POBJ !== "undefined" ? FACT_HISTORICO_RANKING_POBJ : [] }
+    facts: { dados: fDados, variavel: fVariavel, campanhas: fCampanhas, historico: FACT_HISTORICO_RANKING_POBJ }
   };
-  */
 }
 
 /* ===== Aqui eu monto a sidebar retrátil direto via JS, sem depender do CSS ===== */
@@ -6067,7 +7157,6 @@ const state = {
   compact:false,
   contractIndex:[],
   lastNonContractView:"diretoria",
-  _filtersApplied:false,
 
   exec:{ heatmapMode:"secoes", seriesColors:new Map() },
 
@@ -6522,7 +7611,7 @@ function openDatePopover(anchor){
   pop.style.left = `${left}px`;
 
   pop.querySelector("#btn-cancelar").addEventListener("click", closeDatePopover);
-  pop.querySelector("#btn-salvar").addEventListener("click", async ()=>{
+  pop.querySelector("#btn-salvar").addEventListener("click", ()=>{
     const s = document.getElementById("inp-start").value;
     const e = document.getElementById("inp-end").value;
     if(!s || !e || new Date(s) > new Date(e)){ alert("Período inválido."); return; }
@@ -6534,24 +7623,7 @@ function openDatePopover(anchor){
     document.getElementById("lbl-periodo-inicio").textContent = formatBRDate(s);
     document.getElementById("lbl-periodo-fim").textContent    = formatBRDate(e);
     closeDatePopover();
-    // Marca que os filtros foram aplicados pelo usuário
-    state._filtersApplied = true;
-    // Recarrega dados de período quando data muda
-    try {
-      await loadPeriodData();
-      // Processa os dados e popula state.facts e fDados para exibir os cards
-      const dataset = await getData();
-      state._dataset = dataset;
-      state.facts = dataset.facts || state.facts;
-      state._rankingRaw = (state.facts?.dados && state.facts.dados.length)
-        ? state.facts.dados
-        : (dataset.ranking || []);
-      // Atualiza os cards do dashboard com os novos dados
-      updateDashboardCards();
-      await refresh();
-    } catch (error) {
-      handleInitDataError(error);
-    }
+    refresh().catch(handleBootstrapError);
   });
 
   const outside = (ev)=>{ if(ev.target===pop || pop.contains(ev.target) || ev.target===anchor) return; closeDatePopover(); };
@@ -6578,112 +7650,51 @@ function wireClearFiltersButton() {
   });
 }
 async function clearFilters() {
-  // Flag para indicar que estamos limpando (evita chamadas de API)
-  state._isClearingFilters = true;
-  // Reseta a flag de filtros aplicados
-  state._filtersApplied = false;
-  
-  try {
-    // Limpa filtros de hierarquia (segmento, diretoria, gerencia) deixando vazios
-    const hierarchyFilters = ["#f-segmento", "#f-diretoria", "#f-gerencia"];
-    hierarchyFilters.forEach(sel => {
-      const el = $(sel);
-      if (el && el.tagName === "SELECT") {
-        el.selectedIndex = -1; // Deixa vazio
-        el.value = "";
-      }
-    });
-    
-    // Limpa outros filtros
-    [
-      "#f-gerente",
-      "#f-agencia","#f-gerente-gestao","#f-secao","#f-familia","#f-produto",
-      "#f-status-kpi","#f-visao"
-    ].forEach(sel => {
-      const el = $(sel);
-      if (!el) return;
-      if (el.tagName === "SELECT") el.selectedIndex = 0;
-      if (el.tagName === "INPUT")  el.value = "";
-    });
+  [
+    "#f-segmento","#f-diretoria","#f-gerencia","#f-gerente",
+    "#f-agencia","#f-ggestao","#f-secao","#f-familia","#f-produto",
+    "#f-status-kpi","#f-visao"
+  ].forEach(sel => {
+    const el = $(sel);
+    if (!el) return;
+    if (el.tagName === "SELECT") el.selectedIndex = 0;
+    if (el.tagName === "INPUT")  el.value = "";
+  });
 
-    // valores padrão explícitos
-    const st = $("#f-status-kpi"); if (st) st.value = "todos";
-    const visaoSelect = $("#f-visao");
-    if (visaoSelect) visaoSelect.value = "mensal";
-    state.accumulatedView = "mensal";
-    
-    // Não dispara eventos "change" para evitar chamadas de API
-    // Os combos serão atualizados pelo refreshHierarchyCombos abaixo
-    const secaoSelect = $("#f-secao");
-    if (secaoSelect) {
-      secaoSelect.value = "Todas";
-      // Não dispara evento change
-    }
-    const familiaSelect = $("#f-familia");
-    if (familiaSelect) {
-      familiaSelect.value = "Todas";
-      // Não dispara evento change
-    }
-    const produtoSelect = $("#f-produto");
-    if (produtoSelect) {
-      produtoSelect.value = "Todos";
-      // Não dispara evento change
-    }
+  // valores padrão explícitos
+  const st = $("#f-status-kpi"); if (st) st.value = "todos";
+  const visaoSelect = $("#f-visao");
+  if (visaoSelect) visaoSelect.value = "mensal";
+  state.accumulatedView = "mensal";
+  const secaoSelect = $("#f-secao");
+  if (secaoSelect) secaoSelect.dispatchEvent(new Event("change"));
+  const familiaSelect = $("#f-familia");
+  if (familiaSelect) familiaSelect.dispatchEvent(new Event("change"));
+  const produtoSelect = $("#f-produto");
+  if (produtoSelect) produtoSelect.dispatchEvent(new Event("change"));
 
-    refreshHierarchyCombos();
+  refreshHierarchyCombos();
 
-    // limpa busca (contrato) e estado
-    state.tableSearchTerm = "";
-    if ($("#busca")) $("#busca").value = "";
-    refreshContractSuggestions("");
-    const defaultPeriod = getDefaultPeriodRange();
-    state.period = defaultPeriod;
-    syncPeriodFromAccumulatedView(state.accumulatedView, defaultPeriod.end);
-    if (state.tableView === "contrato") {
-      state.tableView = "diretoria";
-      state.lastNonContractView = "diretoria";
-      setActiveChip("diretoria");
-    }
-
-    await withSpinner(async () => {
-      // Limpa todos os dados de período/filtros
-      clearPeriodData();
-      
-      // Atualiza labels do período
-      updatePeriodLabels();
-      
-      // Atualiza o elemento de período se existir
-      const right = document.getElementById("lbl-atualizacao");
-      if(right){
-        right.innerHTML = `
-          <div class="period-inline">
-            <span class="txt">
-              De
-              <strong><span id="lbl-periodo-inicio">${formatBRDate(state.period.start)}</span></strong>
-              até
-              <strong><span id="lbl-periodo-fim">${formatBRDate(state.period.end)}</span></strong>
-            </span>
-            <button id="btn-alterar-data" type="button" class="link-action">
-              <i class="ti ti-chevron-down"></i> Alterar data
-            </button>
-          </div>`;
-        document.getElementById("btn-alterar-data")?.addEventListener("click", (e)=> openDatePopover(e.currentTarget));
-      }
-      
-      // Re-renderiza com dados zerados
-      applyFiltersAndRender();
-      renderAppliedFilters();
-      renderCampanhasView();
-      if (state.activeView === "ranking") renderRanking();
-      // Limpa cards do dashboard
-      updateDashboardCards();
-    }, "Limpando filtros…");
-    
-    closeMobileFilters();
-  } finally {
-    // Remove a flag após limpar (garante que seja removida mesmo em caso de erro)
-    state._isClearingFilters = false;
+  // limpa busca (contrato) e estado
+  state.tableSearchTerm = "";
+  if ($("#busca")) $("#busca").value = "";
+  refreshContractSuggestions("");
+  const defaultPeriod = getDefaultPeriodRange();
+  state.period = defaultPeriod;
+  syncPeriodFromAccumulatedView(state.accumulatedView, defaultPeriod.end);
+  if (state.tableView === "contrato") {
+    state.tableView = "diretoria";
+    state.lastNonContractView = "diretoria";
+    setActiveChip("diretoria");
   }
+
+  await withSpinner(async () => {
+    applyFiltersAndRender();
+    renderAppliedFilters();
+    renderCampanhasView();
+    if (state.activeView === "ranking") renderRanking();
+  }, "Limpando filtros…");
+  closeMobileFilters();
 }
 
 function setMobileFiltersState(open) {
@@ -6812,32 +7823,6 @@ function setupUserMenu(){
   menu.addEventListener("click", (ev) => {
     const item = ev.target?.closest?.(".userbox__menu-item");
     if (!item || item.hasAttribute("data-submenu")) return;
-    
-    const action = item.getAttribute("data-action");
-    if (action === "leads") {
-      ev.preventDefault();
-      ev.stopPropagation();
-      closeMenu();
-      if (typeof openLeadsWithoutFilters === "function") {
-        openLeadsWithoutFilters();
-      } else {
-        console.warn("Função openLeadsWithoutFilters não disponível");
-      }
-      return;
-    }
-    
-    if (action === "omega") {
-      ev.preventDefault();
-      ev.stopPropagation();
-      closeMenu();
-      if (typeof openOmegaWithoutFilters === "function") {
-        openOmegaWithoutFilters();
-      } else {
-        console.warn("Função openOmegaWithoutFilters não disponível");
-      }
-      return;
-    }
-    
     closeMenu();
   });
 
@@ -7140,6 +8125,25 @@ function ensureChipBarAndToolbar() {
   $$('#table-section input[placeholder*="Contrato" i]').forEach(el => { if (el !== headerSearch) el.remove(); });
 
   renderAppliedFilters();
+}
+
+function openLeadsForCurrentFilters(){
+  if (typeof openOpportunityModal !== "function") {
+    console.warn("Módulo de leads não disponível.");
+    return;
+  }
+  const filters = getFilterValues();
+  const lineage = buildLineageFromFilters(filters);
+  const lastEntry = lineage.length ? lineage[lineage.length - 1] : null;
+  const detail = {
+    node: {
+      label: lastEntry?.label || "Leads propensos",
+      levelKey: lastEntry?.levelKey || "",
+      type: "filters"
+    },
+    lineage,
+  };
+  openOpportunityModal(detail);
 }
 
 function openLeadsWithoutFilters(){
@@ -7680,22 +8684,22 @@ function renderAppliedFilters() {
 
   bar.innerHTML = "";
 
-  if (vals.segmento && vals.segmento !== "Todos" && vals.segmento !== "") push("Segmento", vals.segmento, () => $("#f-segmento").selectedIndex = -1);
-  if (vals.diretoria && vals.diretoria !== "Todas" && vals.diretoria !== "") {
+  if (vals.segmento && vals.segmento !== "Todos") push("Segmento", vals.segmento, () => $("#f-segmento").selectedIndex = 0);
+  if (vals.diretoria && vals.diretoria !== "Todas") {
     const label = $("#f-diretoria")?.selectedOptions?.[0]?.text || vals.diretoria;
-    push("Diretoria", label, () => $("#f-diretoria").selectedIndex = -1);
+    push("Diretoria", label, () => $("#f-diretoria").selectedIndex = 0);
   }
-  if (vals.gerencia && vals.gerencia !== "Todas" && vals.gerencia !== "") {
+  if (vals.gerencia && vals.gerencia !== "Todas") {
     const label = $("#f-gerencia")?.selectedOptions?.[0]?.text || vals.gerencia;
-    push("Gerência", label, () => $("#f-gerencia").selectedIndex = -1);
+    push("Gerência", label, () => $("#f-gerencia").selectedIndex = 0);
   }
   if (vals.agencia && vals.agencia !== "Todas") {
     const label = $("#f-agencia")?.selectedOptions?.[0]?.text || vals.agencia;
     push("Agência", label, () => $("#f-agencia").selectedIndex = 0);
   }
   if (vals.ggestao && vals.ggestao !== "Todos") {
-    const label = $("#f-gerente-gestao")?.selectedOptions?.[0]?.text || labelGerenteGestao(vals.ggestao);
-    push("Gerente de gestão", label, () => $("#f-gerente-gestao").selectedIndex = 0);
+    const label = $("#f-ggestao")?.selectedOptions?.[0]?.text || labelGerenteGestao(vals.ggestao);
+    push("Gerente de gestão", label, () => $("#f-ggestao").selectedIndex = 0);
   }
   if (vals.gerente && vals.gerente !== "Todos") {
     const label = $("#f-gerente")?.selectedOptions?.[0]?.text || labelGerente(vals.gerente);
@@ -7742,14 +8746,15 @@ function renderAppliedFilters() {
   items.forEach(ch => bar.appendChild(ch));
 }
 
-// HIERARCHY_FIELDS_DEF e HIERARCHY_FIELD_MAP movidos para filters.js
-// buildHierarchyFallbackRow, buildHierarchyFallbackRows, resolveFallbackMeta, hierarchyDefaultSelection,
-// getHierarchyRows, buildHierarchyRowsFromEstrutura, getHierarchySelectionFromDOM, hierarchyRowMatchesField,
-// filterHierarchyRowsForField, buildHierarchyOptions, setSelectOptions, refreshHierarchyCombos,
-// adjustHierarchySelection, handleHierarchySelectionChange, ensureSegmentoField, getFilterValues,
-// filterRowsExcept, filterRows, autoSnapViewToFilters, wireClearFiltersButton, clearFilters,
-// setMobileFiltersState, openMobileFilters, closeMobileFilters, setupMobileFilters,
-// ensureStatusFilterInAdvanced, renderAppliedFilters - todas movidas para filters.js
+const HIERARCHY_FIELDS_DEF = [
+  { key: "segmento",  select: "#f-segmento",  defaultValue: "Todos", defaultLabel: "Todos",  idKey: "segmentoId",    labelKey: "segmentoNome",    fallback: () => SEGMENTOS_DATA },
+  { key: "diretoria", select: "#f-diretoria", defaultValue: "Todas", defaultLabel: "Todas", idKey: "diretoriaId",   labelKey: "diretoriaNome",   fallback: () => RANKING_DIRECTORIAS },
+  { key: "gerencia",  select: "#f-gerencia",  defaultValue: "Todas", defaultLabel: "Todas", idKey: "regionalId",    labelKey: "regionalNome",    fallback: () => RANKING_GERENCIAS },
+  { key: "agencia",   select: "#f-agencia",   defaultValue: "Todas", defaultLabel: "Todas", idKey: "agenciaId",     labelKey: "agenciaNome",     fallback: () => RANKING_AGENCIAS },
+  { key: "ggestao",   select: "#f-ggestao",   defaultValue: "Todos", defaultLabel: "Todos", idKey: "gerenteGestaoId", labelKey: "gerenteGestaoNome", fallback: () => GERENTES_GESTAO },
+  { key: "gerente",   select: "#f-gerente",   defaultValue: "Todos", defaultLabel: "Todos", idKey: "gerenteId",      labelKey: "gerenteNome",      fallback: () => RANKING_GERENTES }
+];
+const HIERARCHY_FIELD_MAP = new Map(HIERARCHY_FIELDS_DEF.map(field => [field.key, field]));
 
 function buildHierarchyFallbackRow(fieldKey, item) {
   const def = HIERARCHY_FIELD_MAP.get(fieldKey);
@@ -7933,15 +8938,8 @@ function hierarchyDefaultSelection(){
 }
 
 function getHierarchyRows(){
-  // Sempre retorna dados atualizados do banco (sem cache)
+  if (Array.isArray(MESU_DATA) && MESU_DATA.length) return MESU_DATA;
   if (MESU_FALLBACK_ROWS.length) return MESU_FALLBACK_ROWS;
-
-  // Tenta construir rows a partir dos dados de estrutura primeiro
-  const rowsFromEstrutura = buildHierarchyRowsFromEstrutura();
-  if (rowsFromEstrutura.length) {
-    MESU_FALLBACK_ROWS = rowsFromEstrutura;
-    return rowsFromEstrutura;
-  }
 
   const rows = [];
   const dirMap = new Map(RANKING_DIRECTORIAS.map(dir => [dir.id, dir]));
@@ -7999,263 +8997,6 @@ function getHierarchyRows(){
   return rows;
 }
 
-function buildHierarchyRowsFromEstrutura(){
-  const rows = [];
-  
-  // Verifica se temos dados de estrutura disponíveis
-  if (!DIM_SEGMENTOS_LOOKUP || !DIM_DIRETORIAS_LOOKUP || !DIM_REGIONAIS_LOOKUP || 
-      !DIM_AGENCIAS_LOOKUP || !DIM_GGESTAO_LOOKUP || !DIM_GERENTES_LOOKUP) {
-    return rows;
-  }
-
-  // Cria mapas para lookup rápido
-  const segmentosMap = new Map();
-  DIM_SEGMENTOS_LOOKUP.forEach((seg, id) => {
-    segmentosMap.set(String(seg.id || id), seg);
-  });
-
-  const diretoriasMap = new Map();
-  DIM_DIRETORIAS_LOOKUP.forEach((dir, id) => {
-    diretoriasMap.set(String(dir.id || id), dir);
-  });
-
-  const regionaisMap = new Map();
-  DIM_REGIONAIS_LOOKUP.forEach((reg, id) => {
-    regionaisMap.set(String(reg.id || id), reg);
-  });
-
-  const agenciasMap = new Map();
-  DIM_AGENCIAS_LOOKUP.forEach((ag, id) => {
-    agenciasMap.set(String(ag.id || id), ag);
-  });
-
-  const gerentesGestaoMap = new Map();
-  DIM_GGESTAO_LOOKUP.forEach((gg, id) => {
-    gerentesGestaoMap.set(String(gg.id || id), gg);
-  });
-
-  const gerentesMap = new Map();
-  DIM_GERENTES_LOOKUP.forEach((ger, id) => {
-    gerentesMap.set(String(ger.id || id), ger);
-  });
-
-  // Constrói rows baseado nas relações hierárquicas
-  // Começa pelos gerentes e sobe a hierarquia
-  gerentesMap.forEach((gerente, gerenteId) => {
-    const gerenteIdStr = String(gerente.id || gerenteId);
-    const agenciaIdStr = String(gerente.id_agencia || gerente.agencia || "");
-    const gestorIdStr = String(gerente.id_gestor || gerente.gerenteGestao || "");
-    
-    if (!agenciaIdStr) return;
-
-    const agencia = agenciasMap.get(agenciaIdStr);
-    if (!agencia) return;
-
-    const regionalIdStr = String(agencia.id_regional || agencia.regional_id || agencia.gerencia_regional_id || "");
-    const regional = regionalIdStr ? regionaisMap.get(regionalIdStr) : null;
-
-    const diretoriaIdStr = regional 
-      ? String(regional.id_diretoria || regional.diretoria_id || "")
-      : String(agencia.id_diretoria || agencia.diretoria_id || "");
-    const diretoria = diretoriaIdStr ? diretoriasMap.get(diretoriaIdStr) : null;
-
-    const segmentoIdStr = diretoria
-      ? String(diretoria.id_segmento || diretoria.segmento_id || "")
-      : (regional ? String(regional.id_segmento || regional.segmento_id || "") : "");
-    const segmento = segmentoIdStr ? segmentosMap.get(segmentoIdStr) : null;
-
-    const gerenteGestao = gestorIdStr ? gerentesGestaoMap.get(gestorIdStr) : null;
-
-    // Cria uma row para cada combinação gerente-agência
-    const agenciaNomeRaw = agencia ? (agencia.label || agencia.nome || agenciaIdStr) : agenciaIdStr;
-    const agenciaNome = agenciaIdStr && agenciaNomeRaw && agenciaNomeRaw !== agenciaIdStr 
-      ? buildHierarchyLabel(agenciaIdStr, agenciaNomeRaw) || agenciaNomeRaw 
-      : agenciaNomeRaw;
-    
-    const gerenteGestaoNomeRaw = gerenteGestao ? (gerenteGestao.label || gerenteGestao.nome || String(gerenteGestao.id || "")) : "";
-    const gerenteGestaoIdStr = gerenteGestao ? String(gerenteGestao.id || "") : "";
-    const gerenteGestaoNome = gerenteGestaoIdStr && gerenteGestaoNomeRaw && gerenteGestaoNomeRaw !== gerenteGestaoIdStr
-      ? buildHierarchyLabel(gerenteGestaoIdStr, gerenteGestaoNomeRaw) || gerenteGestaoNomeRaw
-      : gerenteGestaoNomeRaw;
-    
-    const gerenteNomeRaw = gerente ? (gerente.label || gerente.nome || gerenteIdStr) : gerenteIdStr;
-    const gerenteNome = gerenteIdStr && gerenteNomeRaw && gerenteNomeRaw !== gerenteIdStr
-      ? buildHierarchyLabel(gerenteIdStr, gerenteNomeRaw) || gerenteNomeRaw
-      : gerenteNomeRaw;
-    
-    const segmentoIdStrFinal = segmento ? String(segmento.id || "") : segmentoIdStr || "";
-    const segmentoNomeRaw = segmento ? (segmento.label || segmento.nome || segmentoIdStrFinal) : "";
-    const segmentoNome = segmentoIdStrFinal && segmentoNomeRaw && segmentoNomeRaw !== segmentoIdStrFinal
-      ? buildHierarchyLabel(segmentoIdStrFinal, segmentoNomeRaw) || segmentoNomeRaw
-      : segmentoNomeRaw;
-    
-    const diretoriaIdStrFinal = diretoria ? String(diretoria.id || "") : diretoriaIdStr || "";
-    const diretoriaNomeRaw = diretoria ? (diretoria.label || diretoria.nome || diretoriaIdStrFinal) : "";
-    const diretoriaNome = diretoriaIdStrFinal && diretoriaNomeRaw && diretoriaNomeRaw !== diretoriaIdStrFinal
-      ? buildHierarchyLabel(diretoriaIdStrFinal, diretoriaNomeRaw) || diretoriaNomeRaw
-      : diretoriaNomeRaw;
-    
-    rows.push({
-      segmentoId: segmentoIdStrFinal,
-      segmentoNome: segmentoNome,
-      diretoriaId: diretoriaIdStrFinal,
-      diretoriaNome: diretoriaNome,
-      regionalId: regional ? String(regional.id || "") : "",
-      regionalNome: regional ? (regional.label || regional.nome || String(regional.id || "")) : "",
-      agenciaId: agenciaIdStr,
-      agenciaNome: agenciaNome,
-      gerenteGestaoId: gerenteGestaoIdStr,
-      gerenteGestaoNome: gerenteGestaoNome,
-      gerenteId: gerenteIdStr,
-      gerenteNome: gerenteNome,
-    });
-  });
-
-  // Adiciona agências que não têm gerentes mas podem ter gerentes de gestão
-  agenciasMap.forEach((agencia, agenciaId) => {
-    const agenciaIdStr = String(agencia.id || agenciaId);
-    
-    // Verifica se já existe uma row para esta agência
-    const exists = rows.some(row => row.agenciaId === agenciaIdStr);
-    if (exists) return;
-
-    const regionalIdStr = String(agencia.id_regional || agencia.regional_id || agencia.gerencia_regional_id || "");
-    const regional = regionalIdStr ? regionaisMap.get(regionalIdStr) : null;
-
-    const diretoriaIdStr = regional 
-      ? String(regional.id_diretoria || regional.diretoria_id || "")
-      : String(agencia.id_diretoria || agencia.diretoria_id || "");
-    const diretoria = diretoriaIdStr ? diretoriasMap.get(diretoriaIdStr) : null;
-
-    const segmentoIdStr = diretoria
-      ? String(diretoria.id_segmento || diretoria.segmento_id || "")
-      : (regional ? String(regional.id_segmento || regional.segmento_id || "") : "");
-    const segmento = segmentoIdStr ? segmentosMap.get(segmentoIdStr) : null;
-
-    // Busca gerente gestão vinculado a esta agência
-    const gerenteGestaoIdStr = String(agencia.id_gerente_gestao || agencia.gerenteGestao || "");
-    const gerenteGestao = gerenteGestaoIdStr ? gerentesGestaoMap.get(gerenteGestaoIdStr) : null;
-    
-    // Se não encontrou pelo campo da agência, busca pelos gerentes gestão que têm esta agência
-    let gerenteGestaoFinal = gerenteGestao;
-    if (!gerenteGestaoFinal) {
-      gerentesGestaoMap.forEach((gg, ggId) => {
-        const ggAgenciaIdStr = String(gg.id_agencia || gg.agencia || "");
-        if (ggAgenciaIdStr === agenciaIdStr) {
-          gerenteGestaoFinal = gg;
-        }
-      });
-    }
-
-    const agenciaNomeRaw2 = agencia ? (agencia.label || agencia.nome || agenciaIdStr) : agenciaIdStr;
-    const agenciaNome2 = agenciaIdStr && agenciaNomeRaw2 && agenciaNomeRaw2 !== agenciaIdStr 
-      ? buildHierarchyLabel(agenciaIdStr, agenciaNomeRaw2) || agenciaNomeRaw2 
-      : agenciaNomeRaw2;
-    
-    const gerenteGestaoIdStr2 = gerenteGestaoFinal ? String(gerenteGestaoFinal.id || "") : "";
-    const gerenteGestaoNomeRaw2 = gerenteGestaoFinal ? (gerenteGestaoFinal.label || gerenteGestaoFinal.nome || gerenteGestaoIdStr2) : "";
-    const gerenteGestaoNome2 = gerenteGestaoIdStr2 && gerenteGestaoNomeRaw2 && gerenteGestaoNomeRaw2 !== gerenteGestaoIdStr2
-      ? buildHierarchyLabel(gerenteGestaoIdStr2, gerenteGestaoNomeRaw2) || gerenteGestaoNomeRaw2
-      : gerenteGestaoNomeRaw2;
-    
-    const segmentoIdStrFinal2 = segmento ? String(segmento.id || "") : segmentoIdStr || "";
-    const segmentoNomeRaw2 = segmento ? (segmento.label || segmento.nome || segmentoIdStrFinal2) : "";
-    const segmentoNome2 = segmentoIdStrFinal2 && segmentoNomeRaw2 && segmentoNomeRaw2 !== segmentoIdStrFinal2
-      ? buildHierarchyLabel(segmentoIdStrFinal2, segmentoNomeRaw2) || segmentoNomeRaw2
-      : segmentoNomeRaw2;
-    
-    const diretoriaIdStrFinal2 = diretoria ? String(diretoria.id || "") : diretoriaIdStr || "";
-    const diretoriaNomeRaw2 = diretoria ? (diretoria.label || diretoria.nome || diretoriaIdStrFinal2) : "";
-    const diretoriaNome2 = diretoriaIdStrFinal2 && diretoriaNomeRaw2 && diretoriaNomeRaw2 !== diretoriaIdStrFinal2
-      ? buildHierarchyLabel(diretoriaIdStrFinal2, diretoriaNomeRaw2) || diretoriaNomeRaw2
-      : diretoriaNomeRaw2;
-    
-    rows.push({
-      segmentoId: segmentoIdStrFinal2,
-      segmentoNome: segmentoNome2,
-      diretoriaId: diretoriaIdStrFinal2,
-      diretoriaNome: diretoriaNome2,
-      regionalId: regional ? String(regional.id || "") : "",
-      regionalNome: regional ? (regional.label || regional.nome || String(regional.id || "")) : "",
-      agenciaId: agenciaIdStr,
-      agenciaNome: agenciaNome2,
-      gerenteGestaoId: gerenteGestaoIdStr2,
-      gerenteGestaoNome: gerenteGestaoNome2,
-      gerenteId: "",
-      gerenteNome: "",
-    });
-  });
-
-  // Adiciona gerentes de gestão que não estão vinculados a agências ainda processadas
-  gerentesGestaoMap.forEach((gg, ggId) => {
-    const ggIdStr = String(gg.id || ggId);
-    const agenciaIdStr = String(gg.id_agencia || gg.agencia || "");
-    
-    if (!agenciaIdStr) return;
-    
-    // Verifica se já existe uma row para esta combinação agência-gerente gestão
-    const exists = rows.some(row => 
-      row.agenciaId === agenciaIdStr && row.gerenteGestaoId === ggIdStr
-    );
-    if (exists) return;
-
-    const agencia = agenciasMap.get(agenciaIdStr);
-    if (!agencia) return;
-
-    const regionalIdStr = String(agencia.id_regional || agencia.regional_id || agencia.gerencia_regional_id || "");
-    const regional = regionalIdStr ? regionaisMap.get(regionalIdStr) : null;
-
-    const diretoriaIdStr = regional 
-      ? String(regional.id_diretoria || regional.diretoria_id || "")
-      : String(agencia.id_diretoria || agencia.diretoria_id || "");
-    const diretoria = diretoriaIdStr ? diretoriasMap.get(diretoriaIdStr) : null;
-
-    const segmentoIdStr = diretoria
-      ? String(diretoria.id_segmento || diretoria.segmento_id || "")
-      : (regional ? String(regional.id_segmento || regional.segmento_id || "") : "");
-    const segmento = segmentoIdStr ? segmentosMap.get(segmentoIdStr) : null;
-
-    const agenciaNomeRaw3 = agencia ? (agencia.label || agencia.nome || agenciaIdStr) : agenciaIdStr;
-    const agenciaNome3 = agenciaIdStr && agenciaNomeRaw3 && agenciaNomeRaw3 !== agenciaIdStr 
-      ? buildHierarchyLabel(agenciaIdStr, agenciaNomeRaw3) || agenciaNomeRaw3 
-      : agenciaNomeRaw3;
-    
-    const gerenteGestaoNomeRaw3 = gg ? (gg.label || gg.nome || ggIdStr) : ggIdStr;
-    const gerenteGestaoNome3 = ggIdStr && gerenteGestaoNomeRaw3 && gerenteGestaoNomeRaw3 !== ggIdStr
-      ? buildHierarchyLabel(ggIdStr, gerenteGestaoNomeRaw3) || gerenteGestaoNomeRaw3
-      : gerenteGestaoNomeRaw3;
-    
-    const segmentoIdStrFinal3 = segmento ? String(segmento.id || "") : segmentoIdStr || "";
-    const segmentoNomeRaw3 = segmento ? (segmento.label || segmento.nome || segmentoIdStrFinal3) : "";
-    const segmentoNome3 = segmentoIdStrFinal3 && segmentoNomeRaw3 && segmentoNomeRaw3 !== segmentoIdStrFinal3
-      ? buildHierarchyLabel(segmentoIdStrFinal3, segmentoNomeRaw3) || segmentoNomeRaw3
-      : segmentoNomeRaw3;
-    
-    const diretoriaIdStrFinal3 = diretoria ? String(diretoria.id || "") : diretoriaIdStr || "";
-    const diretoriaNomeRaw3 = diretoria ? (diretoria.label || diretoria.nome || diretoriaIdStrFinal3) : "";
-    const diretoriaNome3 = diretoriaIdStrFinal3 && diretoriaNomeRaw3 && diretoriaNomeRaw3 !== diretoriaIdStrFinal3
-      ? buildHierarchyLabel(diretoriaIdStrFinal3, diretoriaNomeRaw3) || diretoriaNomeRaw3
-      : diretoriaNomeRaw3;
-    
-    rows.push({
-      segmentoId: segmentoIdStrFinal3,
-      segmentoNome: segmentoNome3,
-      diretoriaId: diretoriaIdStrFinal3,
-      diretoriaNome: diretoriaNome3,
-      regionalId: regional ? String(regional.id || "") : "",
-      regionalNome: regional ? (regional.label || regional.nome || String(regional.id || "")) : "",
-      agenciaId: agenciaIdStr,
-      agenciaNome: agenciaNome3,
-      gerenteGestaoId: ggIdStr,
-      gerenteGestaoNome: gerenteGestaoNome3,
-      gerenteId: "",
-      gerenteNome: "",
-    });
-  });
-
-  return rows;
-}
-
 function getHierarchySelectionFromDOM(){
   const values = hierarchyDefaultSelection();
   HIERARCHY_FIELDS_DEF.forEach(field => {
@@ -8283,39 +9024,6 @@ function hierarchyRowMatchesField(row, field, value){
 function filterHierarchyRowsForField(targetField, selection, rows){
   return rows.filter(row => HIERARCHY_FIELDS_DEF.every(field => {
     if (field.key === targetField) return true;
-    
-    // Caso especial: se estamos construindo opções para "ggestao" e não há gerente selecionado,
-    // não filtrar por ggestao (mostrar todos os gerentes de gestão disponíveis)
-    if (targetField === "ggestao" && field.key === "ggestao") {
-      const gerenteDef = HIERARCHY_FIELD_MAP.get("gerente");
-      const gerenteValue = selection.gerente;
-      const gerenteIsDefault = !gerenteValue || gerenteValue === gerenteDef?.defaultValue || selecaoPadrao(gerenteValue);
-      if (gerenteIsDefault) return true; // Não filtrar por ggestao se não há gerente selecionado
-    }
-    
-    // Caso especial: se estamos construindo opções para "gerente" e há gerente de gestão selecionado,
-    // filtrar gerentes pelo id_gestor
-    if (targetField === "gerente" && field.key === "ggestao") {
-      const ggestaoValue = selection.ggestao;
-      const ggestaoDef = HIERARCHY_FIELD_MAP.get("ggestao");
-      const ggestaoIsDefault = !ggestaoValue || ggestaoValue === ggestaoDef?.defaultValue || selecaoPadrao(ggestaoValue);
-      if (!ggestaoIsDefault) {
-        // Filtra gerentes que pertencem ao gerente de gestão selecionado
-        const ggestaoId = limparTexto(ggestaoValue);
-        const rowGerenteGestaoId = limparTexto(row.gerenteGestaoId || row.id_gestor || "");
-        const matches = rowGerenteGestaoId && String(rowGerenteGestaoId) === String(ggestaoId);
-        console.log(`[filterHierarchyRowsForField - app.js] Filtrando gerente por ggestao:`, {
-          ggestaoValue,
-          ggestaoId,
-          rowGerenteGestaoId,
-          row: row,
-          matches
-        });
-        return matches;
-      }
-      return true; // Se não há gerente de gestão selecionado, mostra todos os gerentes
-    }
-    
     return hierarchyRowMatchesField(row, field.key, selection[field.key]);
   }));
 }
@@ -8323,190 +9031,15 @@ function filterHierarchyRowsForField(targetField, selection, rows){
 function buildHierarchyOptions(fieldKey, selection, rows){
   const def = HIERARCHY_FIELD_MAP.get(fieldKey);
   if (!def) return [];
-  
-  // Campos que sempre devem mostrar ID junto com o nome
-  const fieldsWithIdRequired = new Set(["segmento", "diretoria", "agencia", "ggestao", "gerente"]);
-  
-  // Mapeamento de fieldKey para a chave correta em DIMENSION_FILTER_OPTIONS
-  const dimensionKeyMap = {
-    'ggestao': 'gerenteGestao',
-    'gerente': 'gerente',
-    'segmento': 'segmento',
-    'diretoria': 'diretoria',
-    'gerencia': 'gerencia',
-    'agencia': 'agencia'
-  };
-  const dimensionKey = dimensionKeyMap[fieldKey] || fieldKey;
-  
-  // Se há opções de dimensão pré-definidas, usa-as diretamente após filtrar
-  const hasDimensionPreset = Array.isArray(DIMENSION_FILTER_OPTIONS[dimensionKey])
-    && DIMENSION_FILTER_OPTIONS[dimensionKey].length > 0;
-  
-  // Se há preset e não há rows, usa diretamente as opções de dimensão (com filtro hierárquico)
-  // Para gerente, sempre usa dimension preset para garantir filtragem correta por id_gestor
-  const shouldUseDimensionPreset = hasDimensionPreset && (fieldKey === "gerente" || (!Array.isArray(rows) || !rows.length));
-  if (shouldUseDimensionPreset) {
-    if (fieldKey === "gerente") {
-      console.log(`[buildHierarchyOptions - app.js] Usando caminho: dimension preset para gerente`, {
-        hasDimensionPreset,
-        rowsLength: Array.isArray(rows) ? rows.length : 'not array',
-        selection: selection
-      });
-    }
-    const baseOption = { value: def.defaultValue, label: def.defaultLabel };
-    
-    // Mapeamento de campos de relacionamento para cada nível hierárquico
-    const hierarchyFilterMap = {
-      'diretoria': { parentField: 'segmento', relationField: 'id_segmento' },
-      'gerencia': { parentField: 'diretoria', relationField: 'id_diretoria' },
-      'agencia': { parentField: 'gerencia', relationField: 'id_regional' },
-      'gerenteGestao': { parentField: 'agencia', relationField: 'id_agencia' },
-      'gerente': { parentField: 'ggestao', relationField: 'id_gestor' }
-    };
-    
-    const filterConfig = hierarchyFilterMap[dimensionKey];
-    const normalizeId = (val) => {
-      if (val == null || val === "") return "";
-      if (typeof limparTexto === "function") return limparTexto(val);
-      return String(val).trim();
-    };
-    
-    // Filtra opções baseado na seleção do nível superior
-    let filteredOptions = DIMENSION_FILTER_OPTIONS[dimensionKey];
-    if (filterConfig && selection[filterConfig.parentField]) {
-      const parentValue = normalizeId(selection[filterConfig.parentField]);
-      const parentDef = HIERARCHY_FIELD_MAP.get(filterConfig.parentField);
-      const parentDefaultValue = parentDef?.defaultValue || "";
-      // Filtra apenas se o valor do pai não for o padrão (Todos/Todas) e não for vazio
-      if (parentValue && parentValue !== parentDefaultValue && !selecaoPadrao(parentValue)) {
-        filteredOptions = DIMENSION_FILTER_OPTIONS[dimensionKey].filter(opt => {
-          const relationValue = normalizeId(opt[filterConfig.relationField] || opt[filterConfig.relationField.replace('id_', '')] || "");
-          const matches = relationValue && String(relationValue) === String(parentValue);
-          if (fieldKey === "gerente" && filterConfig.parentField === "ggestao") {
-            console.log(`[buildHierarchyOptions - app.js - no rows] Filtrando gerente por ggestao:`, {
-              parentValue,
-              relationValue,
-              opt: opt,
-              matches
-            });
-          }
-          return matches;
-        });
-      }
-    }
-    
-    const options = [baseOption].concat(
-      filteredOptions.map(opt => {
-        const normalized = normOpt(opt);
-        // Preserva funcional do opt original (normOpt pode remover campos extras)
-        const funcional = opt.funcional;
-        let label = normalized.label || normalized.id;
-        if (fieldKey === "gerente") {
-          console.log(`[buildHierarchyOptions - app.js] Processando opção de gerente:`, {
-            opt: opt,
-            normalized: normalized,
-            funcional: funcional,
-            label: label
-          });
-        }
-        
-        // Para segmento, diretoria, agência, gerente gestão e gerente, garantir que o label inclua o ID
-        if (fieldsWithIdRequired.has(fieldKey) && normalized.id) {
-          const optId = limparTexto(normalized.id);
-          const optLabel = limparTexto(normalized.label);
-          
-          // Para gerente e gerente de gestão, mostra apenas o nome (sem ID/funcional)
-          if (fieldKey === "ggestao" || fieldKey === "gerente") {
-            // Extrai o nome do label (remove qualquer ID que possa estar no início)
-            const optName = typeof extractNameFromLabel === "function" ? extractNameFromLabel(optLabel) : optLabel;
-            // Remove qualquer ID/funcional do início do nome
-            const nomeFinal = optName.replace(/^[a-z0-9]+\s*-\s*/i, '').trim() || optLabel.replace(/^[a-z0-9]+\s*-\s*/i, '').trim() || optLabel;
-            // Usa apenas o nome, sem ID ou funcional
-            label = nomeFinal;
-          } else {
-            // Para outros campos, usa a lógica normal
-            const optName = typeof extractNameFromLabel === "function" ? extractNameFromLabel(optLabel) : optLabel;
-            // Para outros campos, usa a lógica normal
-            // Se o label não contém o ID, adiciona usando buildHierarchyLabel
-            if (optId && optName && optId !== optName && !optLabel.includes(optId)) {
-              label = buildHierarchyLabel(optId, optName) || `${optId} - ${optName}`;
-            } else if (optId && !optLabel.includes(optId)) {
-              label = buildHierarchyLabel(optId, optLabel) || `${optId} - ${optLabel}`;
-            }
-          }
-        }
-        
-        return {
-          value: normalized.id || normalized.label,
-          label: label || normalized.id,
-          aliases: Array.isArray(opt.aliases) ? opt.aliases : [],
-        };
-      })
-    );
-    if (fieldKey === "gerente") {
-      console.log(`[buildHierarchyOptions - app.js] Retornando opções filtradas (no rows):`, {
-        optionsCount: options.length,
-        options: options,
-        filteredOptionsCount: filteredOptions.length
-      });
-    }
-    return uniqById(options);
-  }
-  
-  if (fieldKey === "gerente") {
-    console.log(`[buildHierarchyOptions - app.js] Usando caminho: tem rows ou não tem dimension preset`, {
-      hasDimensionPreset,
-      rowsLength: Array.isArray(rows) ? rows.length : 'not array'
-    });
-  }
-  
   const fallbackRows = buildHierarchyFallbackRows(fieldKey);
+  const hasDimensionPreset = Array.isArray(DIMENSION_FILTER_OPTIONS[fieldKey])
+    && DIMENSION_FILTER_OPTIONS[fieldKey].length > 0;
   const sourceRows = Array.isArray(rows)
     ? (fallbackRows.length ? rows.concat(fallbackRows) : rows)
     : fallbackRows;
   const filtered = filterHierarchyRowsForField(fieldKey, selection, sourceRows);
-  
-  // Mapeamento de campos de relacionamento para cada nível hierárquico
-  const hierarchyFilterMap = {
-    'diretoria': { parentField: 'segmento', relationField: 'id_segmento' },
-    'gerencia': { parentField: 'diretoria', relationField: 'id_diretoria' },
-    'agencia': { parentField: 'gerencia', relationField: 'id_regional' },
-    'gerenteGestao': { parentField: 'agencia', relationField: 'id_agencia' },
-    'gerente': { parentField: 'ggestao', relationField: 'id_gestor' }
-  };
-  
-  // Filtra opções de DIMENSION_FILTER_OPTIONS baseado na seleção do nível superior
-  let dimensionOptions = DIMENSION_FILTER_OPTIONS[dimensionKey] || [];
-  const filterConfig = hierarchyFilterMap[dimensionKey];
-  if (filterConfig && hasDimensionPreset && selection[filterConfig.parentField]) {
-    const normalizeId = (val) => {
-      if (val == null || val === "") return "";
-      if (typeof limparTexto === "function") return limparTexto(val);
-      return String(val).trim();
-    };
-    const parentValue = normalizeId(selection[filterConfig.parentField]);
-    const parentDef = HIERARCHY_FIELD_MAP.get(filterConfig.parentField);
-    const parentDefaultValue = parentDef?.defaultValue || "";
-    // Filtra apenas se o valor do pai não for o padrão (Todos/Todas) e não for vazio
-    if (parentValue && parentValue !== parentDefaultValue && !selecaoPadrao(parentValue)) {
-      dimensionOptions = dimensionOptions.filter(opt => {
-        const relationValue = normalizeId(opt[filterConfig.relationField] || opt[filterConfig.relationField.replace('id_', '')] || "");
-        const matches = relationValue && String(relationValue) === String(parentValue);
-        if (fieldKey === "gerente" && filterConfig.parentField === "ggestao") {
-          console.log(`[buildHierarchyOptions - app.js] Filtrando gerente por ggestao (dimension preset):`, {
-            parentValue,
-            relationValue,
-            opt: opt,
-            matches
-          });
-        }
-        return matches;
-      });
-    }
-  }
-  
   const dimensionOptionMap = new Map(
-    dimensionOptions
+    (DIMENSION_FILTER_OPTIONS[fieldKey] || [])
       .map(opt => normOpt(opt))
       .filter(opt => opt.id)
       .map(opt => [limparTexto(opt.id), opt.label])
@@ -8649,19 +9182,7 @@ function buildHierarchyOptions(fieldKey, selection, rows){
       || limparTexto(row.nome);
     const dimensionLabel = cleanValue ? dimensionOptionMap.get(cleanValue) : undefined;
     let displayLabel = dimensionLabel || explicitLabel || cleanLabel || cleanValue;
-    
-    // Para segmento, diretoria, agência, gerente gestão e gerente, sempre incluir ID junto com o nome
-    if (fieldsWithIdRequired.has(fieldKey) && idForLabel && nameForLabel && idForLabel !== nameForLabel) {
-      // Verifica se o label já contém o ID
-      const labelWithId = buildHierarchyLabel(idForLabel, nameForLabel);
-      if (labelWithId && labelWithId !== displayLabel) {
-        displayLabel = labelWithId;
-      } else if (!explicitLabel || !displayLabel.includes(idForLabel)) {
-        displayLabel = `${idForLabel} - ${nameForLabel}`;
-      }
-      aliasCandidates.push(nameForLabel);
-    } else if (!explicitLabel && comboFieldsWithConcat.has(fieldKey) && idForLabel && nameForLabel && idForLabel !== nameForLabel) {
-      // Para outros campos que não estão em fieldsWithIdRequired mas estão em comboFieldsWithConcat
+    if (!explicitLabel && comboFieldsWithConcat.has(fieldKey) && idForLabel && nameForLabel && idForLabel !== nameForLabel) {
       displayLabel = `${idForLabel} - ${nameForLabel}`;
       aliasCandidates.push(nameForLabel);
     }
@@ -8699,23 +9220,9 @@ function buildHierarchyOptions(fieldKey, selection, rows){
   });
 
   if (!options.length && hasDimensionPreset) {
-    DIMENSION_FILTER_OPTIONS[dimensionKey].forEach(opt => {
+    DIMENSION_FILTER_OPTIONS[fieldKey].forEach(opt => {
       const normalized = normOpt(opt);
       if (!normalized.id) return;
-      
-      // Para segmento, diretoria, agência, gerente gestão e gerente, garantir que o label inclua o ID
-      if (fieldsWithIdRequired.has(fieldKey)) {
-          const optId = limparTexto(normalized.id);
-          const optLabel = limparTexto(normalized.label);
-          const optName = typeof extractNameFromLabel === "function" ? extractNameFromLabel(optLabel) : optLabel;
-          
-          // Se o label não contém o ID, adiciona usando buildHierarchyLabel
-          if (optId && optName && optId !== optName && !optLabel.includes(optId)) {
-            normalized.label = buildHierarchyLabel(optId, optName) || `${optId} - ${optName}`;
-          } else if (optId && !optLabel.includes(optId)) {
-            normalized.label = buildHierarchyLabel(optId, optLabel) || `${optId} - ${optLabel}`;
-          }
-        }
       register(normalized.id, normalized.label);
     });
   }
@@ -8955,21 +9462,6 @@ function adjustHierarchySelection(selection, changedField){
   const effective = value || def.defaultValue;
   selection[changedField] = effective;
 
-  // Define a ordem hierárquica: segmento -> diretoria -> gerencia -> agencia -> ggestao -> gerente
-  const hierarchyOrder = ["segmento", "diretoria", "gerencia", "agencia", "ggestao", "gerente"];
-  const changedIndex = hierarchyOrder.indexOf(changedField);
-  
-  // Limpa todos os níveis inferiores ao campo alterado
-  if (changedIndex >= 0) {
-    for (let i = changedIndex + 1; i < hierarchyOrder.length; i++) {
-      const lowerField = hierarchyOrder[i];
-      const lowerDef = HIERARCHY_FIELD_MAP.get(lowerField);
-      if (lowerDef) {
-        selection[lowerField] = lowerDef.defaultValue;
-      }
-    }
-  }
-
   const setIf = (key, next) => {
     if (!next) return;
     const meta = HIERARCHY_FIELD_MAP.get(key);
@@ -8978,402 +9470,40 @@ function adjustHierarchySelection(selection, changedField){
     selection[key] = normalized || meta.defaultValue;
   };
 
-  // Quando um nível é selecionado, preenche automaticamente os níveis superiores se possível
   if (changedField === "agencia" && effective !== def.defaultValue){
-    const agenciaIdStr = limparTexto(effective);
-    let regionalIdStr = "";
-    let diretoriaIdStr = "";
-    let segmentoIdStr = "";
-    
-    // Tenta buscar em DIMENSION_FILTER_OPTIONS primeiro
-    if (typeof DIMENSION_FILTER_OPTIONS !== "undefined" && 
-        Array.isArray(DIMENSION_FILTER_OPTIONS.agencia)) {
-      const agOpt = DIMENSION_FILTER_OPTIONS.agencia.find(opt => {
-        const optId = limparTexto(opt.id);
-        return optId === agenciaIdStr;
-      });
-      if (agOpt) {
-        if (agOpt.id_regional) regionalIdStr = String(agOpt.id_regional).trim();
-        if (agOpt.id_diretoria) diretoriaIdStr = String(agOpt.id_diretoria).trim();
-        if (agOpt.id_segmento) segmentoIdStr = String(agOpt.id_segmento).trim();
-      }
-    }
-    
-    // Se não encontrou tudo, usa o método antigo
-    if (!regionalIdStr || !diretoriaIdStr) {
-      const meta = findAgenciaMeta(effective) || {};
-      if (!regionalIdStr) regionalIdStr = meta.gerencia || meta.regionalId || meta.regional || "";
-      if (!diretoriaIdStr) diretoriaIdStr = meta.diretoria || meta.diretoriaId || "";
-      if (!segmentoIdStr) segmentoIdStr = meta.segmento || meta.segmentoId || "";
-    }
-    
-    // Se encontrou regional mas não diretoria/segmento, busca da regional
-    if (regionalIdStr && (!diretoriaIdStr || !segmentoIdStr) && 
-        typeof DIMENSION_FILTER_OPTIONS !== "undefined" && 
-        Array.isArray(DIMENSION_FILTER_OPTIONS.gerencia)) {
-      const regOpt = DIMENSION_FILTER_OPTIONS.gerencia.find(opt => {
-        const optId = limparTexto(opt.id);
-        return optId === limparTexto(regionalIdStr);
-      });
-      if (regOpt) {
-        if (regOpt.id_diretoria && !diretoriaIdStr) {
-          diretoriaIdStr = String(regOpt.id_diretoria).trim();
-        }
-        if (regOpt.id_segmento && !segmentoIdStr) {
-          segmentoIdStr = String(regOpt.id_segmento).trim();
-        }
-      }
-    }
-    
-    // Se encontrou diretoria mas não segmento, busca da diretoria
-    if (diretoriaIdStr && !segmentoIdStr && 
-        typeof DIMENSION_FILTER_OPTIONS !== "undefined" && 
-        Array.isArray(DIMENSION_FILTER_OPTIONS.diretoria)) {
-      const dirOpt = DIMENSION_FILTER_OPTIONS.diretoria.find(opt => {
-        const optId = limparTexto(opt.id);
-        return optId === limparTexto(diretoriaIdStr);
-      });
-      if (dirOpt && dirOpt.id_segmento) {
-        segmentoIdStr = String(dirOpt.id_segmento).trim();
-      }
-    }
-    
-    setIf("gerencia", regionalIdStr);
-    setIf("diretoria", diretoriaIdStr);
-    setIf("segmento", segmentoIdStr);
+    const meta = findAgenciaMeta(effective) || {};
+    setIf("gerencia", meta.gerencia || meta.regionalId || meta.regional);
+    setIf("diretoria", meta.diretoria || meta.diretoriaId);
+    setIf("segmento", meta.segmento || meta.segmentoId);
   }
 
   if (changedField === "gerencia" && effective !== def.defaultValue){
-    const gerenciaIdStr = limparTexto(effective);
-    let diretoriaIdStr = "";
-    let segmentoIdStr = "";
-    
-    // Tenta buscar em DIMENSION_FILTER_OPTIONS primeiro
-    if (typeof DIMENSION_FILTER_OPTIONS !== "undefined" && 
-        Array.isArray(DIMENSION_FILTER_OPTIONS.gerencia)) {
-      const regOpt = DIMENSION_FILTER_OPTIONS.gerencia.find(opt => {
-        const optId = limparTexto(opt.id);
-        return optId === gerenciaIdStr;
-      });
-      if (regOpt) {
-        if (regOpt.id_diretoria) diretoriaIdStr = String(regOpt.id_diretoria).trim();
-        if (regOpt.id_segmento) segmentoIdStr = String(regOpt.id_segmento).trim();
-      }
-    }
-    
-    // Se não encontrou, usa o método antigo
-    if (!diretoriaIdStr || !segmentoIdStr) {
-      const meta = findGerenciaMeta(effective) || {};
-      if (!diretoriaIdStr) diretoriaIdStr = meta.diretoria || "";
-      if (!segmentoIdStr) segmentoIdStr = meta.segmentoId || "";
-    }
-    
-    // Se encontrou diretoria mas não segmento, busca da diretoria
-    if (diretoriaIdStr && !segmentoIdStr && 
-        typeof DIMENSION_FILTER_OPTIONS !== "undefined" && 
-        Array.isArray(DIMENSION_FILTER_OPTIONS.diretoria)) {
-      const dirOpt = DIMENSION_FILTER_OPTIONS.diretoria.find(opt => {
-        const optId = limparTexto(opt.id);
-        return optId === limparTexto(diretoriaIdStr);
-      });
-      if (dirOpt && dirOpt.id_segmento) {
-        segmentoIdStr = String(dirOpt.id_segmento).trim();
-      }
-    }
-    
-    setIf("diretoria", diretoriaIdStr);
-    setIf("segmento", segmentoIdStr);
+    const meta = findGerenciaMeta(effective) || {};
+    setIf("diretoria", meta.diretoria);
+    setIf("segmento", meta.segmentoId);
   }
 
   if (changedField === "diretoria" && effective !== def.defaultValue){
-    const diretoriaIdStr = limparTexto(effective);
-    let segmentoIdStr = "";
-    
-    // Tenta buscar em DIMENSION_FILTER_OPTIONS primeiro
-    if (typeof DIMENSION_FILTER_OPTIONS !== "undefined" && 
-        Array.isArray(DIMENSION_FILTER_OPTIONS.diretoria)) {
-      const dirOpt = DIMENSION_FILTER_OPTIONS.diretoria.find(opt => {
-        const optId = limparTexto(opt.id);
-        return optId === diretoriaIdStr;
-      });
-      if (dirOpt && dirOpt.id_segmento) {
-        segmentoIdStr = String(dirOpt.id_segmento).trim();
-      }
-    }
-    
-    // Se não encontrou, usa o método antigo
-    if (!segmentoIdStr) {
-      const meta = findDiretoriaMeta(effective) || {};
-      segmentoIdStr = meta.segmento || "";
-    }
-    
-    setIf("segmento", segmentoIdStr);
+    const meta = findDiretoriaMeta(effective) || {};
+    setIf("segmento", meta.segmento);
   }
 
   if (changedField === "ggestao" && effective !== def.defaultValue){
-    // Busca primeiro em DIMENSION_FILTER_OPTIONS se disponível
-    const ggIdStr = limparTexto(effective);
-    let agenciaIdStr = "";
-    let regionalIdStr = "";
-    let diretoriaIdStr = "";
-    let segmentoIdStr = "";
-    
-    // Tenta buscar em DIMENSION_FILTER_OPTIONS primeiro
-    if (typeof DIMENSION_FILTER_OPTIONS !== "undefined" && 
-        Array.isArray(DIMENSION_FILTER_OPTIONS.gerenteGestao)) {
-      const ggOpt = DIMENSION_FILTER_OPTIONS.gerenteGestao.find(opt => {
-        const optId = limparTexto(opt.id);
-        return optId === ggIdStr;
-      });
-      if (ggOpt) {
-        if (ggOpt.id_agencia) agenciaIdStr = String(ggOpt.id_agencia).trim();
-        
-        // Se encontrou agência, busca regional, diretoria e segmento
-        if (agenciaIdStr && typeof DIMENSION_FILTER_OPTIONS !== "undefined" && 
-            Array.isArray(DIMENSION_FILTER_OPTIONS.agencia)) {
-          const agOpt = DIMENSION_FILTER_OPTIONS.agencia.find(opt => {
-            const optId = limparTexto(opt.id);
-            return optId === limparTexto(agenciaIdStr);
-          });
-          if (agOpt) {
-            if (agOpt.id_regional) regionalIdStr = String(agOpt.id_regional).trim();
-            if (agOpt.id_diretoria) diretoriaIdStr = String(agOpt.id_diretoria).trim();
-            if (agOpt.id_segmento) segmentoIdStr = String(agOpt.id_segmento).trim();
-          }
-        }
-        
-        // Se encontrou regional mas não diretoria/segmento, busca da regional
-        if (regionalIdStr && (!diretoriaIdStr || !segmentoIdStr) && 
-            typeof DIMENSION_FILTER_OPTIONS !== "undefined" && 
-            Array.isArray(DIMENSION_FILTER_OPTIONS.gerencia)) {
-          const regOpt = DIMENSION_FILTER_OPTIONS.gerencia.find(opt => {
-            const optId = limparTexto(opt.id);
-            return optId === limparTexto(regionalIdStr);
-          });
-          if (regOpt) {
-            if (regOpt.id_diretoria && !diretoriaIdStr) {
-              diretoriaIdStr = String(regOpt.id_diretoria).trim();
-            }
-            if (regOpt.id_segmento && !segmentoIdStr) {
-              segmentoIdStr = String(regOpt.id_segmento).trim();
-            }
-          }
-        }
-        
-        // Se encontrou diretoria mas não segmento, busca da diretoria
-        if (diretoriaIdStr && !segmentoIdStr && 
-            typeof DIMENSION_FILTER_OPTIONS !== "undefined" && 
-            Array.isArray(DIMENSION_FILTER_OPTIONS.diretoria)) {
-          const dirOpt = DIMENSION_FILTER_OPTIONS.diretoria.find(opt => {
-            const optId = limparTexto(opt.id);
-            return optId === limparTexto(diretoriaIdStr);
-          });
-          if (dirOpt && dirOpt.id_segmento) {
-            segmentoIdStr = String(dirOpt.id_segmento).trim();
-          }
-        }
-      }
-    }
-    
-    // Se não encontrou, busca nos dados de estrutura (DIM_GGESTAO_LOOKUP)
-    if (!agenciaIdStr && typeof DIM_GGESTAO_LOOKUP !== "undefined" && DIM_GGESTAO_LOOKUP.has(ggIdStr)) {
-      const ggData = DIM_GGESTAO_LOOKUP.get(ggIdStr);
-      agenciaIdStr = String(ggData?.id_agencia || ggData?.agencia || "");
-      
-      if (agenciaIdStr && typeof DIM_AGENCIAS_LOOKUP !== "undefined") {
-        // Tenta buscar por ID primeiro
-        let agenciaData = DIM_AGENCIAS_LOOKUP.get(agenciaIdStr);
-        // Se não encontrou, tenta buscar por todas as chaves possíveis
-        if (!agenciaData) {
-          for (const [key, value] of DIM_AGENCIAS_LOOKUP.entries()) {
-            if (String(value?.id || key) === agenciaIdStr) {
-              agenciaData = value;
-              break;
-            }
-          }
-        }
-        
-        if (agenciaData) {
-          regionalIdStr = String(agenciaData?.id_regional || agenciaData?.regional_id || agenciaData?.gerencia_regional_id || "");
-          
-          if (regionalIdStr && typeof DIM_REGIONAIS_LOOKUP !== "undefined") {
-            let regionalData = DIM_REGIONAIS_LOOKUP.get(regionalIdStr);
-            if (!regionalData) {
-              for (const [key, value] of DIM_REGIONAIS_LOOKUP.entries()) {
-                if (String(value?.id || key) === regionalIdStr) {
-                  regionalData = value;
-                  break;
-                }
-              }
-            }
-            
-            if (regionalData) {
-              diretoriaIdStr = String(regionalData?.id_diretoria || regionalData?.diretoria_id || "");
-              
-              if (diretoriaIdStr && typeof DIM_DIRETORIAS_LOOKUP !== "undefined") {
-                let diretoriaData = DIM_DIRETORIAS_LOOKUP.get(diretoriaIdStr);
-                if (!diretoriaData) {
-                  for (const [key, value] of DIM_DIRETORIAS_LOOKUP.entries()) {
-                    if (String(value?.id || key) === diretoriaIdStr) {
-                      diretoriaData = value;
-                      break;
-                    }
-                  }
-                }
-                
-                if (diretoriaData) {
-                  segmentoIdStr = String(diretoriaData?.id_segmento || diretoriaData?.segmento_id || "");
-                }
-              }
-            }
-          } else if (agenciaData?.id_diretoria) {
-            // Se não tem regional, tenta buscar diretoria diretamente da agência
-            diretoriaIdStr = String(agenciaData.id_diretoria || agenciaData.diretoria_id || "");
-            if (diretoriaIdStr && typeof DIM_DIRETORIAS_LOOKUP !== "undefined") {
-              let diretoriaData = DIM_DIRETORIAS_LOOKUP.get(diretoriaIdStr);
-              if (!diretoriaData) {
-                for (const [key, value] of DIM_DIRETORIAS_LOOKUP.entries()) {
-                  if (String(value?.id || key) === diretoriaIdStr) {
-                    diretoriaData = value;
-                    break;
-                  }
-                }
-              }
-              
-              if (diretoriaData) {
-                segmentoIdStr = String(diretoriaData?.id_segmento || diretoriaData?.segmento_id || "");
-              }
-            }
-          }
-        }
-      }
-    }
-    
-    // Se não encontrou nos dados de estrutura, tenta buscar no meta antigo
-    if (!agenciaIdStr) {
-      const meta = findGerenteGestaoMeta(effective) || {};
-      agenciaIdStr = meta.agencia || "";
-      regionalIdStr = meta.gerencia || meta.regionalId || meta.regional || "";
-      diretoriaIdStr = meta.diretoria || meta.diretoriaId || "";
-      segmentoIdStr = meta.segmento || meta.segmentoId || "";
-      
-      // Se encontrou agência no meta, tenta buscar regional e diretoria através da agência
-      if (agenciaIdStr && !regionalIdStr) {
-        const agMeta = findAgenciaMeta(agenciaIdStr) || {};
-        regionalIdStr = agMeta.gerencia || agMeta.regionalId || agMeta.regional || regionalIdStr;
-        diretoriaIdStr = agMeta.diretoria || agMeta.diretoriaId || diretoriaIdStr;
-        segmentoIdStr = agMeta.segmento || agMeta.segmentoId || segmentoIdStr;
-      }
-    }
-    
-    setIf("agencia", agenciaIdStr);
-    setIf("gerencia", regionalIdStr);
-    setIf("diretoria", diretoriaIdStr);
-    setIf("segmento", segmentoIdStr);
+    const meta = findGerenteGestaoMeta(effective) || {};
+    setIf("agencia", meta.agencia);
+    setIf("gerencia", meta.gerencia);
+    setIf("diretoria", meta.diretoria);
+    const agMeta = meta.agencia ? (findAgenciaMeta(meta.agencia) || {}) : {};
+    setIf("segmento", agMeta.segmento || agMeta.segmentoId);
   }
 
   if (changedField === "gerente" && effective !== def.defaultValue){
-    const gerenteIdStr = limparTexto(effective);
-    let ggestaoIdStr = "";
-    let agenciaIdStr = "";
-    let regionalIdStr = "";
-    let diretoriaIdStr = "";
-    let segmentoIdStr = "";
-    
-    // Tenta buscar em DIMENSION_FILTER_OPTIONS primeiro
-    if (typeof DIMENSION_FILTER_OPTIONS !== "undefined" && 
-        Array.isArray(DIMENSION_FILTER_OPTIONS.gerente)) {
-      const gerenteOpt = DIMENSION_FILTER_OPTIONS.gerente.find(opt => {
-        const optId = limparTexto(opt.id);
-        return optId === gerenteIdStr;
-      });
-      if (gerenteOpt) {
-        ggestaoIdStr = String(gerenteOpt.id_gestor || gerenteOpt.idGestor || "").trim();
-      }
-    }
-    
-    // Se encontrou gerente de gestão, busca a agência
-    if (ggestaoIdStr && typeof DIMENSION_FILTER_OPTIONS !== "undefined" && 
-        Array.isArray(DIMENSION_FILTER_OPTIONS.gerenteGestao)) {
-      const ggOpt = DIMENSION_FILTER_OPTIONS.gerenteGestao.find(opt => {
-        const optId = limparTexto(opt.id);
-        return optId === limparTexto(ggestaoIdStr);
-      });
-      if (ggOpt && ggOpt.id_agencia) {
-        agenciaIdStr = String(ggOpt.id_agencia).trim();
-      }
-    }
-    
-    // Se não encontrou, usa o método antigo
-    if (!ggestaoIdStr || !agenciaIdStr) {
-      const meta = findGerenteMeta(effective) || {};
-      if (!ggestaoIdStr) ggestaoIdStr = meta.gerenteGestao || meta.id_gestor || "";
-      if (!agenciaIdStr) agenciaIdStr = meta.agencia || "";
-      regionalIdStr = meta.gerencia || "";
-      diretoriaIdStr = meta.diretoria || "";
-      const agMeta = agenciaIdStr ? (findAgenciaMeta(agenciaIdStr) || {}) : {};
-      segmentoIdStr = agMeta.segmento || agMeta.segmentoId || "";
-    }
-    
-    // Se encontrou agência, busca regional, diretoria e segmento
-    if (agenciaIdStr && typeof DIMENSION_FILTER_OPTIONS !== "undefined" && 
-        Array.isArray(DIMENSION_FILTER_OPTIONS.agencia)) {
-      const agOpt = DIMENSION_FILTER_OPTIONS.agencia.find(opt => {
-        const optId = limparTexto(opt.id);
-        return optId === limparTexto(agenciaIdStr);
-      });
-      if (agOpt) {
-        if (agOpt.id_regional && !regionalIdStr) {
-          regionalIdStr = String(agOpt.id_regional).trim();
-        }
-        if (agOpt.id_diretoria && !diretoriaIdStr) {
-          diretoriaIdStr = String(agOpt.id_diretoria).trim();
-        }
-        if (agOpt.id_segmento && !segmentoIdStr) {
-          segmentoIdStr = String(agOpt.id_segmento).trim();
-        }
-      }
-    }
-    
-    // Se encontrou regional, busca diretoria e segmento
-    if (regionalIdStr && !diretoriaIdStr && typeof DIMENSION_FILTER_OPTIONS !== "undefined" && 
-        Array.isArray(DIMENSION_FILTER_OPTIONS.gerencia)) {
-      const regOpt = DIMENSION_FILTER_OPTIONS.gerencia.find(opt => {
-        const optId = limparTexto(opt.id);
-        return optId === limparTexto(regionalIdStr);
-      });
-      if (regOpt) {
-        if (regOpt.id_diretoria && !diretoriaIdStr) {
-          diretoriaIdStr = String(regOpt.id_diretoria).trim();
-        }
-        if (regOpt.id_segmento && !segmentoIdStr) {
-          segmentoIdStr = String(regOpt.id_segmento).trim();
-        }
-      }
-    }
-    
-    // Se encontrou diretoria, busca segmento
-    if (diretoriaIdStr && !segmentoIdStr && typeof DIMENSION_FILTER_OPTIONS !== "undefined" && 
-        Array.isArray(DIMENSION_FILTER_OPTIONS.diretoria)) {
-      const dirOpt = DIMENSION_FILTER_OPTIONS.diretoria.find(opt => {
-        const optId = limparTexto(opt.id);
-        return optId === limparTexto(diretoriaIdStr);
-      });
-      if (dirOpt && dirOpt.id_segmento) {
-        segmentoIdStr = String(dirOpt.id_segmento).trim();
-      }
-    }
-    
-    setIf("ggestao", ggestaoIdStr);
-    setIf("agencia", agenciaIdStr);
-    setIf("gerencia", regionalIdStr);
-    setIf("diretoria", diretoriaIdStr);
-    setIf("segmento", segmentoIdStr);
-  }
-
-  if (changedField === "segmento" && effective !== def.defaultValue){
-    // Quando segmento é alterado, limpa diretoria, gerencia, agencia, ggestao e gerente
-    // (já feito acima, mas garantindo)
+    const meta = findGerenteMeta(effective) || {};
+    setIf("agencia", meta.agencia);
+    setIf("gerencia", meta.gerencia);
+    setIf("diretoria", meta.diretoria);
+    const agMeta = meta.agencia ? (findAgenciaMeta(meta.agencia) || {}) : {};
+    setIf("segmento", agMeta.segmento || agMeta.segmentoId);
   }
 
   return selection;
@@ -9407,7 +9537,7 @@ function getFilterValues() {
     diretoria: val("#f-diretoria"),
     gerencia:  val("#f-gerencia"),
     agencia:   val("#f-agencia"),
-    ggestao:   val("#f-gerente-gestao"),
+    ggestao:   val("#f-ggestao"),
     gerente:   val("#f-gerente"),
     secaoId:   val("#f-secao"),
     familiaId: val("#f-familia"),
@@ -9522,8 +9652,8 @@ function autoSnapViewToFilters() {
   else if (f.familiaId && f.familiaId !== "Todas") snap = "familia";
   else if (f.secaoId && f.secaoId !== "Todas") snap = "secao";
   else if (f.gerente && f.gerente !== "Todos") snap = "gerente";
-  else if (f.gerencia && f.gerencia !== "Todas" && f.gerencia !== "") snap = "gerencia";
-  else if (f.diretoria && f.diretoria !== "Todas" && f.diretoria !== "") snap = "diretoria";
+  else if (f.gerencia && f.gerencia !== "Todas") snap = "gerencia";
+  else if (f.diretoria && f.diretoria !== "Todas") snap = "diretoria";
   if (snap && state.tableView !== snap) { state.tableView = snap; setActiveChip(snap); }
 }
 
@@ -9572,7 +9702,7 @@ function ensureContracts(r) {
   if (!r) return [];
   if (r._contracts) return r._contracts;
   const registroKey = limparTexto(r.registroId || r.registro_id || r.registro);
-  if (registroKey && typeof DETAIL_BY_REGISTRO !== "undefined" && DETAIL_BY_REGISTRO.has(registroKey)) {
+  if (registroKey && DETAIL_BY_REGISTRO.has(registroKey)) {
     const hydrated = DETAIL_BY_REGISTRO.get(registroKey).map(item => hydrateDetailContract(item, r));
     r._contracts = hydrated;
     return hydrated;
@@ -10291,7 +10421,7 @@ function initCombos() {
     { key: "diretoria", selector: "#f-diretoria" },
     { key: "gerencia",  selector: "#f-gerencia" },
     { key: "agencia",   selector: "#f-agencia" },
-    { key: "ggestao",   selector: "#f-gerente-gestao" },
+    { key: "ggestao",   selector: "#f-ggestao" },
     { key: "gerente",   selector: "#f-gerente" },
   ].forEach(({ key, selector }) => {
     const el = $(selector);
@@ -10300,42 +10430,13 @@ function initCombos() {
     el.addEventListener("change", () => handleHierarchySelectionChange(key));
   });
 
-  // Popula família (secao) usando DIMENSION_FILTER_OPTIONS.familia se disponível
-  const buildFamiliaOptions = () => {
-    const base = [{ value: "Todas", label: "Todas", aliases: ["Todas", "Todos"] }];
-    
-    // Usa DIMENSION_FILTER_OPTIONS.familia se disponível
-    const hasFamiliaPreset = typeof DIMENSION_FILTER_OPTIONS !== "undefined" && 
-      Array.isArray(DIMENSION_FILTER_OPTIONS.familia) && 
-      DIMENSION_FILTER_OPTIONS.familia.length > 0;
-    
-    if (hasFamiliaPreset) {
-      const options = DIMENSION_FILTER_OPTIONS.familia.map(opt => {
-        const normalized = typeof normOpt === "function" ? normOpt(opt) : opt;
-        // Normaliza o ID para string para garantir consistência
-        const id = String(normalized.id || opt.id || "").trim();
-        const label = String(normalized.label || opt.label || "").trim();
-        return {
-          value: id,
-          label: label || id,
-          aliases: [id, label, String(opt.id || ""), String(opt.label || "")].filter(Boolean),
-        };
-      }).filter(opt => opt.value); // Remove opções sem ID
-      if (options.length > 0) {
-        return base.concat(options);
-      }
-    }
-    
-    // Fallback para CARD_SECTIONS_DEF
-    const fallbackOptions = CARD_SECTIONS_DEF.map(sec => ({
+  const secaoOptions = [{ value: "Todas", label: "Todas", aliases: ["Todas", "Todos"] }].concat(
+    CARD_SECTIONS_DEF.map(sec => ({
       value: sec.id,
       label: formatTitleCase(sec.label || sec.id),
       aliases: [sec.id, sec.label, formatTitleCase(sec.label || sec.id)].filter(Boolean),
-    }));
-    return base.concat(fallbackOptions);
-  };
-  
-  const secaoOptions = buildFamiliaOptions();
+    }))
+  );
   fill("#f-secao", secaoOptions);
 
   const familiaSelect = $("#f-familia");
@@ -10344,50 +10445,8 @@ function initCombos() {
   const buildIndicatorOptions = (secaoId) => {
     const base = [{ value: "Todas", label: "Todos", aliases: ["Todos", "Todas"] }];
     const filtroSecao = secaoId && secaoId !== "Todas" ? secaoId : "";
-    const normalizeId = (val) => {
-      if (val == null || val === "") return "";
-      if (typeof limparTexto === "function") return limparTexto(val);
-      return String(val).trim();
-    };
     const added = new Set();
     const indicadores = [];
-    
-    // Usa DIMENSION_FILTER_OPTIONS.indicador se disponível (seguindo o padrão dos outros campos)
-    const hasIndicadorPreset = typeof DIMENSION_FILTER_OPTIONS !== "undefined" && 
-      Array.isArray(DIMENSION_FILTER_OPTIONS.indicador) && 
-      DIMENSION_FILTER_OPTIONS.indicador.length > 0;
-    
-    if (hasIndicadorPreset) {
-      DIMENSION_FILTER_OPTIONS.indicador.forEach(opt => {
-        const normalized = typeof normOpt === "function" ? normOpt(opt) : opt;
-        // Normaliza o ID para string
-        const id = String(normalized.id || opt.id || "").trim();
-        const label = String(normalized.label || opt.label || "").trim();
-        
-        if (!id) return;
-        
-        // Filtra por familia_id se há filtro de seção
-        if (filtroSecao) {
-          const familiaId = normalizeId(filtroSecao);
-          const indicadorFamiliaId = normalizeId(opt.familia_id || opt.familiaId || normalized.familia_id || "");
-          if (familiaId && indicadorFamiliaId && String(familiaId) !== String(indicadorFamiliaId)) {
-            return; // Pula este indicador se não pertence à família selecionada
-          }
-        }
-        
-        // Usa o ID normalizado como chave para evitar duplicatas
-        const idKey = normalizeId(id);
-        if (!idKey || added.has(idKey)) return;
-        added.add(idKey);
-        indicadores.push({
-          value: id,
-          label: label || id,
-          aliases: [id, label].filter(Boolean),
-        });
-      });
-    }
-    
-    // Também adiciona opções de produtos se disponíveis (fallback)
     const consider = (prod) => {
       if (!prod || !prod.id || added.has(prod.id)) return;
       if (filtroSecao && prod.secaoId && prod.secaoId !== filtroSecao) return;
@@ -10418,63 +10477,9 @@ function initCombos() {
     const base = [{ value: "Todos", label: "Todos", aliases: ["Todos", "Todas"] }];
     const resolved = resolverIndicadorPorAlias(indicadorId) || limparTexto(indicadorId);
     if (!resolved || resolved === "Todas" || resolved === "Todos") return base;
-    
-    const normalizeId = (val) => {
-      if (val == null || val === "") return "";
-      if (typeof limparTexto === "function") return limparTexto(val);
-      return String(val).trim();
-    };
-    const resolvedId = normalizeId(resolved);
-    const added = new Set();
-    const subindicadores = [];
-    
-    // Usa DIMENSION_FILTER_OPTIONS.subindicador se disponível (seguindo o padrão dos outros campos)
-    const hasSubindicadorPreset = typeof DIMENSION_FILTER_OPTIONS !== "undefined" && 
-      Array.isArray(DIMENSION_FILTER_OPTIONS.subindicador) && 
-      DIMENSION_FILTER_OPTIONS.subindicador.length > 0;
-    
-    if (hasSubindicadorPreset) {
-      DIMENSION_FILTER_OPTIONS.subindicador.forEach(opt => {
-        const normalized = typeof normOpt === "function" ? normOpt(opt) : opt;
-        // Normaliza o ID para string
-        const id = String(normalized.id || opt.id || "").trim();
-        const label = String(normalized.label || opt.label || "").trim();
-        
-        if (!id) return;
-        
-        const indicadorIdFromOpt = normalizeId(opt.indicador_id || opt.indicadorId || normalized.indicador_id || "");
-        
-        // Filtra por indicador_id se fornecido
-        if (indicadorIdFromOpt && resolvedId && String(indicadorIdFromOpt) !== String(resolvedId)) {
-          return; // Pula este subindicador se não pertence ao indicador selecionado
-        }
-        
-        // Usa o ID normalizado como chave para evitar duplicatas
-        const idKey = normalizeId(id);
-        if (!idKey || added.has(idKey)) return;
-        added.add(idKey);
-        subindicadores.push({
-          value: id,
-          label: label || id,
-          aliases: [id, label].filter(Boolean),
-        });
-      });
-    }
-    
-    // Combina com opções de getFlatSubIndicatorOptions (fallback)
     const entries = getFlatSubIndicatorOptions(resolved);
-    if (Array.isArray(entries) && entries.length > 0) {
-      entries.forEach(entry => {
-        const entryId = normalizeId(entry.value || entry.id || "");
-        if (entryId && !added.has(entryId)) {
-          subindicadores.push(entry);
-          added.add(entryId);
-        }
-      });
-    }
-    
-    if (!subindicadores.length) return base;
-    return base.concat(subindicadores);
+    if (!entries.length) return base;
+    return base.concat(entries);
   };
 
   const applySubIndicadorOptions = (preserveValue = true) => {
@@ -10521,99 +10526,6 @@ function initCombos() {
     });
   }
 
-  // Quando um subindicador é selecionado, seleciona automaticamente o indicador e família correspondentes
-  if (produtoSelect && !produtoSelect.dataset.bound) {
-    produtoSelect.dataset.bound = "1";
-    produtoSelect.addEventListener("change", () => {
-      const subindicadorId = produtoSelect.value;
-      if (!subindicadorId || subindicadorId === "Todos" || subindicadorId === "Todas") return;
-      
-      // Busca o subindicador em DIMENSION_FILTER_OPTIONS ou DIM_SUBINDICADORES_LOOKUP
-      const normalizeId = (val) => {
-        if (val == null || val === "") return "";
-        if (typeof limparTexto === "function") return limparTexto(val);
-        return String(val).trim();
-      };
-      const subindicadorIdNormalized = normalizeId(subindicadorId);
-      
-      let indicadorId = null;
-      let familiaId = null;
-      
-      // Tenta encontrar em DIMENSION_FILTER_OPTIONS
-      if (typeof DIMENSION_FILTER_OPTIONS !== "undefined" && 
-          Array.isArray(DIMENSION_FILTER_OPTIONS.subindicador)) {
-        const subindicadorOpt = DIMENSION_FILTER_OPTIONS.subindicador.find(opt => {
-          const optId = normalizeId(opt.id);
-          return optId === subindicadorIdNormalized;
-        });
-        if (subindicadorOpt) {
-          indicadorId = subindicadorOpt.indicador_id || subindicadorOpt.indicadorId;
-        }
-      }
-      
-      // Se não encontrou, tenta em DIM_SUBINDICADORES_LOOKUP
-      if (!indicadorId && typeof DIM_SUBINDICADORES_LOOKUP !== "undefined") {
-        const subindicadorEntry = DIM_SUBINDICADORES_LOOKUP.get(subindicadorIdNormalized);
-        if (subindicadorEntry) {
-          indicadorId = subindicadorEntry.indicador_id || subindicadorEntry.indicadorId;
-        }
-      }
-      
-      // Se encontrou o indicador, busca a família
-      if (indicadorId) {
-        const indicadorIdNormalized = normalizeId(indicadorId);
-        
-        // Tenta encontrar em DIMENSION_FILTER_OPTIONS
-        if (typeof DIMENSION_FILTER_OPTIONS !== "undefined" && 
-            Array.isArray(DIMENSION_FILTER_OPTIONS.indicador)) {
-          const indicadorOpt = DIMENSION_FILTER_OPTIONS.indicador.find(opt => {
-            const optId = normalizeId(opt.id);
-            return optId === indicadorIdNormalized;
-          });
-          if (indicadorOpt) {
-            familiaId = indicadorOpt.familia_id || indicadorOpt.familiaId;
-          }
-        }
-        
-        // Se não encontrou, tenta em DIM_INDICADORES_LOOKUP
-        if (!familiaId && typeof DIM_INDICADORES_LOOKUP !== "undefined") {
-          const indicadorEntry = DIM_INDICADORES_LOOKUP.get(indicadorIdNormalized);
-          if (indicadorEntry) {
-            familiaId = indicadorEntry.familia_id || indicadorEntry.familiaId;
-          }
-        }
-        
-        // Seleciona o indicador se encontrado
-        if (indicadorId && familiaSelect) {
-          const indicadorIdStr = String(indicadorId).trim();
-          // Verifica se o indicador está disponível nas opções
-          const indicadorOption = Array.from(familiaSelect.options).find(opt => {
-            const optId = normalizeId(opt.value);
-            return optId === normalizeId(indicadorIdStr);
-          });
-          if (indicadorOption) {
-            familiaSelect.value = indicadorIdStr;
-            familiaSelect.dispatchEvent(new Event('change', { bubbles: true }));
-          }
-        }
-        
-        // Seleciona a família se encontrada
-        if (familiaId && secaoSelect) {
-          const familiaIdStr = String(familiaId).trim();
-          // Verifica se a família está disponível nas opções
-          const familiaOption = Array.from(secaoSelect.options).find(opt => {
-            const optId = normalizeId(opt.value);
-            return optId === normalizeId(familiaIdStr);
-          });
-          if (familiaOption) {
-            secaoSelect.value = familiaIdStr;
-            secaoSelect.dispatchEvent(new Event('change', { bubbles: true }));
-          }
-        }
-      }
-    });
-  }
-
   updateStatusFilterOptions();
 
   const visaoSelect = $("#f-visao");
@@ -10634,6 +10546,17 @@ function initCombos() {
   }
 }
 function bindEvents() {
+  $("#btn-consultar")?.addEventListener("click", async () => {
+    await withSpinner(async () => {
+      autoSnapViewToFilters();
+      applyFiltersAndRender();
+      renderAppliedFilters();
+      renderCampanhasView();
+      if (state.activeView === "ranking") renderRanking();
+    }, "Aplicando filtros…");
+    closeMobileFilters();
+  });
+
   $("#btn-abrir-filtros")?.addEventListener("click", () => {
     const adv = $("#advanced-filters");
     const isOpen = adv.classList.toggle("is-open");
@@ -10656,59 +10579,32 @@ function bindEvents() {
     });
   });
 
-  // Remove event listeners de "change" - agora os filtros só serão aplicados ao clicar no botão "Filtrar"
-  // Os selects podem ter outros listeners para atualizar combos dependentes, mas não carregam dados
-  
-  // Função para aplicar filtros (chamada pelo botão "Filtrar")
-  async function applyFilters() {
-    await withSpinner(async () => {
-      // Marca que os filtros foram aplicados pelo usuário
-      state._filtersApplied = true;
-      // Recarrega dados de período quando filtro é aplicado
-      await loadPeriodData();
-      // Processa os dados e popula state.facts e fDados para exibir os cards
-      const dataset = await getData();
-      state._dataset = dataset;
-      state.facts = dataset.facts || state.facts;
-      state._rankingRaw = (state.facts?.dados && state.facts.dados.length)
-        ? state.facts.dados
-        : (dataset.ranking || []);
-      // Reconstroi mapa de pontos com filtro de data atualizado
-      buildPontosByIndicadorMap(state.period);
-      // Atualiza os cards do dashboard com os novos dados
-      updateDashboardCards();
-      autoSnapViewToFilters();
-      applyFiltersAndRender();
-      renderAppliedFilters();
-      renderCampanhasView();
-      if (state.activeView === "ranking") renderRanking();
-    }, "Aplicando filtros…");
-  }
-  
-  // Botão "Filtrar"
-  const btnFiltrar = $("#btn-filtrar");
-  if (btnFiltrar && !btnFiltrar.dataset.wired) {
-    btnFiltrar.dataset.wired = "1";
-    btnFiltrar.addEventListener("click", async (ev) => {
-      ev.preventDefault();
-      btnFiltrar.disabled = true;
-      try {
-        await applyFilters();
-      } finally {
-        setTimeout(() => (btnFiltrar.disabled = false), 250);
-      }
+  ["#f-segmento","#f-diretoria","#f-gerencia","#f-agencia","#f-ggestao","#f-gerente","#f-secao","#f-familia","#f-produto","#f-status-kpi"].forEach(sel => {
+    $(sel)?.addEventListener("change", async () => {
+      await withSpinner(async () => {
+        autoSnapViewToFilters();
+        applyFiltersAndRender();
+        renderAppliedFilters();
+        renderCampanhasView();
+        if (state.activeView === "ranking") renderRanking();
+      }, "Atualizando filtros…");
     });
-  }
+  });
 
   const visaoSelect = $("#f-visao");
   if (visaoSelect && !visaoSelect.dataset.bound) {
     visaoSelect.dataset.bound = "1";
-    visaoSelect.addEventListener("change", () => {
-      // Apenas atualiza o período, não carrega dados automaticamente
+    visaoSelect.addEventListener("change", async () => {
       const nextView = visaoSelect.value || "mensal";
       state.accumulatedView = nextView;
       syncPeriodFromAccumulatedView(nextView);
-      // Os dados serão carregados quando o usuário clicar em "Filtrar"
+      await withSpinner(async () => {
+        autoSnapViewToFilters();
+        applyFiltersAndRender();
+        renderAppliedFilters();
+        renderCampanhasView();
+        if (state.activeView === "ranking") renderRanking();
+      }, "Atualizando visão acumulada…");
     });
   }
 
@@ -10784,7 +10680,7 @@ function reorderFiltersUI() {
   const gDR  = groupOf("#f-diretoria");
   const gGR  = groupOf("#f-gerencia");
   const gAg  = groupOf("#f-agencia");
-  const gGG  = groupOf("#f-gerente-gestao");
+  const gGG  = groupOf("#f-ggestao");
   const gGer = groupOf("#f-gerente");
   const gSec = groupOf("#f-secao");
   const gFam = groupOf("#f-familia");
@@ -11428,22 +11324,17 @@ function renderResumoKPI(summary, context = {}) {
     }
   }
 
-  // Os dados já vêm filtrados do backend, então sempre usa os dados do summary
-  // que são calculados a partir dos dados filtrados
   const indicadoresAtingidos = toNumber(summary.indicadoresAtingidos ?? visibleItemsHitCount ?? 0);
   const indicadoresTotal = toNumber(summary.indicadoresTotal ?? 0);
-  
-  // Sempre usa os dados do summary (calculados a partir dos dados filtrados do backend)
   const pontosAtingidos = toNumber(summary.pontosAtingidos ?? visiblePointsHit ?? 0);
   const pontosTotal = toNumber(summary.pontosPossiveis ?? 0);
-  
-  // Sempre usa os dados do summary (calculados a partir dos dados filtrados do backend)
+
   const varTotalBase = summary.varPossivel != null
     ? toNumber(summary.varPossivel)
-    : (visibleVarMeta != null ? toNumber(visibleVarMeta) : null);
+    : (visibleVarMeta != null ? toNumber(visibleVarMeta) : 0);
   const varRealBase = summary.varAtingido != null
     ? toNumber(summary.varAtingido)
-    : (visibleVarAtingido != null ? toNumber(visibleVarAtingido) : null);
+    : (visibleVarAtingido != null ? toNumber(visibleVarAtingido) : 0);
 
   const resumoAnim = state.animations?.resumo;
   const keyParts = [
@@ -11482,24 +11373,17 @@ function renderResumoKPI(summary, context = {}) {
   };
 
   const buildCard = (titulo, iconClass, atingidos, total, fmtType, visibleAting = null, visibleTotal = null, options = {}) => {
-    // Se ambos atingidos e total forem null, não renderiza o card
-    if (atingidos == null && total == null && visibleAting == null && visibleTotal == null) {
-      return "";
-    }
-    
     const labelText = options.labelText || titulo;
     const labelTitle = escapeHTML(labelText);
     const labelHtml = options.labelHTML || escapeHTML(labelText);
-    const atingidosNum = toNumber(atingidos) || 0;
-    const totalNum = toNumber(total) || 0;
-    const pctRaw = totalNum ? (atingidosNum / totalNum) * 100 : 0;
+    const pctRaw = total ? (atingidos / total) * 100 : 0;
     const pct100 = Math.max(0, Math.min(100, pctRaw));
     const hbClass = hitbarClass(pctRaw);
     const pctLabel = `${pctRaw.toFixed(1)}%`;
     const fillTarget = pct100.toFixed(2);
     const thumbPos = Math.max(0, Math.min(100, pctRaw));
-    const atgTitle = buildTitle("Atingidos", fmtType, atingidosNum, visibleAting);
-    const totTitle = buildTitle("Total", fmtType, totalNum, visibleTotal);
+    const atgTitle = buildTitle("Atingidos", fmtType, atingidos, visibleAting);
+    const totTitle = buildTitle("Total", fmtType, total, visibleTotal);
     const hitbarClasses = ["hitbar", hbClass];
     if (options.emoji) hitbarClasses.push("hitbar--emoji");
     const trackStyle = `style="--target:${fillTarget}%; --thumb:${thumbPos.toFixed(2)}"`;
@@ -11512,8 +11396,8 @@ function renderResumoKPI(summary, context = {}) {
           <div class="kpi-strip__text">
             <span class="kpi-strip__label" title="${labelTitle}">${labelHtml}</span>
             <div class="kpi-strip__stats">
-              <span class="kpi-stat" title="${atgTitle}">Atg: <strong>${formatDisplay(fmtType, atingidosNum)}</strong></span>
-              <span class="kpi-stat" title="${totTitle}">Total: <strong>${formatDisplay(fmtType, totalNum)}</strong></span>
+              <span class="kpi-stat" title="${atgTitle}">Atg: <strong>${formatDisplay(fmtType, atingidos)}</strong></span>
+              <span class="kpi-stat" title="${totTitle}">Total: <strong>${formatDisplay(fmtType, total)}</strong></span>
             </div>
           </div>
         </div>
@@ -11526,31 +11410,23 @@ function renderResumoKPI(summary, context = {}) {
       </div>`;
   };
 
-  const cards = [
+  kpi.innerHTML = [
     buildCard("Indicadores", "ti ti-list-check", indicadoresAtingidos, indicadoresTotal, "int", visibleItemsHitCount),
-    buildCard("Pontos", "ti ti-medal", pontosAtingidos, pontosTotal, "pts", visiblePointsHit)
-  ];
-  
-  // Só adiciona o card de Variável Estimada se houver dados no período
-  if (varRealBase != null || varTotalBase != null || visibleVarAtingido != null || visibleVarMeta != null) {
-    cards.push(
-      buildCard(
-        "Variável Estimada",
-        "ti ti-cash",
-        varRealBase ?? 0,
-        varTotalBase ?? 0,
-        "brl",
-        visibleVarAtingido,
-        visibleVarMeta,
-        {
-          labelText: "Variável Estimada",
-          labelHTML: 'Variável <span class="kpi-label-emphasis">Estimada</span>'
-        }
-      )
-    );
-  }
-  
-  kpi.innerHTML = cards.join("");
+    buildCard("Pontos", "ti ti-medal", pontosAtingidos, pontosTotal, "pts", visiblePointsHit),
+    buildCard(
+      "Variável Estimada",
+      "ti ti-cash",
+      varRealBase,
+      varTotalBase,
+      "brl",
+      visibleVarAtingido,
+      visibleVarMeta,
+      {
+        labelText: "Variável Estimada",
+        labelHTML: 'Variável <span class="kpi-label-emphasis">Estimada</span>'
+      }
+    )
+  ].join("");
 
   triggerBarAnimation(kpi.querySelectorAll('.hitbar'), shouldAnimateResumo);
   if (resumoAnim) resumoAnim.kpiKey = nextResumoKey;
@@ -11568,12 +11444,8 @@ function buildResumoLegacyAnnualDataset(sections = []) {
   const monthLabels = monthKeys.map(monthKeyShortLabel);
   const monthLongLabels = monthKeys.map(monthKeyLabel);
   const monthIndex = new Map(monthKeys.map((key, idx) => [key, idx]));
-  // Os dados já vêm filtrados do backend, então não precisa filtrar novamente
-  // Apenas aplica busca por texto se houver (funcionalidade do frontend)
   const rowsSource = Array.isArray(state._rankingRaw)
-    ? (state.tableSearchTerm 
-        ? state._rankingRaw.filter(r => rowMatchesSearch(r, state.tableSearchTerm))
-        : state._rankingRaw)
+    ? filterRowsExcept(state._rankingRaw, {}, { searchTerm: state.tableSearchTerm, ignoreDate: true })
     : [];
 
   const normalizeKey = (value) => {
@@ -12075,9 +11947,7 @@ function renderResumoLegacyAnnualMatrix(host, sections = [], summary = {}) {
     };
 
     items.forEach(item => {
-      // Busca pontos da API se disponível para o peso
-      const pontosApi = PONTOS_BY_INDICADOR.get(String(item.id));
-      const pesoValor = pontosApi ? Number(pontosApi.meta) || 0 : (Number(item.pontosMeta ?? item.peso ?? 0) || 0);
+      const pesoValor = Number(item.pontosMeta ?? item.peso ?? 0);
       const pesoLabel = escapeHTML(fmtINT.format(Math.round(pesoValor || 0)));
       const metricKeyRaw = typeof item.metric === "string" ? item.metric.toLowerCase() : "";
       const metricMeta = metricInfo[metricKeyRaw] || { label: item.metric || "—", title: "Métrica do indicador" };
@@ -12259,33 +12129,46 @@ function buildResumoLegacySections(sections = []) {
     return cloned;
   };
 
-
-
-  const { total: diasTotais, elapsed: diasDecorridos, remaining: diasRestantes } = getCurrentMonthBusinessSnapshot();
+  const periodStart = state.period?.start || "";
+  const periodEnd = state.period?.end || "";
+  const diasTotais = businessDaysBetweenInclusive(periodStart, periodEnd);
+  const diasDecorridos = businessDaysElapsedUntilToday(periodStart, periodEnd);
+  const diasRestantes = Math.max(0, diasTotais - diasDecorridos);
 
   const normalizeNodeMetrics = (node = {}, fallbackMetric = "valor") => {
-    const metrica = typeof node.metrica === "string" && node.metrica ? node.metrica.toLowerCase() : (typeof node.metric === "string" && node.metric ? node.metric.toLowerCase() : fallbackMetric);
+    const metric = typeof node.metric === "string" && node.metric ? node.metric.toLowerCase() : fallbackMetric;
     const metaVal = Number(node.meta) || 0;
     const realVal = Number(node.realizado) || 0;
-    const variavelMetaVal = Number(node.meta) || 0;
-    const variavelRealVal = Number(node.realizado) || 0;
+    const variavelMetaVal = Number(node.variavelMeta) || 0;
+    const variavelRealVal = Number(node.variavelReal) || 0;
     const pesoVal = Number(node.peso ?? node.pontosMeta) || 0;
     const pontosMetaVal = Number(node.pontosMeta ?? node.peso) || pesoVal;
     const pontosBrutosVal = Number(node.pontos ?? Math.min(pesoVal, realVal)) || 0;
     const ultimaAtualizacao = node.ultimaAtualizacao || node.ultimaAtualizacaoTexto || "";
     const ating = metaVal ? realVal / metaVal : 0;
-    const metaDiariaVal = (diasTotais > 0 ? metaVal / diasTotais : 0);
-
-    const referenciaHojeVal = (diasTotais > 0 ? (metaVal / diasTotais) * diasDecorridos : 0);
-    const faltaTotal = Math.max(0, metaVal - realVal);
-    const metaDiariaNecessariaVal = (diasRestantes > 0 ? (faltaTotal / diasRestantes) : 0);
-    
-    const mediaDiariaAtual = diasDecorridos > 0 ? (realVal / diasDecorridos) : 0;
-    const projecaoVal = (mediaDiariaAtual * (diasTotais || 0));
-
+    const metaDiariaValCandidate = toNumber(node.metaDiaria);
+    const metaDiariaVal = Number.isFinite(metaDiariaValCandidate)
+      ? metaDiariaValCandidate
+      : (diasTotais > 0 ? metaVal / diasTotais : 0);
+    const referenciaCandidate = toNumber(
+      node.referenciaHoje ?? node.referenciaDia ?? node.referencia ?? node.referenciaAtual
+    );
+    const referenciaHojeVal = Number.isFinite(referenciaCandidate)
+      ? referenciaCandidate
+      : (diasDecorridos > 0 ? Math.min(metaVal, metaDiariaVal * diasDecorridos) : 0);
+    const metaNecCandidate = toNumber(
+      node.metaDiariaNecessaria ?? node.metaNecessaria ?? node.metaDiaNecessaria ?? node.metaDiariaRestante
+    );
+    const metaDiariaNecessariaVal = Number.isFinite(metaNecCandidate)
+      ? metaNecCandidate
+      : (diasRestantes > 0 ? Math.max(0, (metaVal - realVal) / diasRestantes) : 0);
+    const projecaoCandidate = toNumber(node.projecao ?? node.forecast ?? node.previsao);
+    const projecaoVal = Number.isFinite(projecaoCandidate)
+      ? projecaoCandidate
+      : (diasDecorridos > 0 ? (realVal / Math.max(diasDecorridos, 1)) * diasTotais : realVal);
     return {
       ...node,
-      metrica,
+      metric,
       meta: metaVal,
       realizado: realVal,
       variavelMeta: variavelMetaVal,
@@ -12316,70 +12199,13 @@ function buildResumoLegacySections(sections = []) {
       const key = simplificarTexto(def.id || def.nome);
       const existingNode = key ? map.get(key) : null;
       if (key) map.delete(key);
-      
-      // Busca métrica de PRODUCT_INDEX para subindicador
-      const subProdutoId = def.id || def.slug;
-      const subProdutoMeta = subProdutoId ? PRODUCT_INDEX.get(subProdutoId) : null;
-      const subMetricaFromProdutos = subProdutoMeta?.metrica || subProdutoMeta?.metric || def.metrica || def.metric || fallbackMetric;
-      
-      // Agrega meta_mens do API META por subindicador
-      const metasArray = typeof FACT_METAS !== "undefined" ? FACT_METAS : [];
-      let subMetaAgregada = 0;
-      const processedSubMetaRegistros = new Set();
-      metasArray.forEach(meta => {
-        if (!meta) return;
-        // Só considera se for subindicador (tem subprodutoId)
-        const metaSubProdutoId = meta.subprodutoId || meta.subId || meta.subindicadorId;
-        if (!metaSubProdutoId) return;
-        
-        const metaSubSlug = simplificarTexto(metaSubProdutoId);
-        const subProdutoSlug = simplificarTexto(subProdutoId);
-        const matches = metaSubSlug === subProdutoSlug || 
-          simplificarTexto(def.id) === metaSubSlug ||
-          simplificarTexto(def.nome) === metaSubSlug;
-        
-        if (matches) {
-          const metaRegistroId = meta.registroId || meta.registro_id || "";
-          if (metaRegistroId && processedSubMetaRegistros.has(metaRegistroId)) {
-            return; // Evita duplicação
-          }
-          if (metaRegistroId) {
-            processedSubMetaRegistros.add(metaRegistroId);
-          }
-          const metaMens = toNumber(meta.meta_mens ?? meta.meta ?? 0);
-          subMetaAgregada += metaMens;
-        }
-      });
-      
-      // Agrega real_mens do API REALIZADO por subindicador (SOMA)
-      const realizadosArray = typeof FACT_REALIZADOS !== "undefined" ? FACT_REALIZADOS : [];
-      let subRealizadoAgregado = 0;
-      realizadosArray.forEach(realizado => {
-        if (!realizado) return;
-        // Só considera se for subindicador (tem subprodutoId)
-        const realSubProdutoId = realizado.subprodutoId || realizado.subId || realizado.subindicadorId;
-        if (!realSubProdutoId) return;
-        
-        const realSubSlug = simplificarTexto(realSubProdutoId);
-        const subProdutoSlug = simplificarTexto(subProdutoId);
-        const matches = realSubSlug === subProdutoSlug || 
-          simplificarTexto(def.id) === realSubSlug ||
-          simplificarTexto(def.nome) === realSubSlug;
-        
-        if (matches) {
-          const realMens = toNumber(realizado.real_mens ?? realizado.realizado ?? 0);
-          subRealizadoAgregado += realMens;
-        }
-      });
-      
       const baseNode = existingNode || normalizeNodeMetrics({
         id: def.id,
         nome: def.nome,
         label: def.nome,
-        metrica: subMetricaFromProdutos,
-        metric: subMetricaFromProdutos,
-        meta: subMetaAgregada,
-        realizado: subRealizadoAgregado,
+        metric: def.metric || fallbackMetric,
+        meta: 0,
+        realizado: 0,
         variavelMeta: 0,
         variavelReal: 0,
         peso: Number(def.peso) || 0,
@@ -12390,28 +12216,19 @@ function buildResumoLegacySections(sections = []) {
         metaDiariaNecessaria: 0,
         projecao: 0,
         ultimaAtualizacao: ""
-      }, subMetricaFromProdutos);
-      
-      // Se já existe um nó, atualiza com dados agregados das APIs
-      if (existingNode) {
-        baseNode.meta = subMetaAgregada;
-        baseNode.realizado = subRealizadoAgregado;
-        baseNode.metrica = subMetricaFromProdutos;
-        baseNode.metric = subMetricaFromProdutos;
-      }
-      
+      }, def.metric || fallbackMetric);
       baseNode.id = baseNode.id || def.id || key || baseNode.nome;
       baseNode.nome = def.nome || baseNode.nome;
       baseNode.label = baseNode.nome;
       const childDefs = Array.isArray(def.children) ? def.children : [];
       const existingChildren = existingNode?.children || [];
-      baseNode.children = alignChildrenToDefinition(childDefs, existingChildren, baseNode.metrica || fallbackMetric);
+      baseNode.children = alignChildrenToDefinition(childDefs, existingChildren, baseNode.metric);
       if (childDefs.length > 0 && !baseNode.children.length) {
         baseNode.children = childDefs.map(child => normalizeNodeMetrics({
           id: child.id,
           nome: child.nome,
           label: child.nome,
-          metrica: child.metrica || child.metric || baseNode.metrica || fallbackMetric,
+          metric: child.metric || baseNode.metric,
           meta: 0,
           realizado: 0,
           variavelMeta: 0,
@@ -12424,10 +12241,10 @@ function buildResumoLegacySections(sections = []) {
           metaDiariaNecessaria: 0,
           projecao: 0,
           ultimaAtualizacao: ""
-        }, child.metrica || child.metric || baseNode.metrica || fallbackMetric));
+        }, child.metric || baseNode.metric));
         baseNode.children = baseNode.children.map(childNode => ({
           ...childNode,
-          children: Array.isArray(child.children) ? alignChildrenToDefinition(child.children, [], childNode.metrica || fallbackMetric) : []
+          children: Array.isArray(child.children) ? alignChildrenToDefinition(child.children, [], childNode.metric) : []
         }));
       }
       baseNode.hasChildren = childDefs.length > 0 || nodeHasChildren(baseNode) ? 1 : normalizeHasChildrenFlag(baseNode.hasChildren);
@@ -12492,10 +12309,10 @@ function buildResumoLegacySections(sections = []) {
             augmented.ultimaAtualizacao = totals.ultimaAtualizacao;
           }
         }
-        return normalizeNodeMetrics(augmented, augmented.metrica || fallbackMetric);
+        return normalizeNodeMetrics(augmented, augmented.metric || fallbackMetric);
       });
     } else {
-      result = result.map(node => normalizeNodeMetrics(node, node.metrica || fallbackMetric));
+      result = result.map(node => normalizeNodeMetrics(node, node.metric || fallbackMetric));
     }
     if (allowOrphans) {
       leftover.forEach(child => {
@@ -12504,7 +12321,7 @@ function buildResumoLegacySections(sections = []) {
           nome: child.nome || child.label || child.id,
           label: child.nome || child.label || child.id,
           children: Array.isArray(child.children) ? child.children : []
-        }, child.metrica || child.metric || fallbackMetric);
+        }, child.metric || fallbackMetric);
         fallback.children = alignChildrenToDefinition([], fallback.children, fallback.metric);
         ensureHierarchyHasChildren(fallback);
         result.push(fallback);
@@ -12597,81 +12414,16 @@ function buildResumoLegacySections(sections = []) {
           }
         }
 
-        // Busca métrica de PRODUCT_INDEX (d_produtos.metrica)
-        const produtoId = indDef.id || indDef.slug || match?.id;
-        const produtoMeta = produtoId ? PRODUCT_INDEX.get(produtoId) : null;
-        const metricaFromProdutos = produtoMeta?.metrica || produtoMeta?.metric || match?.metrica || match?.metric || "valor";
-        
-        // Agrega meta_mens do API META por produto (apenas indicadores, não subindicadores)
-        const metasArray = typeof FACT_METAS !== "undefined" ? FACT_METAS : [];
-        let metaAgregada = 0;
-        const processedMetaRegistros = new Set();
-        metasArray.forEach(meta => {
-          if (!meta) return;
-          // Só considera se não for subindicador (subprodutoId vazio)
-          if (meta.subprodutoId || meta.subId || meta.subindicadorId) return;
-          
-          const metaProdutoId = meta.produtoId || meta.produto || meta.indicadorId;
-          if (!metaProdutoId) return;
-          
-          // Verifica se o produto corresponde
-          const metaSlug = simplificarTexto(metaProdutoId);
-          const produtoSlug = simplificarTexto(produtoId);
-          const matches = metaSlug === produtoSlug || 
-            candidates.some(c => simplificarTexto(c) === metaSlug);
-          
-          if (matches) {
-            const metaRegistroId = meta.registroId || meta.registro_id || "";
-            if (metaRegistroId && processedMetaRegistros.has(metaRegistroId)) {
-              return; // Evita duplicação
-            }
-            if (metaRegistroId) {
-              processedMetaRegistros.add(metaRegistroId);
-            }
-            const metaMens = toNumber(meta.meta_mens ?? meta.meta ?? 0);
-            metaAgregada += metaMens;
-          }
-        });
-        
-        // Agrega real_mens do API REALIZADO por produto (SOMA) - apenas indicadores, não subindicadores
-        const realizadosArray = typeof FACT_REALIZADOS !== "undefined" ? FACT_REALIZADOS : [];
-        let realizadoAgregado = 0;
-        realizadosArray.forEach(realizado => {
-          if (!realizado) return;
-          // Só considera se não for subindicador (subprodutoId vazio)
-          if (realizado.subprodutoId || realizado.subId || realizado.subindicadorId) return;
-          
-          const realProdutoId = realizado.produtoId || realizado.produto || realizado.indicadorId;
-          if (!realProdutoId) return;
-          
-          // Verifica se o produto corresponde
-          const realSlug = simplificarTexto(realProdutoId);
-          const produtoSlug = simplificarTexto(produtoId);
-          const matches = realSlug === produtoSlug || 
-            candidates.some(c => simplificarTexto(c) === realSlug);
-          
-          if (matches) {
-            const realMens = toNumber(realizado.real_mens ?? realizado.realizado ?? 0);
-            realizadoAgregado += realMens;
-          }
-        });
-
         let rowItem;
         if (match) {
           rowItem = cloneItem(match, indDef.nome);
-          // Sobrescreve com dados agregados das APIs
-          rowItem.meta = metaAgregada;
-          rowItem.realizado = realizadoAgregado;
-          rowItem.metrica = metricaFromProdutos;
-          rowItem.metric = metricaFromProdutos;
         } else {
           rowItem = {
             id: indDef.id || indDef.slug,
             nome: indDef.nome,
-            metric: metricaFromProdutos,
-            metrica: metricaFromProdutos,
-            meta: metaAgregada,
-            realizado: realizadoAgregado,
+            metric: "valor",
+            meta: 0,
+            realizado: 0,
             variavelMeta: 0,
             variavelReal: 0,
             pontosMeta: 0,
@@ -12689,7 +12441,7 @@ function buildResumoLegacySections(sections = []) {
           };
         }
 
-        rowItem = normalizeNodeMetrics(rowItem, rowItem.metric || rowItem.metrica || metricaFromProdutos || "valor");
+        rowItem = normalizeNodeMetrics(rowItem, rowItem.metric || match?.metric || "valor");
 
         if (!rowItem.familiaId) rowItem.familiaId = famDef.id;
         rowItem.familiaNome = famDef.nome;
@@ -12743,22 +12495,18 @@ function buildResumoLegacySections(sections = []) {
 
         ensureHierarchyHasChildren(rowItem);
 
-        // Busca pontos da API se disponível, senão usa os calculados
-        const pontosApi = PONTOS_BY_INDICADOR.get(String(rowItem.id));
-        const pontosMeta = pontosApi ? Number(pontosApi.meta) || 0 : 0;
-        const pontosBrutos = pontosApi ? Number(pontosApi.realizado) || 0 : (Number(rowItem.pontosBrutos ?? rowItem.pontos ?? 0) || 0);
+        const pontosMeta = Number(rowItem.pontosMeta ?? rowItem.peso ?? 0) || 0;
+        const pontosBrutos = Number(rowItem.pontosBrutos ?? rowItem.pontos ?? 0) || 0;
         const pontosReal = Math.max(0, Math.min(pontosMeta, pontosBrutos));
         const metaVal = Number(rowItem.meta) || 0;
         const realVal = Number(rowItem.realizado) || 0;
-        // Variável vem apenas da API - não usa valores dos itens
-        const variavelMetaVal = 0;
-        const variavelRealVal = 0;
+        const variavelMetaVal = Number(rowItem.variavelMeta) || 0;
+        const variavelRealVal = Number(rowItem.variavelReal) || 0;
 
         famMeta += metaVal;
         famReal += realVal;
         famPontosMeta += pontosMeta;
         famPontos += pontosReal;
-        // Variável será calculada separadamente da API
         famVariavelMeta += variavelMetaVal;
         famVariavelReal += variavelRealVal;
 
@@ -12799,23 +12547,11 @@ function buildResumoLegacySections(sections = []) {
       secReal += famReal;
       secPontosMeta += famPontosMeta;
       secPontos += famPontos;
-      // Variável não é mais calculada por item, será calculada da API
       secVariavelMeta += famVariavelMeta;
       secVariavelReal += famVariavelReal;
     });
 
     if (!sectionItems.length) return;
-
-    // Calcula variável da API (total geral, não agrupado por seção)
-    // Como a API de variável não tem agrupamento por seção, usamos o total geral
-    let secVariavelMetaAPI = 0;
-    let secVariavelRealAPI = 0;
-    const variavelArray = typeof FACT_VARIAVEL !== "undefined" ? FACT_VARIAVEL : [];
-    variavelArray.forEach(variavel => {
-      if (!variavel) return;
-      secVariavelMetaAPI += Number(variavel.variavelMeta) || 0;
-      secVariavelRealAPI += Number(variavel.variavelReal) || 0;
-    });
 
     result.push({
       id: secDef.id,
@@ -12826,8 +12562,8 @@ function buildResumoLegacySections(sections = []) {
         realizadoTotal: secReal,
         pontosTotal: secPontosMeta,
         pontosHit: secPontos,
-        variavelMeta: secVariavelMetaAPI,
-        variavelReal: secVariavelRealAPI,
+        variavelMeta: secVariavelMeta,
+        variavelReal: secVariavelReal,
         atingPct: secMeta ? (secReal / secMeta) * 100 : 0
       }
     });
@@ -12898,7 +12634,6 @@ function buildCardTooltipHTML(item) {
 
   const necessarioPorDiaDisp = diasRestantes > 0 ? fmt(item.metric, necessarioPorDia) : "—";
   const referenciaHojeDisp   = diasDecorridos > 0 ? fmt(item.metric, referenciaHoje) : "—";
-  
 
   return `
     <div class="kpi-tip" role="dialog" aria-label="Detalhes do indicador">
@@ -12992,32 +12727,9 @@ function getStatusFilter(){
   return normalizarChaveStatus(raw) || "todos";
 }
 function buildDashboardDatasetFromRows(rows = [], period = state.period || {}) {
-  // Se não há dados, retorna estrutura vazia
-  if (!Array.isArray(rows) || rows.length === 0) {
-    return {
-      sections: [],
-      summary: {
-        indicadoresTotal: 0,
-        indicadoresAtingidos: 0,
-        indicadoresPct: 0,
-        pontosPossiveis: 0,
-        pontosAtingidos: 0,
-        pontosPct: 0,
-        metaTotal: 0,
-        realizadoTotal: 0,
-        metaPct: 0,
-        varPossivel: 0,
-        varAtingido: 0,
-        varPct: 0
-      }
-    };
-  }
-  
   SUBPRODUTO_TO_INDICADOR.clear();
   const productMeta = new Map();
   const aggregated = new Map();
-  const processedRegistros = new Map(); // Rastreia registro_id já processados por produto para evitar duplicação
-  const processedMetaRegistros = new Map(); // Rastreia metaRegistroId já processados por produto para evitar duplicação de metas
 
   CARD_SECTIONS_DEF.forEach(sec => {
     const familiaMeta = FAMILIA_BY_ID.get(sec.id);
@@ -13027,7 +12739,7 @@ function buildDashboardDatasetFromRows(rows = [], period = state.period || {}) {
         id: item.id,
         nome: item.nome,
         icon: item.icon,
-        metrica: item.metrica || item.metric,
+        metric: item.metric,
         peso: item.peso,
         hiddenInCards: item.hiddenInCards,
         sectionId: sec.id,
@@ -13071,7 +12783,7 @@ function buildDashboardDatasetFromRows(rows = [], period = state.period || {}) {
           id: item.id,
           nome: item.nome,
           icon: item.icon || DEFAULT_CARD_ICON,
-          metrica: item.metrica || item.metric || "valor",
+          metric: item.metric || "valor",
           peso: item.peso != null ? item.peso : 1,
           hiddenInCards: Boolean(item.hiddenInCards),
           secaoId: sec.id,
@@ -13097,13 +12809,8 @@ function buildDashboardDatasetFromRows(rows = [], period = state.period || {}) {
         if (item.nome && !agg.aliases?.has(item.nome)) agg.aliases?.add(item.nome);
         agg.nome = item.nome || agg.nome;
         agg.icon = item.icon || agg.icon;
-        agg.metrica = item.metrica || agg.metrica || item.metric || agg.metric;
-        // Usa MAX do peso quando há múltiplos registros para o mesmo indicador
-        if (item.peso != null) {
-          const pesoAtual = Number(agg.peso) || 0;
-          const pesoNovo = Number(item.peso) || 0;
-          agg.peso = Math.max(pesoAtual, pesoNovo);
-        }
+        agg.metric = item.metric || agg.metric;
+        if (item.peso != null) agg.peso = item.peso;
         agg.secaoId = sec.id;
         agg.secaoLabel = sec.label;
         agg.familiaId = familiaInfo?.id || agg.familiaId;
@@ -13123,8 +12830,8 @@ function buildDashboardDatasetFromRows(rows = [], period = state.period || {}) {
       resolvedId = "desconhecido";
       meta = productMeta.get(resolvedId) || {};
     }
-    const secaoId = meta.sectionId || row.secaoId || row.familiaId || null;
-    const secaoLabel = meta.sectionLabel || row.secaoNome || row.familiaNome || row.familia || (secaoId ? getSectionLabel(secaoId) : null) || null;
+    const secaoId = meta.sectionId || row.secaoId || row.familiaId || "outros";
+    const secaoLabel = meta.sectionLabel || row.secaoNome || row.familiaNome || row.familia || getSectionLabel(secaoId) || "Outros";
     const familiaId = row.familiaId || row.familia || secaoId;
     const familiaLabel = row.familiaNome || row.familia || (familiaId === secaoId ? secaoLabel : familiaId) || secaoLabel;
     let agg = aggregated.get(resolvedId);
@@ -13133,8 +12840,8 @@ function buildDashboardDatasetFromRows(rows = [], period = state.period || {}) {
         id: resolvedId,
         nome: meta.nome || row.produtoNome || row.produto || (isUnknown ? "Desconhecido" : resolvedId),
         icon: meta.icon || (isUnknown ? "ti ti-help" : "ti ti-dots"),
-        metrica: meta.metrica || row.metrica || meta.metric || row.metric || "valor",
-        peso: meta.peso != null ? meta.peso : (row.peso != null ? row.peso : 0),
+        metric: meta.metric || row.metric || "valor",
+        peso: meta.peso || row.peso || 1,
         hiddenInCards: !!meta.hiddenInCards,
         secaoId,
         secaoLabel,
@@ -13165,56 +12872,16 @@ function buildDashboardDatasetFromRows(rows = [], period = state.period || {}) {
       if ((!agg.secaoLabel || agg.secaoLabel === agg.secaoId) && secaoLabel) {
         agg.secaoLabel = secaoLabel;
       }
-      // Preserva o metrica do indicador principal, não sobrescreve com metrica do subindicador
-      if (!agg.metrica && (meta.metrica || row.metrica)) {
-        agg.metrica = meta.metrica || row.metrica || meta.metric || row.metric || "valor";
-      }
-    }
-
-    // Evita duplicação: verifica se este registro_id já foi processado para este produto
-    const registroId = row.registroId || row.registro_id || "";
-    if (registroId) {
-      if (!processedRegistros.has(resolvedId)) {
-        processedRegistros.set(resolvedId, new Set());
-      }
-      const registrosSet = processedRegistros.get(resolvedId);
-      if (registrosSet.has(registroId)) {
-        // Este registro já foi processado, pula para evitar duplicação
-        return;
-      }
-      registrosSet.add(registroId);
     }
 
     const metaValor = Number(row.meta) || 0;
     const realizadoValor = Number(row.realizado) || 0;
-    const metaRegistroId = row.metaRegistroId || ""; // ID único da meta para evitar duplicação
-    
-    // Evita duplicação de metas: verifica se esta meta (metaRegistroId) já foi contada para este produto
-    if (metaValor > 0 && metaRegistroId) {
-      if (!processedMetaRegistros.has(resolvedId)) {
-        processedMetaRegistros.set(resolvedId, new Set());
-      }
-      const metaRegistrosSet = processedMetaRegistros.get(resolvedId);
-      if (!metaRegistrosSet.has(metaRegistroId)) {
-        // Esta meta ainda não foi contada, adiciona ao total
-        agg.metaTotal += metaValor;
-        metaRegistrosSet.add(metaRegistroId);
-      }
-      // Se a meta já foi contada, não soma novamente (mas ainda processa o realizado)
-    } else {
-      // Se não há metaRegistroId, soma normalmente (fallback para compatibilidade)
-      agg.metaTotal += metaValor;
-    }
+    agg.metaTotal += metaValor;
     agg.realizadoTotal += realizadoValor;
     agg.variavelMeta += Number(row.variavelMeta) || 0;
     agg.variavelReal += Number(row.variavelReal) || 0;
-    const pesoLinha = Number(row.peso) || agg.peso || 0;
-    // Usa MAX do peso quando há múltiplos registros para o mesmo indicador
-    agg.pesoTotal = Math.max(agg.pesoTotal || 0, pesoLinha);
-    // Atualiza o peso do agregado também com MAX
-    if (pesoLinha > 0) {
-      agg.peso = Math.max(agg.peso || 0, pesoLinha);
-    }
+    const pesoLinha = Number(row.peso) || agg.peso;
+    agg.pesoTotal += pesoLinha;
     if (metaValor > 0 && realizadoValor >= metaValor) {
       agg.pesoAtingido += pesoLinha;
     }
@@ -13259,20 +12926,7 @@ function buildDashboardDatasetFromRows(rows = [], period = state.period || {}) {
         };
         agg.children.set(unknownKey, childEntry);
       }
-      // Para children desconhecidos, também evita duplicação de meta usando metaRegistroId
-      if (metaValor > 0 && metaRegistroId) {
-        const childKey = `${resolvedId}|unknown|${unknownKey}`;
-        if (!processedMetaRegistros.has(childKey)) {
-          processedMetaRegistros.set(childKey, new Set());
-        }
-        const childMetaRegistrosSet = processedMetaRegistros.get(childKey);
-        if (!childMetaRegistrosSet.has(metaRegistroId)) {
-          childEntry.meta += metaValor;
-          childMetaRegistrosSet.add(metaRegistroId);
-        }
-      } else {
-        childEntry.meta += metaValor;
-      }
+      childEntry.meta += metaValor;
       childEntry.realizado += realizadoValor;
       childEntry.variavelMeta += Number(row.variavelMeta) || 0;
       childEntry.variavelReal += Number(row.variavelReal) || 0;
@@ -13296,7 +12950,7 @@ function buildDashboardDatasetFromRows(rows = [], period = state.period || {}) {
         subEntry = {
           id: limparTexto(subIndicadorOriginal) || subIndicadorSlug,
           label: limparTexto(subIndicadorNome) || subIndicadorSlug,
-          metrica: typeof row.metrica === "string" ? row.metrica.toLowerCase() : (typeof agg.metrica === "string" ? agg.metrica.toLowerCase() : (typeof row.metric === "string" ? row.metric.toLowerCase() : (typeof agg.metric === "string" ? agg.metric.toLowerCase() : "valor"))),
+          metric: typeof row.metric === "string" ? row.metric.toLowerCase() : (typeof agg.metric === "string" ? agg.metric.toLowerCase() : "valor"),
           meta: 0,
           realizado: 0,
           variavelMeta: 0,
@@ -13308,22 +12962,8 @@ function buildDashboardDatasetFromRows(rows = [], period = state.period || {}) {
         };
         agg.subIndicators.set(subIndicadorSlug, subEntry);
       }
-      if (!subEntry.metrica && row.metrica) subEntry.metrica = String(row.metrica).toLowerCase();
-      if (!subEntry.metrica && agg.metrica) subEntry.metrica = String(agg.metrica).toLowerCase();
-      if (!subEntry.metrica && row.metric) subEntry.metrica = String(row.metric).toLowerCase();
-      // Para subindicadores, também evita duplicação de meta usando metaRegistroId
-      if (metaValor > 0 && metaRegistroId) {
-        if (!processedMetaRegistros.has(`${resolvedId}|sub|${subIndicadorSlug}`)) {
-          processedMetaRegistros.set(`${resolvedId}|sub|${subIndicadorSlug}`, new Set());
-        }
-        const subMetaRegistrosSet = processedMetaRegistros.get(`${resolvedId}|sub|${subIndicadorSlug}`);
-        if (!subMetaRegistrosSet.has(metaRegistroId)) {
-          subEntry.meta += metaValor;
-          subMetaRegistrosSet.add(metaRegistroId);
-        }
-      } else {
-        subEntry.meta += metaValor;
-      }
+      if (!subEntry.metric && row.metric) subEntry.metric = String(row.metric).toLowerCase();
+      subEntry.meta += metaValor;
       subEntry.realizado += realizadoValor;
       subEntry.variavelMeta += Number(row.variavelMeta) || 0;
       subEntry.variavelReal += Number(row.variavelReal) || 0;
@@ -13353,20 +12993,7 @@ function buildDashboardDatasetFromRows(rows = [], period = state.period || {}) {
           childMap.set(lpSlug, childEntry);
         }
         if (!childEntry.metric && row.metric) childEntry.metric = String(row.metric).toLowerCase();
-        // Para children de subindicadores, também evita duplicação de meta usando metaRegistroId
-        if (metaValor > 0 && metaRegistroId) {
-          const childKey = `${resolvedId}|sub|${subIndicadorSlug}|child|${lpSlug}`;
-          if (!processedMetaRegistros.has(childKey)) {
-            processedMetaRegistros.set(childKey, new Set());
-          }
-          const childMetaRegistrosSet = processedMetaRegistros.get(childKey);
-          if (!childMetaRegistrosSet.has(metaRegistroId)) {
-            childEntry.meta += metaValor;
-            childMetaRegistrosSet.add(metaRegistroId);
-          }
-        } else {
-          childEntry.meta += metaValor;
-        }
+        childEntry.meta += metaValor;
         childEntry.realizado += realizadoValor;
         childEntry.variavelMeta += Number(row.variavelMeta) || 0;
         childEntry.variavelReal += Number(row.variavelReal) || 0;
@@ -13403,21 +13030,7 @@ function buildDashboardDatasetFromRows(rows = [], period = state.period || {}) {
           agg.children.set(childKey, child);
         }
         if (!child.metric && row.metric) child.metric = String(row.metric).toLowerCase();
-        // Para children de subprodutos, também evita duplicação de meta usando metaRegistroId
-        const subprodutoChildKey = simplificarTexto(subprodutoTexto) || subprodutoTexto.toLowerCase();
-        if (metaValor > 0 && metaRegistroId) {
-          const metaKey = `${resolvedId}|child|${subprodutoChildKey}`;
-          if (!processedMetaRegistros.has(metaKey)) {
-            processedMetaRegistros.set(metaKey, new Set());
-          }
-          const childMetaRegistrosSet = processedMetaRegistros.get(metaKey);
-          if (!childMetaRegistrosSet.has(metaRegistroId)) {
-            child.meta += metaValor;
-            childMetaRegistrosSet.add(metaRegistroId);
-          }
-        } else {
-          child.meta += metaValor;
-        }
+        child.meta += metaValor;
         child.realizado += realizadoValor;
         child.variavelMeta += Number(row.variavelMeta) || 0;
         child.variavelReal += Number(row.variavelReal) || 0;
@@ -13440,7 +13053,7 @@ function buildDashboardDatasetFromRows(rows = [], period = state.period || {}) {
         id,
         nome: meta.nome || id,
         icon: meta.icon || DEFAULT_CARD_ICON,
-        metrica: meta.metrica || meta.metric || "valor",
+        metric: meta.metric || "valor",
         peso: meta.peso != null ? meta.peso : 1,
         hiddenInCards: Boolean(meta.hiddenInCards),
         secaoId: meta.sectionId,
@@ -13469,8 +13082,7 @@ function buildDashboardDatasetFromRows(rows = [], period = state.period || {}) {
         if (meta.nome) aliasSet.add(meta.nome);
         agg.aliases = aliasSet;
       }
-      if (!agg.metrica && meta.metrica) agg.metrica = meta.metrica;
-      if (!agg.metrica && meta.metric) agg.metrica = meta.metric;
+      if (!agg.metric && meta.metric) agg.metric = meta.metric;
       if (!agg.secaoId && meta.sectionId) agg.secaoId = meta.sectionId;
       if ((!agg.secaoLabel || agg.secaoLabel === agg.secaoId) && meta.sectionLabel) agg.secaoLabel = meta.sectionLabel;
       if (!agg.familiaId && meta.familiaId) agg.familiaId = meta.familiaId;
@@ -13496,47 +13108,33 @@ function buildDashboardDatasetFromRows(rows = [], period = state.period || {}) {
       const agg = aggregated.get(item.id);
       if (!agg) return null;
       if (agg.secaoId && agg.secaoId !== sec.id) return null;
-      // Calcula atingimento: se metaTotal for 0 ou não existir, retorna 0
-      // Caso contrário, calcula realizadoTotal / metaTotal
-      const metaTotal = Number(agg.metaTotal) || 0;
-      const realizadoTotal = Number(agg.realizadoTotal) || 0;
-      const ating = metaTotal > 0 ? (realizadoTotal / metaTotal) : 0;
+      const ating = agg.metaTotal ? (agg.realizadoTotal / agg.metaTotal) : 0;
       const variavelAting = agg.variavelMeta ? (agg.variavelReal / agg.variavelMeta) : ating;
-      // Busca pontos da API se disponível, senão usa os calculados
-      const pontosApi = PONTOS_BY_INDICADOR.get(String(item.id));
-      // Se não há dados na API de pontos, não deve usar o peso como pontosMeta
-      // Apenas itens que estão na API de pontos devem ser contados
-      const pontosMeta = pontosApi ? Number(pontosApi.meta) || 0 : 0;
-      const pontosBrutos = pontosApi ? Number(pontosApi.realizado) || 0 : (Number.isFinite(agg.pontos) ? agg.pontos : 0);
+      const pontosMeta = Number(item.peso) || 0;
+      const pontosBrutos = Number.isFinite(agg.pontos) ? agg.pontos : 0;
       const pontosCumpridos = Math.max(0, Math.min(pontosMeta, pontosBrutos));
-      // Calcula atingimento de pontos: se houver pontos, verifica se atingiu 100%
-      const pontosAting = pontosMeta > 0 ? (pontosCumpridos / pontosMeta) : 0;
-      // Se não houver data real de atualização, usa "Indisponível"
-      const ultimaAtualizacaoTexto = agg.ultimaAtualizacao 
-        ? formatBRDate(agg.ultimaAtualizacao) 
-        : "Indisponível";
+      const ultimaISO = agg.ultimaAtualizacao || period.end || period.start || todayISO();
       const cardBase = {
         id: agg.id,
         nome: agg.nome,
         icon: agg.icon,
-        metrica: agg.metrica || agg.metric || "valor",
+        metric: agg.metric,
         peso: item.peso,
         secaoId: sec.id,
         secaoLabel: sec.label,
         familiaId: agg.familiaId,
         familiaLabel: agg.familiaLabel,
-        meta: Number(agg.metaTotal) || 0,
-        realizado: Number(agg.realizadoTotal) || 0,
-        variavelMeta: Number(agg.variavelMeta) || 0,
-        variavelReal: Number(agg.variavelReal) || 0,
-        ating: Number.isFinite(ating) ? ating : 0,
-        atingVariavel: Number.isFinite(variavelAting) ? variavelAting : ating,
-        // Considera atingido se atingiu 100% da meta OU 100% dos pontos
-        atingido: ating >= 1 || pontosAting >= 1,
+        meta: agg.metaTotal,
+        realizado: agg.realizadoTotal,
+        variavelMeta: agg.variavelMeta,
+        variavelReal: agg.variavelReal,
+        ating,
+        atingVariavel: variavelAting,
+        atingido: ating >= 1,
         pontos: pontosCumpridos,
         pontosMeta,
         pontosBrutos,
-        ultimaAtualizacao: ultimaAtualizacaoTexto
+        ultimaAtualizacao: formatBRDate(ultimaISO)
       };
       aplicarIndicadorAliases(cardBase, agg.id, agg.nome);
       cardBase.prodOrSub = agg.produtoNome || agg.nome || agg.id;
@@ -13626,39 +13224,21 @@ function buildDashboardDatasetFromRows(rows = [], period = state.period || {}) {
   });
 
   sections = sections.filter(section => {
+    if (section.id === "outros") {
+      return section.items.some(item => item.hasData);
+    }
     return true;
   });
 
   const allItems = sections.flatMap(sec => sec.items);
   const indicadoresTotal = allItems.length;
   const indicadoresAtingidos = allItems.filter(item => item.atingido).length;
-  // Calcula pontosPossiveis usando APENAS dados da API de pontos
-  // Não mistura com indicadores - usa diretamente PONTOS_BY_INDICADOR
-  let pontosPossiveis = 0;
-  let pontosAtingidos = 0;
-  PONTOS_BY_INDICADOR.forEach((dados, id) => {
-    const meta = Number(dados.meta) || 0;
-    const realizado = Number(dados.realizado) || 0;
-    pontosPossiveis += meta;
-    pontosAtingidos += realizado;
-  });
+  const pontosPossiveis = allItems.reduce((acc, item) => acc + (item.pontosMeta ?? item.peso ?? 0), 0);
+  const pontosAtingidos = allItems.reduce((acc, item) => acc + (item.pontos ?? 0), 0);
   const metaTotal = allItems.reduce((acc, item) => acc + (item.meta || 0), 0);
   const realizadoTotal = allItems.reduce((acc, item) => acc + (item.realizado || 0), 0);
-  
-  // Calcula variável usando APENAS dados da API de variável
-  // Não mistura com indicadores - usa diretamente FACT_VARIAVEL
-  const variavelArray = typeof FACT_VARIAVEL !== "undefined" ? FACT_VARIAVEL : [];
-  
-  // Calcula varPossivel e varAtingido somando APENAS os valores da API de variável
-  let varPossivel = 0;
-  let varAtingido = 0;
-  variavelArray.forEach(variavel => {
-    if (!variavel) return;
-    const meta = Number(variavel.variavelMeta) || 0;
-    const realizado = Number(variavel.variavelReal) || 0;
-    varPossivel += meta;
-    varAtingido += realizado;
-  });
+  const varPossivel = allItems.reduce((acc, item) => acc + (item.variavelMeta || 0), 0);
+  const varAtingido = allItems.reduce((acc, item) => acc + (item.variavelReal || 0), 0);
 
   const summary = {
     indicadoresTotal,
@@ -13678,83 +13258,6 @@ function buildDashboardDatasetFromRows(rows = [], period = state.period || {}) {
   return { sections, summary };
 }
 
-// Função para exibir modal informando que não há dados
-function showNoDataModal() {
-  // Remove modal anterior se existir
-  const existingModal = document.getElementById("no-data-modal");
-  if (existingModal) {
-    existingModal.remove();
-  }
-
-  // Cria o modal
-  const modal = document.createElement("div");
-  modal.id = "no-data-modal";
-  modal.className = "no-data-modal";
-  modal.setAttribute("role", "dialog");
-  modal.setAttribute("aria-modal", "true");
-  modal.setAttribute("aria-labelledby", "no-data-modal-title");
-  
-  const period = state.period || getDefaultPeriodRange();
-  const startDate = period.start ? formatBRDate(period.start) : "";
-  const endDate = period.end ? formatBRDate(period.end) : "";
-  const periodText = startDate && endDate ? ` para o período de ${startDate} até ${endDate}` : "";
-  
-  modal.innerHTML = `
-    <div class="no-data-modal__overlay" data-no-data-close></div>
-    <div class="no-data-modal__panel">
-      <header class="no-data-modal__header">
-        <div class="no-data-modal__icon">
-          <i class="ti ti-info-circle"></i>
-        </div>
-        <h3 id="no-data-modal-title" class="no-data-modal__title">Nenhum dado encontrado</h3>
-      </header>
-      <div class="no-data-modal__body">
-        <p>Não foram encontrados dados${periodText} com os filtros aplicados.</p>
-        <p>Tente ajustar os filtros ou selecionar outro período.</p>
-      </div>
-      <footer class="no-data-modal__footer">
-        <button type="button" class="btn btn--primary" data-no-data-close>Entendi</button>
-      </footer>
-    </div>
-  `;
-
-  document.body.appendChild(modal);
-  document.body.classList.add("has-no-data-modal-open");
-
-  // Função para fechar o modal
-  const closeModal = () => {
-    modal.setAttribute("data-closing", "true");
-    setTimeout(() => {
-      if (modal.parentNode) {
-        modal.remove();
-      }
-      document.body.classList.remove("has-no-data-modal-open");
-    }, 200);
-  };
-
-  // Event listeners para fechar
-  modal.querySelectorAll("[data-no-data-close]").forEach(btn => {
-    btn.addEventListener("click", closeModal);
-  });
-
-  modal.addEventListener("click", (e) => {
-    if (e.target === modal || e.target.classList.contains("no-data-modal__overlay")) {
-      closeModal();
-    }
-  });
-
-  window.addEventListener("keydown", (e) => {
-    if (e.key === "Escape" && !modal.hidden) {
-      closeModal();
-    }
-  });
-
-  // Anima a entrada do modal
-  requestAnimationFrame(() => {
-    modal.setAttribute("data-visible", "true");
-  });
-}
-
 function updateDashboardCards() {
   const factRows = state.facts?.dados || fDados;
   if (!Array.isArray(factRows) || !factRows.length) {
@@ -13762,19 +13265,9 @@ function updateDashboardCards() {
     state.dashboard = empty;
     refreshSimulatorCatalog();
     renderFamilias(empty.sections, empty.summary);
-    // Exibe modal informando que não há dados apenas se os filtros foram aplicados pelo usuário
-    if (state._filtersApplied) {
-      showNoDataModal();
-    }
     return;
   }
-  // Garante que o mapa de pontos está atualizado antes de calcular o summary
-  buildPontosByIndicadorMap(state.period);
-  // Os dados já vêm filtrados do backend, então não precisa filtrar novamente
-  // Apenas aplica busca por texto se houver (funcionalidade do frontend)
-  const filtered = state.tableSearchTerm 
-    ? factRows.filter(r => rowMatchesSearch(r, state.tableSearchTerm))
-    : factRows;
+  const filtered = filterRowsExcept(factRows, {}, { searchTerm: "" });
   const dataset = buildDashboardDatasetFromRows(filtered, state.period);
   state.dashboard = dataset;
   refreshSimulatorCatalog();
@@ -13783,17 +13276,9 @@ function updateDashboardCards() {
 
 function renderFamilias(sections, summary){
   const host = $("#grid-familias");
-  if (!host) return;
-  
   host.innerHTML = "";
   host.style.display = "block";
   host.style.gap = "0";
-  
-  // Se não há seções ou itens, não renderiza nada
-  if (!Array.isArray(sections) || sections.length === 0 || !sections.some(sec => Array.isArray(sec.items) && sec.items.length > 0)) {
-    host.innerHTML = "";
-    return;
-  }
 
   const resumoAnim = state.animations?.resumo;
   const prevVarRatios = resumoAnim?.varRatios instanceof Map ? resumoAnim.varRatios : new Map();
@@ -13870,19 +13355,8 @@ function renderFamilias(sections, summary){
 
     const cardItems = itemsFiltered.filter(item => !item.hiddenInCards);
 
-    // Calcula pontos totais e atingidos usando dados da API quando disponível
-    let sectionTotalPoints = 0;
-    let sectionPointsHit = 0;
-    
-    cardItems.forEach(i => {
-      // Busca pontos da API se disponível
-      const pontosApi = PONTOS_BY_INDICADOR.get(String(i.id));
-      const pontosMetaCard = pontosApi ? Number(pontosApi.meta) || 0 : (Number(i.pontosMeta ?? i.peso) || 0);
-      const pontosRealCard = pontosApi ? Number(pontosApi.realizado) || 0 : Math.max(0, Number(i.pontos ?? 0));
-      
-      sectionTotalPoints += pontosMetaCard;
-      sectionPointsHit += pontosRealCard;
-    });
+    const sectionTotalPoints = cardItems.reduce((acc,i)=> acc + (i.pontosMeta ?? i.peso ?? 0), 0);
+    const sectionPointsHit   = cardItems.reduce((acc,i)=> acc + Math.max(0, Number(i.pontos ?? 0)), 0);
     const sectionPointsHitDisp = formatPoints(sectionPointsHit);
     const sectionPointsTotalDisp = formatPoints(sectionTotalPoints);
     const sectionPointsHitFull = formatPoints(sectionPointsHit, { withUnit: true });
@@ -13940,45 +13414,20 @@ function renderFamilias(sections, summary){
         || familiaAttr;
       const familiaAttrSafe = escapeHTML(familiaAttr || "");
       const familiaLabelSafe = escapeHTML(familiaLabelAttr || familiaAttr || "");
-
-      // Busca pontos da API se disponível, senão usa os calculados
-      const pontosApi = PONTOS_BY_INDICADOR.get(String(f.id));
-      const pontosMeta = pontosApi ? Number(pontosApi.meta) || 0 : pontosMetaItem;
-      const pontosReal = pontosApi ? Number(pontosApi.realizado) || 0 : pontosRealItem;
-      // O peso sempre vem da API de produtos (f.peso ou PRODUCT_INDEX), não da API de pontos
-      const pesoCard = Number(f.peso) || Number(prodMeta?.peso) || pontosMetaItem || 0;
-      const pontosRatio = pontosMeta ? (pontosReal / pontosMeta) : 0;
-      const pontosPct = Math.max(0, pontosRatio * 100);
-
-      // Calcula atingimento: prioriza meta/realizado, mas usa pontos como fallback
-      // Se houver meta válida, calcula a partir de meta/realizado
-      // Caso contrário, usa a porcentagem de pontos se disponível
-      let atingValue = 0;
-      const metaVal = Number(f.meta) || 0;
-      const realizadoVal = Number(f.realizado) || 0;
-      
-      if (metaVal > 0) {
-        // Se há meta, calcula a partir de meta/realizado
-        atingValue = realizadoVal / metaVal;
-      } else if (pontosMeta > 0) {
-        // Se não houver meta mas houver pontos, usa a porcentagem de pontos
-        atingValue = pontosRatio;
-      } else if (Number.isFinite(f.ating) && f.ating > 0) {
-        // Usa f.ating apenas se for maior que 0 (evita usar 0 quando há dados de pontos)
-        atingValue = f.ating;
-      }
-      
-      const pct = Math.max(0, Math.min(100, atingValue * 100)); /* clamp 0..100 */
+      const pct = Math.max(0, Math.min(100, f.ating*100)); /* clamp 0..100 */
       const badgeClass = pct < 50 ? "badge--low" : (pct < 100 ? "badge--warn" : "badge--ok");
       const badgeTxt   = pct >= 100 ? `${Math.round(pct)}%` : `${pct.toFixed(1)}%`;
       const narrowStyle= badgeTxt.length >= 5 ? 'style="font-size:11px"' : '';
 
-      const metrica = f.metrica || f.metric || "valor";
-      const metricaCapitalizada = metrica ? metrica.charAt(0).toUpperCase() + metrica.slice(1).toLowerCase() : "Valor";
-      const realizadoTxt = formatByMetric(metrica, f.realizado);
-      const metaTxt      = formatByMetric(metrica, f.meta);
-      const realizadoFull = formatMetricFull(metrica, f.realizado);
-      const metaFull      = formatMetricFull(metrica, f.meta);
+      const realizadoTxt = formatByMetric(f.metric, f.realizado);
+      const metaTxt      = formatByMetric(f.metric, f.meta);
+      const realizadoFull = formatMetricFull(f.metric, f.realizado);
+      const metaFull      = formatMetricFull(f.metric, f.meta);
+
+      const pontosMeta = pontosMetaItem;
+      const pontosReal = pontosRealItem;
+      const pontosRatio = pontosMeta ? (pontosReal / pontosMeta) : 0;
+      const pontosPct = Math.max(0, pontosRatio * 100);
       const pontosPctLabel = `${pontosPct.toFixed(1)}%`;
       const pontosFill = Math.max(0, Math.min(100, pontosPct));
       const pontosFillRounded = Number(pontosFill.toFixed(2));
@@ -13997,8 +13446,8 @@ function renderFamilias(sections, summary){
 
           <div class="prod-card__meta">
             <span class="pill">Pontos: ${formatPoints(pontosReal)} / ${formatPoints(pontosMeta)}</span>
-            <span class="pill">Peso: ${formatPeso(pesoCard)}</span>
-            <span class="pill">${metricaCapitalizada}</span>
+            <span class="pill">Peso: ${formatPoints(pontosMeta)}</span>
+            <span class="pill">${f.metric === "valor" ? "Valor" : f.metric === "qtd" ? "Quantidade" : "Percentual"}</span>
           </div>
 
           <div class="prod-card__kpis">
@@ -14021,7 +13470,7 @@ function renderFamilias(sections, summary){
             </div>
           </div>
 
-          <div class="prod-card__foot">${f.ultimaAtualizacao === "Indisponível" ? "Indisponível" : `Atualizado em ${f.ultimaAtualizacao}`}</div>
+          <div class="prod-card__foot">Atualizado em ${f.ultimaAtualizacao}</div>
           ${buildCardTooltipHTML(f)}
         </article>
       `);
@@ -14105,13 +13554,6 @@ function renderResumoLegacyTable(sections = [], summary = {}, rawSections = null
 
   const showAnnualMatrix = (state.accumulatedView || "mensal") === "anual";
   host.classList.toggle("resumo-legacy--annual", showAnnualMatrix);
-
-  // Calcula dias úteis para os cálculos de referência, forecast e meta diária necessária
-  const periodStart = state.period?.start || "";
-  const periodEnd = state.period?.end || "";
-  const diasTotais = businessDaysBetweenInclusive(periodStart, periodEnd);
-  const diasDecorridos = businessDaysElapsedUntilToday(periodStart, periodEnd);
-  const diasRestantes = Math.max(0, diasTotais - diasDecorridos);
 
   const activeSections = showAnnualMatrix
     ? (Array.isArray(rawSections) && rawSections.length ? rawSections : sections)
@@ -14271,10 +13713,8 @@ function renderResumoLegacyTable(sections = [], summary = {}, rawSections = null
       if (isKnownMetric) {
         metricClasses.push(`resumo-legacy__metric--${metricKeyRaw}`);
       }
-      
-      // Busca pontos da API se disponível para o peso
-      const pontosApi = PONTOS_BY_INDICADOR.get(String(item.id));
-      const pesoValor = pontosApi ? Number(pontosApi.meta) || 0 : (Number(item.pontosMeta ?? item.peso ?? 0) || 0);
+
+      const pesoValor = Number(item.pontosMeta ?? item.peso ?? 0) || 0;
       const pesoLabelRaw = fmtINT.format(Math.round(pesoValor));
 
       let metaCellRaw = "—";
@@ -14292,28 +13732,12 @@ function renderResumoLegacyTable(sections = [], summary = {}, rawSections = null
         metaTitleRaw = formatMetricFull(metricKeyRaw, item.meta);
         realizadoCellRaw = formatByMetric(metricKeyRaw, item.realizado);
         realizadoTitleRaw = formatMetricFull(metricKeyRaw, item.realizado);
-        
-        // Ref. do dia: diasDecorridos > 0 ? fmt(item.metric, referenciaHoje) : "—"
-        if (diasDecorridos > 0) {
-          referenciaCellRaw = formatByMetric(metricKeyRaw, item.referenciaHoje);
-          referenciaTitleRaw = formatMetricFull(metricKeyRaw, item.referenciaHoje);
-        } else {
-          referenciaCellRaw = "—";
-          referenciaTitleRaw = "Sem referência do dia";
-        }
-        
-        // Forecast: sempre calculado (mediaDiariaAtual * diasTotais)
+        referenciaCellRaw = formatByMetric(metricKeyRaw, item.referenciaHoje);
+        referenciaTitleRaw = formatMetricFull(metricKeyRaw, item.referenciaHoje);
         forecastCellRaw = formatByMetric(metricKeyRaw, item.projecao);
         forecastTitleRaw = formatMetricFull(metricKeyRaw, item.projecao);
-        
-        // Meta diária necessária: diasRestantes > 0 ? fmt(item.metric, necessarioPorDia) : "—"
-        if (diasRestantes > 0) {
-          metaNecCellRaw = formatByMetric(metricKeyRaw, item.metaDiariaNecessaria);
-          metaNecTitleRaw = formatMetricFull(metricKeyRaw, item.metaDiariaNecessaria);
-        } else {
-          metaNecCellRaw = "—";
-          metaNecTitleRaw = "Sem meta diária necessária";
-        }
+        metaNecCellRaw = formatByMetric(metricKeyRaw, item.metaDiariaNecessaria);
+        metaNecTitleRaw = formatMetricFull(metricKeyRaw, item.metaDiariaNecessaria);
       }
 
       const atingPct = Math.max(0, Math.min(200, toNumber(item.ating) * 100));
@@ -14321,8 +13745,7 @@ function renderResumoLegacyTable(sections = [], summary = {}, rawSections = null
       const atingLabelRaw = `${atingPct.toFixed(1)}%`;
       const atingMeterClass = atingPct >= 100 ? "is-ok" : (atingPct >= 50 ? "is-warn" : "is-low");
 
-      // Busca pontos da API se disponível, senão usa os calculados
-      const pontosValor = pontosApi ? Number(pontosApi.realizado) || 0 : (Number(item.pontos ?? item.pontosBrutos ?? 0) || 0);
+      const pontosValor = Number(item.pontos ?? item.pontosBrutos ?? item.peso ?? 0) || 0;
       const pontosLabelRaw = formatPoints(pontosValor, { withUnit: true });
       const pontosTitleRaw = formatPoints(pontosValor, { withUnit: true });
 
@@ -14554,11 +13977,13 @@ function createExecutiveView(){
   syncSegmented('#exec-heatmap-toggle', 'hm', 'heatmapMode', 'secoes');
 
   if (!host.dataset.execFiltersBound) {
-    const execSel = ["#f-segmento","#f-diretoria","#f-gerencia","#f-agencia","#f-gerente-gestao","#f-gerente","#f-familia","#f-produto","#f-status-kpi"];
+    const execSel = ["#f-segmento","#f-diretoria","#f-gerencia","#f-agencia","#f-ggestao","#f-gerente","#f-familia","#f-produto","#f-status-kpi"];
     execSel.forEach(sel => $(sel)?.addEventListener("change", () => {
       if (state.activeView === 'exec') renderExecutiveView();
     }));
-    // Botão consultar removido - filtros são aplicados automaticamente quando mudam
+    $("#btn-consultar")?.addEventListener("click", () => {
+      if (state.activeView === 'exec') renderExecutiveView();
+    });
     host.dataset.execFiltersBound = "true";
   }
 }
@@ -14599,52 +14024,16 @@ function resolveExecLabelForKey(row, key, fallback = "") {
 
 function execAggBy(rows, key){
   const map = new Map();
-  // Map para rastrear metas já contadas por grupo, evitando duplicação
-  // Usa uma chave única baseada nos campos que identificam uma meta
-  const metaKeysByGroup = new Map();
-  
   rows.forEach(r=>{
     const groupKey = key === "__total__" ? "__total__" : resolveExecValueForKey(r, key, "—");
     const current = map.get(groupKey) || { key: groupKey, label: "", real_mens:0, meta_mens:0, real_acum:0, meta_acum:0, qtd:0 };
     const labelCandidate = resolveExecLabelForKey(r, key, current.label || groupKey);
     if (labelCandidate && !current.label) current.label = labelCandidate;
-    
-    // Soma realizados normalmente (podem ser múltiplos)
     current.real_mens += (r.real_mens ?? r.realizado ?? 0);
+    current.meta_mens += (r.meta_mens ?? r.meta ?? 0);
     current.real_acum += (r.real_acum ?? r.realizado ?? 0);
+    current.meta_acum += (r.meta_acum ?? r.meta ?? 0);
     current.qtd       += (r.qtd ?? 0);
-    
-    // Para metas, cria uma chave única baseada no registroId da meta (se disponível) ou nos campos que identificam uma meta única
-    // Isso evita que a mesma meta seja somada múltiplas vezes quando há vários realizados correspondentes
-    const metaValue = r.meta_mens ?? r.meta ?? 0;
-    if (metaValue > 0) {
-      // Prioriza usar o registroId da meta se disponível (mais preciso)
-      // Caso contrário, usa uma combinação de campos que identificam uma meta única
-      const metaKey = r.metaRegistroId 
-        ? `meta_id|${r.metaRegistroId}`
-        : [
-            r.agencia_id ?? r.agencia ?? "",
-            r.produtoId ?? r.id_indicador ?? "",
-            r.competencia ?? (r.data ? r.data.slice(0, 7) + "-01" : ""),
-            r.segmentoId ?? r.segmento ?? "",
-            r.diretoria_id ?? r.diretoriaId ?? r.diretoria ?? "",
-            r.gerencia_id ?? r.gerenciaId ?? r.gerenciaRegional ?? "",
-            metaValue
-          ].join("|");
-      
-      if (!metaKeysByGroup.has(groupKey)) {
-        metaKeysByGroup.set(groupKey, new Set());
-      }
-      const metaKeysSet = metaKeysByGroup.get(groupKey);
-      
-      // Soma a meta apenas se ainda não foi contada para esta combinação única
-      if (!metaKeysSet.has(metaKey)) {
-        current.meta_mens += metaValue;
-        current.meta_acum += (r.meta_acum ?? r.meta ?? metaValue);
-        metaKeysSet.add(metaKey);
-      }
-    }
-    
     map.set(groupKey, current);
   });
   return [...map.values()].map(x=>{
@@ -14661,7 +14050,7 @@ function execAggBy(rows, key){
 const EXEC_FILTER_SELECTORS = {
   gerencia: "#f-gerencia",
   agencia:  "#f-agencia",
-  gGestao:  "#f-gerente-gestao",
+  gGestao:  "#f-ggestao",
   gerente:  "#f-gerente",
   prodsub:  "#f-produto"
 };
@@ -15036,19 +14425,13 @@ function renderExecutiveView(){
     return;
   }
 
-  // Os dados já vêm filtrados do backend, então não precisa filtrar novamente
-  // Apenas aplica busca por texto se houver (funcionalidade do frontend)
-  const rowsBase = state.tableSearchTerm
-    ? state._rankingRaw.filter(r => rowMatchesSearch(r, state.tableSearchTerm))
-    : state._rankingRaw;
+  // base com TODOS os filtros aplicados
+  const rowsBase = filterRows(state._rankingRaw);
   const execMonthlyPeriod = getExecutiveMonthlyPeriod();
-  // Para dados mensais, filtra apenas por data (o backend já filtra o resto)
-  const rowsMonthly = rowsBase.filter(r => {
-    const rowDate = r.data || r.competencia || "";
-    if (!rowDate) return false;
-    const startISO = execMonthlyPeriod.start;
-    const endISO = execMonthlyPeriod.end;
-    return (!startISO || rowDate >= startISO) && (!endISO || rowDate <= endISO);
+  const rowsMonthly = filterRowsExcept(state._rankingRaw, {}, {
+    searchTerm: state.tableSearchTerm,
+    dateStart: execMonthlyPeriod.start,
+    dateEnd: execMonthlyPeriod.end,
   });
 
   // nível inicial
@@ -16425,13 +15808,6 @@ function renderRanking(){
   const hostTbl = document.getElementById("rk-table");
   if(!hostSum || !hostTbl) return;
 
-  // Se estiver limpando filtros, limpa a exibição
-  if (state._isClearingFilters) {
-    hostSum.innerHTML = "";
-    hostTbl.innerHTML = "";
-    return;
-  }
-
   const typeSelect = document.getElementById("rk-type");
   const productWrapper = document.getElementById("rk-product-wrapper");
   const modeGroup = document.getElementById("rk-product-mode");
@@ -16455,18 +15831,8 @@ function renderRanking(){
     levelSelect.value = normalizeProductRankLevel(selectValue);
   }
 
-  // Se não há dados de ranking, não exibe nada
-  if (!Array.isArray(state._rankingRaw) || state._rankingRaw.length === 0) {
-    hostSum.innerHTML = "";
-    hostTbl.innerHTML = "";
-    return;
-  }
-  
-  // Os dados já vêm filtrados do backend, então não precisa filtrar novamente
-  // Apenas aplica busca por texto se houver (funcionalidade do frontend)
-  const rowsBase = state.tableSearchTerm
-    ? state._rankingRaw.filter(r => rowMatchesSearch(r, state.tableSearchTerm))
-    : state._rankingRaw;
+  const except = { [level]: true };
+  const rowsBase = filterRowsExcept(state._rankingRaw, except, { searchTerm: "" });
 
   const gruposLimite = rkGroupCount(level);
   const myUnit = currentUnitForLevel(level);
@@ -16491,14 +15857,6 @@ function renderRanking(){
     if (modeGroup) {
       modeGroup.querySelectorAll('.seg-btn').forEach(btn => btn.classList.remove('is-active'));
     }
-    
-    // Se estiver limpando ou não houver dados, não exibe histórico
-    if (state._isClearingFilters) {
-      hostSum.innerHTML = "";
-      hostTbl.innerHTML = "";
-      return;
-    }
-    
     if (!myUnit) {
       hostSum.innerHTML = `<div class="rk-badges"><span class="rk-badge rk-badge--warn">Selecione um(a) ${nivelNome.toLowerCase()} para ver o histórico anual.</span></div>`;
       hostTbl.innerHTML = `<p class="rk-empty">Escolha um(a) ${nivelNome.toLowerCase()} nos filtros para visualizar a evolução dos últimos anos.</p>`;
@@ -16507,7 +15865,7 @@ function renderRanking(){
 
     const historySource = Array.isArray(state.facts?.historico) && state.facts.historico.length
       ? state.facts.historico
-      : (typeof FACT_HISTORICO_RANKING_POBJ !== "undefined" ? FACT_HISTORICO_RANKING_POBJ : []);
+      : FACT_HISTORICO_RANKING_POBJ;
 
     if (!historySource.length) {
       hostSum.innerHTML = `<div class="rk-badges"><span class="rk-badge rk-badge--warn">Sem dados históricos para o contexto selecionado.</span></div>`;
@@ -16957,7 +16315,7 @@ function ensureSyntheticDashboardRowsForTree(rows = [], sections = []) {
 
   const sectionList = Array.isArray(sections) ? sections : [];
   sectionList.forEach(section => {
-    if (!section) return;
+    if (!section || section.id === "outros") return;
     const secaoId = limparTexto(section.id) || simplificarTexto(section.label) || "secao";
     const secaoNome = section.label || getSectionLabel(secaoId) || secaoId;
     const items = Array.isArray(section.items) ? section.items : [];
@@ -17061,11 +16419,7 @@ function renderTreeTable() {
   renderDetailViewBar();
 
   const def = TABLE_VIEWS.find(v=> v.id === state.tableView) || TABLE_VIEWS[0];
-  // Os dados já vêm filtrados do backend, então não precisa filtrar novamente
-  // Apenas aplica busca por texto se houver (funcionalidade do frontend)
-  let rowsFiltered = state.tableSearchTerm
-    ? state._rankingRaw.filter(r => rowMatchesSearch(r, state.tableSearchTerm))
-    : state._rankingRaw;
+  let rowsFiltered = filterRows(state._rankingRaw);
   const dashboardSections = Array.isArray(state.dashboardVisibleSections) && state.dashboardVisibleSections.length
     ? state.dashboardVisibleSections
     : state.dashboard?.sections;
@@ -17346,8 +16700,6 @@ function renderTreeTable() {
 function applyFiltersAndRender(){
   ensureSegmentScenarioFromFilters();
   updatePeriodLabels();
-  // Reconstroi mapa de pontos com filtro de data atualizado
-  buildPontosByIndicadorMap(state.period);
   updateDashboardCards();
   if(state.tableRendered) renderTreeTable();
   if (state.activeView === "campanhas") renderCampanhasView();
@@ -17471,9 +16823,6 @@ async function refresh(){
       updatePeriodLabels();
     }
 
-    // Reconstroi mapa de pontos com filtro de data atualizado
-    buildPontosByIndicadorMap(state.period);
-
     updateDashboardCards();
     reorderFiltersUI();
     renderAppliedFilters();
@@ -17489,6 +16838,64 @@ async function refresh(){
   }
 }
 
+/* ===== Aqui eu escrevi um loader de CSV que aguenta diferentes codificações e separadores ===== */
+async function loadCSVAuto(url) {
+  // Busca como binário para poder detectar a codificação.
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Falha ao carregar ${url}: ${res.status}`);
+  const buf = await res.arrayBuffer();
+
+  // Tenta decodificar como UTF-8; se vier com � (replacement char), refaz como latin-1.
+  let text = new TextDecoder("utf-8").decode(buf);
+  if (text.includes("\uFFFD")) {
+    text = new TextDecoder("iso-8859-1").decode(buf);
+  }
+  text = text.trim();
+  if (!text) return [];
+
+  // Se o Papa ainda não carregou (ex.: offline ou CDN bloqueada), faz o parse manual.
+  if (typeof Papa === "undefined" || typeof Papa.parse !== "function") {
+    return converterCSV(text);
+  }
+
+  // Descobre o separador pela 1ª linha (conta ; e ,)
+  const first = (text.split(/\r?\n/)[0] || "");
+  const semis = (first.match(/;/g) || []).length;
+  const commas = (first.match(/,/g) || []).length;
+  const delimiter = semis > commas ? ";" : ",";
+
+  // Faz o parse com cabeçalho
+  const parsed = Papa.parse(text, {
+    header: true,
+    delimiter,
+    skipEmptyLines: true
+  });
+
+  if (!parsed || !Array.isArray(parsed.data)) {
+    return converterCSV(text);
+  }
+
+  if (parsed.errors && parsed.errors.length) {
+    const simplified = parsed.errors.map(err => ({
+      type: err?.type,
+      code: err?.code,
+      row: err?.row,
+      message: err?.message,
+    }));
+    console.warn(`Avisos ao ler ${url}:`, simplified);
+  }
+
+  return parsed.data.map(record => {
+    if (!record || typeof record !== "object") return record;
+    const normalized = {};
+    Object.keys(record).forEach(key => {
+      const safeKey = typeof key === "string" ? key.trim() : key;
+      const value = record[key];
+      normalized[safeKey] = typeof value === "string" ? value.trim() : value;
+    });
+    return normalized;
+  });
+}
 
 /* ===== Aqui eu disparo o boot do painel assim que a página carrega ===== */
 (async function(){
@@ -17499,10 +16906,9 @@ async function refresh(){
   setupTopbarNotifications();
 
   try {
-    // Carrega apenas dados iniciais necessários para filtros
-    await loadInitialData();
+    await loadBaseData();
   } catch (error) {
-    handleInitDataError(error);
+    handleBootstrapError(error);
     return;
   }
 
@@ -17516,32 +16922,12 @@ async function refresh(){
     setupOpportunityModal();
   }
 
-  // Garante que o período seja inicializado e exibido
-  if (!state.period) {
-    state.period = getDefaultPeriodRange();
+  try {
+    await refresh();
+  } catch (error) {
+    handleBootstrapError(error);
+    return;
   }
-  updatePeriodLabels();
-  
-  // Atualiza o elemento de período se existir
-  const right = document.getElementById("lbl-atualizacao");
-  if(right){
-    right.innerHTML = `
-      <div class="period-inline">
-        <span class="txt">
-          De
-          <strong><span id="lbl-periodo-inicio">${formatBRDate(state.period.start)}</span></strong>
-          até
-          <strong><span id="lbl-periodo-fim">${formatBRDate(state.period.end)}</span></strong>
-        </span>
-        <button id="btn-alterar-data" type="button" class="link-action">
-          <i class="ti ti-chevron-down"></i> Alterar data
-        </button>
-      </div>`;
-    document.getElementById("btn-alterar-data")?.addEventListener("click", (e)=> openDatePopover(e.currentTarget));
-  }
-
-  // Dados de período serão carregados apenas quando o usuário interagir (mudar filtro ou período)
-  // Isso é feito automaticamente pelos event listeners configurados em bindEvents()
 
   ensureChatWidget();
 })();
@@ -17609,7 +16995,7 @@ function showFatalError(options){
   FATAL_ERROR_VISIBLE = true;
 }
 
-function buildInitDataHelpSteps(error){
+function buildBootstrapHelpSteps(error){
   const steps = [];
   if (window.location.protocol === "file:") {
     steps.push("Mova a pasta 'POBJ SQL php71' para o diretório htdocs do XAMPP ou publique via Apache.");
@@ -17619,7 +17005,7 @@ function buildInitDataHelpSteps(error){
   }
 
   steps.push("Confira se o Apache (servidor web) e o MySQL estão iniciados no XAMPP.");
-  steps.push("Acesse a URL da API com /api/health e confirme que retorna {\"status\":\"ok\"}.");
+  steps.push("Acesse http://localhost/POBJ%20SQL%20php71/config/api/index.php?endpoint=health e confirme que retorna {\"status\":\"ok\"}.");
   steps.push("Revise o arquivo config/.env com host, usuário e senha do banco (ex.: host=localhost, user=root, sem senha no XAMPP).");
   steps.push("Execute docs/schema_mysql.sql no banco para garantir que todas as tabelas existem.");
   steps.push("Se publicar em outro domínio/porta, adicione <script>window.API_HTTP_BASE='URL-do-seu-site';</script> antes de script.js.");
@@ -17631,7 +17017,7 @@ function buildInitDataHelpSteps(error){
   return steps;
 }
 
-function handleInitDataError(error){
+function handleBootstrapError(error){
   console.error("Falha ao iniciar o painel", error);
   hideLoader();
 
@@ -17643,7 +17029,7 @@ function handleInitDataError(error){
     ? error.stack
     : (error && error.message ? error.message : "");
   const subtitle = "O painel precisa acessar o PHP do XAMPP para ler o MySQL.";
-  const steps = buildInitDataHelpSteps(error);
+  const steps = buildBootstrapHelpSteps(error);
 
   showFatalError({
     title: "Não foi possível conectar ao banco de dados",
@@ -17657,8 +17043,7 @@ if (typeof window !== "undefined") {
   window.DEBUG = window.DEBUG || {};
   window.DEBUG.check = function debugCheck(){
     const factRows = (state?.facts?.dados && Array.isArray(state.facts.dados)) ? state.facts.dados : fDados;
-    // Os dados já vêm filtrados do backend, então não precisa filtrar novamente
-    const filtered = Array.isArray(factRows) ? factRows : [];
+    const filtered = Array.isArray(factRows) ? filterRowsExcept(factRows, {}, { searchTerm: "" }) : [];
     const grouped = filtered.reduce((acc, row) => {
       const gerente = row.gerente_id || row.gerenteId || row.gerente || "";
       const indicador = row.indicadorId || row.id_indicador || row.produtoId || "";

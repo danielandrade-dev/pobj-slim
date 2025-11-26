@@ -1,7 +1,7 @@
-import { ref, computed, watch, type Ref } from 'vue'
-import { getProdutosMensais, type ProdutoMensal, type ProdutoFilters } from '../services/produtosService'
-import { useBusinessDays } from './useBusinessDays'
+import { computed, type Ref } from 'vue'
+import type { ProdutoMensal, ProdutoFilters } from '../types'
 import { useGlobalFilters } from './useGlobalFilters'
+import { useResumoData } from './useResumoData'
 
 export interface LegacySection {
   id: string
@@ -42,53 +42,19 @@ export interface LegacyItem {
   children?: LegacyItem[]
 }
 
-export function useProdutosLegacy(filters?: Ref<ProdutoFilters | null>) {
-  const produtos = ref<ProdutoMensal[]>([])
-  const loading = ref(true)
-  const error = ref<string | null>(null)
-  const { period } = useGlobalFilters()
-  const { getCurrentMonthBusinessSnapshot, loadCalendario } = useBusinessDays()
-  
-  // Carrega calendário ao montar
-  loadCalendario()
-
-  const loadProdutos = async (currentFilters?: ProdutoFilters | null) => {
-    try {
-      loading.value = true
-      error.value = null
-      const data = await getProdutosMensais(currentFilters || undefined)
-      if (data) {
-        produtos.value = data
-      } else {
-        error.value = 'Não foi possível carregar os produtos mensais'
-      }
-    } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Erro desconhecido'
-      console.error('Erro ao carregar produtos mensais:', err)
-    } finally {
-      loading.value = false
-    }
-  }
-
-  // Observa mudanças nos filtros e recarrega produtos
-  if (filters) {
-    watch(filters, (newFilters) => {
-      if (newFilters) {
-        loadProdutos(newFilters)
-      } else {
-        loadProdutos()
-      }
-    }, { immediate: true, deep: true })
-  } else {
-    // Se não houver filtros, carrega uma vez
-    loadProdutos()
-  }
+export function useProdutosLegacy(_filters?: Ref<ProdutoFilters | null>) {
+  const { filterState, period } = useGlobalFilters()
+  const resumo = useResumoData(filterState, period)
+  const produtos = resumo.produtosMensais
+  const loading = resumo.loading
+  const error = resumo.error
+  const getCurrentMonthBusinessSnapshot = resumo.businessSnapshot
 
   // Agrupa produtos por família e indicador
   const produtosPorFamilia = computed<LegacySection[]>(() => {
     const familiasMap = new Map<string, Map<string, LegacyItem>>()
     
-    produtos.value.forEach(produto => {
+    produtos.value.forEach((produto: ProdutoMensal) => {
       const familiaId = produto.id_familia || 'sem-familia'
       const familiaNome = produto.familia || 'Sem Família'
       const indicadorId = produto.id_indicador || produto.id
@@ -300,7 +266,7 @@ export function useProdutosLegacy(filters?: Ref<ProdutoFilters | null>) {
     produtosPorFamilia,
     loading,
     error,
-    loadProdutos
+    loadProdutos: resumo.loadResumo
   }
 }
 

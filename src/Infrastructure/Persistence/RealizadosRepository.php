@@ -31,42 +31,40 @@ class RealizadosRepository extends BaseRepository
                     r.data_realizado AS competencia,
                     r.funcional,
                     r.realizado AS realizado_mensal,
-                    r.familia_id,
-                    r.indicador_id,
-                    r.subindicador_id,
-                    r.segmento_id,
-                    r.diretoria_id,
-                    r.gerencia_regional_id,
-                    r.agencia_id,
-                    COALESCE(u.segmento, '') AS segmento,
-                    COALESCE(u.diretoria, '') AS diretoria_nome,
-                    COALESCE(u.regional, '') AS gerencia_regional_nome,
-                    COALESCE(u.regional, '') AS regional_nome,
-                    COALESCE(u.agencia, '') AS agencia_nome,
+                    dp.familia_id,
+                    dp.indicador_id,
+                    dp.subindicador_id,
+                    e.segmento_id,
+                    e.diretoria_id,
+                    e.regional_id AS gerencia_regional_id,
+                    e.agencia_id,
+                    COALESCE(seg.nome, '') AS segmento,
+                    COALESCE(dir.nome, '') AS diretoria_nome,
+                    COALESCE(reg.nome, '') AS gerencia_regional_nome,
+                    COALESCE(reg.nome, '') AS regional_nome,
+                    COALESCE(ag.nome, '') AS agencia_nome,
                     COALESCE(gg.funcional, '') AS gerente_gestao_id,
                     COALESCE(gg.nome, '') AS gerente_gestao_nome,
-                    COALESCE(u.funcional, '') AS gerente_id,
-                    COALESCE(u.nome, '') AS gerente_nome,
-                    COALESCE(p.familia, '') AS familia_nome,
-                    COALESCE(CAST(p.id_indicador AS CHAR), '') AS id_indicador,
-                    COALESCE(p.indicador, '') AS ds_indicador,
-                    COALESCE(p.subindicador, '') AS subproduto,
-                    COALESCE(CAST(COALESCE(p.id_subindicador, 0) AS CHAR), '0') AS id_subindicador
+                    COALESCE(e.funcional, '') AS gerente_id,
+                    COALESCE(e.nome, '') AS gerente_nome,
+                    COALESCE(fam.nm_familia, '') AS familia_nome,
+                    COALESCE(CAST(dp.indicador_id AS CHAR), '') AS id_indicador,
+                    COALESCE(ind.nm_indicador, '') AS ds_indicador,
+                    COALESCE(sub.nm_subindicador, '') AS subproduto,
+                    COALESCE(CAST(COALESCE(dp.subindicador_id, 0) AS CHAR), '0') AS id_subindicador
                 FROM " . Tables::F_REALIZADOS . " r
-                LEFT JOIN " . Tables::D_ESTRUTURA . " u ON u.id_segmento = r.segmento_id
-                    AND u.id_diretoria = r.diretoria_id
-                    AND u.id_regional = r.gerencia_regional_id
-                    AND u.id_agencia = r.agencia_id
-                    AND u.funcional = r.funcional
-                    AND u.id_cargo = " . Cargo::GERENTE . "
+                LEFT JOIN " . Tables::D_PRODUTOS . " dp ON dp.id = r.produto_id
+                LEFT JOIN familia fam ON fam.id = dp.familia_id
+                LEFT JOIN indicador ind ON ind.id = dp.indicador_id
+                LEFT JOIN subindicador sub ON sub.id = dp.subindicador_id
+                LEFT JOIN " . Tables::D_ESTRUTURA . " e ON e.funcional = r.funcional
+                LEFT JOIN segmentos seg ON seg.id = e.segmento_id
+                LEFT JOIN diretorias dir ON dir.id = e.diretoria_id
+                LEFT JOIN regionais reg ON reg.id = e.regional_id
+                LEFT JOIN agencias ag ON ag.id = e.agencia_id
                 LEFT JOIN d_estrutura gg
-                    ON gg.id_agencia = u.id_agencia
-                    AND gg.id_regional = u.id_regional
-                    AND gg.id_diretoria = u.id_diretoria
-                    AND gg.id_segmento = u.id_segmento
-                    AND gg.id_cargo = " . Cargo::GERENTE_GESTAO . "  
-                LEFT JOIN " . Tables::D_PRODUTOS . " p ON p.id_indicador = r.indicador_id
-                    AND (p.id_subindicador = r.subindicador_id OR (p.id_subindicador IS NULL AND r.subindicador_id IS NULL))
+                    ON gg.agencia_id = e.agencia_id
+                    AND gg.cargo_id = " . Cargo::GERENTE_GESTAO . "
                 WHERE 1=1";
     }
 
@@ -85,35 +83,27 @@ class RealizadosRepository extends BaseRepository
         }
 
         if ($filters->getSegmento() !== null) {
-            $sql .= " AND r.segmento_id = :segmento";
+            $sql .= " AND e.segmento_id = :segmento";
             $params[':segmento'] = $filters->getSegmento();
         }
 
         if ($filters->getDiretoria() !== null) {
-            $sql .= " AND r.diretoria_id = :diretoria";
+            $sql .= " AND e.diretoria_id = :diretoria";
             $params[':diretoria'] = $filters->getDiretoria();
         }
 
         if ($filters->getRegional() !== null) {
-            $sql .= " AND r.gerencia_regional_id = :regional";
+            $sql .= " AND e.regional_id = :regional";
             $params[':regional'] = $filters->getRegional();
         }
 
         if ($filters->getAgencia() !== null) {
-            $sql .= " AND r.agencia_id = :agencia";
+            $sql .= " AND e.agencia_id = :agencia";
             $params[':agencia'] = $filters->getAgencia();
         }
 
         if ($filters->getGerenteGestao() !== null) {
-            $sql .= " AND EXISTS (
-                SELECT 1 FROM " . Tables::D_ESTRUTURA . " ggestao 
-                WHERE gg.funcional = :gerente_gestao
-                AND gg.id_cargo = " . Cargo::GERENTE_GESTAO . "
-                AND gg.id_segmento = r.segmento_id
-                AND gg.id_diretoria = r.diretoria_id
-                AND gg.id_regional = r.gerencia_regional_id
-                AND gg.id_agencia = r.agencia_id
-            )";
+            $sql .= " AND gg.funcional = :gerente_gestao";
             $params[':gerente_gestao'] = $filters->getGerenteGestao();
         }
 
@@ -123,17 +113,17 @@ class RealizadosRepository extends BaseRepository
         }
 
         if ($filters->getFamilia() !== null) {
-            $sql .= " AND r.familia_id = :familia";
+            $sql .= " AND dp.familia_id = :familia";
             $params[':familia'] = $filters->getFamilia();
         }
 
         if ($filters->getIndicador() !== null) {
-            $sql .= " AND r.indicador_id = :indicador";
+            $sql .= " AND dp.indicador_id = :indicador";
             $params[':indicador'] = $filters->getIndicador();
         }
 
         if ($filters->getSubindicador() !== null) {
-            $sql .= " AND r.subindicador_id = :subindicador";
+            $sql .= " AND dp.subindicador_id = :subindicador";
             $params[':subindicador'] = $filters->getSubindicador();
         }
 

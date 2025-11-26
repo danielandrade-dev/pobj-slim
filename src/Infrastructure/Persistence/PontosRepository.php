@@ -28,14 +28,20 @@ class PontosRepository extends BaseRepository
         return "SELECT 
                     p.id,
                     p.funcional,
-                    p.id_indicador,
-                    p.id_familia,
-                    p.indicador,
+                    dp.indicador_id AS id_indicador,
+                    dp.familia_id AS id_familia,
+                    COALESCE(ind.nm_indicador, '') AS indicador,
                     p.meta,
                     p.realizado,
                     p.data_realizado,
-                    p.dt_atualizacao
+                    p.dt_atualizacao,
+                    e.segmento_id,
+                    e.diretoria_id,
+                    e.regional_id,
+                    e.agencia_id
                 FROM " . Tables::F_PONTOS . " p
+                LEFT JOIN " . Tables::D_PRODUTOS . " dp ON dp.id = p.produto_id
+                LEFT JOIN indicador ind ON ind.id = dp.indicador_id
                 LEFT JOIN " . Tables::D_ESTRUTURA . " e ON e.funcional = CAST(p.funcional AS CHAR)
                 WHERE 1=1";
     }
@@ -55,22 +61,22 @@ class PontosRepository extends BaseRepository
         }
 
         if ($filters->getSegmento() !== null) {
-            $sql .= " AND e.id_segmento = :segmento";
+            $sql .= " AND e.segmento_id = :segmento";
             $params[':segmento'] = $filters->getSegmento();
         }
 
         if ($filters->getDiretoria() !== null) {
-            $sql .= " AND e.id_diretoria = :diretoria";
+            $sql .= " AND e.diretoria_id = :diretoria";
             $params[':diretoria'] = $filters->getDiretoria();
         }
 
         if ($filters->getRegional() !== null) {
-            $sql .= " AND e.id_regional = :regional";
+            $sql .= " AND e.regional_id = :regional";
             $params[':regional'] = $filters->getRegional();
         }
 
         if ($filters->getAgencia() !== null) {
-            $sql .= " AND e.id_agencia = :agencia";
+            $sql .= " AND e.agencia_id = :agencia";
             $params[':agencia'] = $filters->getAgencia();
         }
 
@@ -93,12 +99,12 @@ class PontosRepository extends BaseRepository
         }
 
         if ($filters->getFamilia() !== null) {
-            $sql .= " AND p.id_familia = :familia";
+            $sql .= " AND dp.familia_id = :familia";
             $params[':familia'] = $filters->getFamilia();
         }
 
         if ($filters->getIndicador() !== null) {
-            $sql .= " AND p.id_indicador = :indicador";
+            $sql .= " AND dp.indicador_id = :indicador";
             $params[':indicador'] = $filters->getIndicador();
         }
 

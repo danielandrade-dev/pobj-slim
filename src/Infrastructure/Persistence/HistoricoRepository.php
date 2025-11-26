@@ -24,23 +24,27 @@ class HistoricoRepository extends BaseRepository
      */
     public function baseSelect(): string
     {
-        // Correspondendo explicitamente aos nomes da tabela fornecida no exemplo
         return "SELECT 
-                    id AS nivel,
-                    data,
-                    id_segmento,
-                    segmento,
-                    id_diretoria,
-                    diretoria,
-                    id_regional,
-                    regional,
-                    id_agencia,
-                    agencia,
-                    funcional,
-                    grupo,
-                    ranking,
-                    realizado
-                FROM " . Tables::F_HISTORICO_RANKING_POBJ . "
+                    h.id AS nivel,
+                    h.data,
+                    e.segmento_id AS id_segmento,
+                    COALESCE(seg.nome, '') AS segmento,
+                    e.diretoria_id AS id_diretoria,
+                    COALESCE(dir.nome, '') AS diretoria,
+                    e.regional_id AS id_regional,
+                    COALESCE(reg.nome, '') AS regional,
+                    e.agencia_id AS id_agencia,
+                    COALESCE(ag.nome, '') AS agencia,
+                    h.funcional,
+                    h.grupo,
+                    h.ranking,
+                    h.realizado
+                FROM " . Tables::F_HISTORICO_RANKING_POBJ . " h
+                LEFT JOIN " . Tables::D_ESTRUTURA . " e ON e.funcional = h.funcional
+                LEFT JOIN segmentos seg ON seg.id = e.segmento_id
+                LEFT JOIN diretorias dir ON dir.id = e.diretoria_id
+                LEFT JOIN regionais reg ON reg.id = e.regional_id
+                LEFT JOIN agencias ag ON ag.id = e.agencia_id
                 WHERE 1=1";
     }
 
@@ -59,27 +63,27 @@ class HistoricoRepository extends BaseRepository
         }
 
         if ($filters->getSegmento() !== null) {
-            $sql .= " AND id_segmento = :segmento";
+            $sql .= " AND e.segmento_id = :segmento";
             $params[':segmento'] = $filters->getSegmento();
         }
 
         if ($filters->getDiretoria() !== null) {
-            $sql .= " AND id_diretoria = :diretoria";
+            $sql .= " AND e.diretoria_id = :diretoria";
             $params[':diretoria'] = $filters->getDiretoria();
         }
 
         if ($filters->getRegional() !== null) {
-            $sql .= " AND id_regional = :regional";
+            $sql .= " AND e.regional_id = :regional";
             $params[':regional'] = $filters->getRegional();
         }
 
         if ($filters->getAgencia() !== null) {
-            $sql .= " AND id_agencia = :agencia";
+            $sql .= " AND e.agencia_id = :agencia";
             $params[':agencia'] = $filters->getAgencia();
         }
 
         if ($filters->getGerenteGestao() !== null) {
-            $sql .= " AND funcional = :gerente_gestao";
+            $sql .= " AND h.funcional = :gerente_gestao";
             $params[':gerente_gestao'] = $filters->getGerenteGestao();
         }
 

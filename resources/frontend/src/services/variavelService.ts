@@ -1,36 +1,8 @@
 import { apiGet } from './api'
 import { ApiRoutes } from '../constants/apiRoutes'
+import type { Variavel, VariavelFilters } from '../types'
 
-export interface Variavel {
-  id?: string
-  registro_id?: string
-  funcional: string
-  variavel_meta: number
-  variavel_real: number
-  dt_atualizacao?: string
-  nome_funcional?: string
-  segmento?: string
-  segmento_id?: string
-  diretoria_nome?: string
-  diretoria_id?: string
-  regional_nome?: string
-  gerencia_id?: string
-  agencia_nome?: string
-  agencia_id?: string
-  data?: string
-  competencia?: string
-}
-
-export interface VariavelFilters {
-  segmento?: string
-  diretoria?: string
-  regional?: string
-  agencia?: string
-  gerenteGestao?: string
-  gerente?: string
-  dataInicio?: string
-  dataFim?: string
-}
+export type { Variavel, VariavelFilters } from '../types'
 
 export async function getVariavel(filters?: VariavelFilters): Promise<Variavel[] | null> {
   const params: Record<string, string> = {}

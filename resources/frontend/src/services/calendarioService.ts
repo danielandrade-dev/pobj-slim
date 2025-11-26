@@ -15,14 +15,14 @@ export type { CalendarioItem } from '../types'
  * @returns Promise com os dados do calendário ou null em caso de erro
  */
 export async function getCalendario(): Promise<CalendarioItem[] | null> {
-  const response = await apiGet<CalendarioItem[]>(ApiRoutes.CALENDARIO, { 
-    _t: Date.now() 
+  const response = await apiGet<CalendarioItem[]>(ApiRoutes.CALENDARIO, {
+    _t: Date.now()
   })
-  
+
   if (response.success && response.data) {
     return response.data
   }
-  
+
   console.error('Erro ao buscar calendário:', response.error)
   return null
 }
@@ -34,10 +34,10 @@ export function getDefaultPeriod(): { start: string; end: string } {
   const today = new Date()
   const end = new Date(today.getFullYear(), today.getMonth(), today.getDate())
   const start = new Date(today.getFullYear(), today.getMonth() - 1, today.getDate())
-  
+
   const startISO = start.toISOString().split('T')[0] || ''
   const endISO = end.toISOString().split('T')[0] || ''
-  
+
   return {
     start: startISO,
     end: endISO
