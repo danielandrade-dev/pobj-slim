@@ -24,14 +24,16 @@ return function (\Slim\App $app) {
  */
 function registerMiddlewares(\Slim\App $app)
 {
-    // ErrorMiddleware deve ser o primeiro para capturar todos os erros
+    // CorsMiddleware deve ser o primeiro para lidar com requisições OPTIONS
+    $app->add(new \App\Middleware\CorsMiddleware());
+    
+    // ErrorMiddleware deve ser o segundo para capturar todos os erros
     $app->add(new \App\Middleware\ErrorMiddleware());
     
     // FilterMiddleware processa os query params e adiciona FilterDTO como atributo
     $app->add(new \App\Middleware\FilterMiddleware());
     
     // Adicione outros middlewares aqui conforme necessário
-    // Exemplo: $app->add(new \App\Middleware\CorsMiddleware());
     // Exemplo: $app->add(new \App\Middleware\AuthMiddleware());
 }
 

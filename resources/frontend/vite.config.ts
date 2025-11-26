@@ -15,6 +15,15 @@ export default defineConfig(({ mode }) => {
     },
     define: {
       __API__: JSON.stringify(env.VITE_API_URL)
+    },
+    server: {
+      proxy: {
+        '/api': {
+          target: env.VITE_API_URL || 'http://localhost:8080',
+          changeOrigin: true,
+          secure: false,
+        }
+      }
     }
   }
 })
