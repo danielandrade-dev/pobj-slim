@@ -241,7 +241,7 @@ const handleMenuAction = async (action: string): Promise<void> => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
   transform: scale(1);
 }
 
@@ -254,7 +254,25 @@ const handleMenuAction = async (action: string): Promise<void> => {
 }
 
 .topbar__bell:active {
-  transform: scale(0.95);
+  transform: scale(0.9);
+  transition-duration: 0.1s;
+}
+
+/* Animação do ícone no hover */
+.topbar__bell:hover i {
+  animation: bell-ring 0.5s ease-in-out;
+}
+
+@keyframes bell-ring {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  10%, 30% {
+    transform: rotate(-10deg);
+  }
+  20%, 40% {
+    transform: rotate(10deg);
+  }
 }
 
 .topbar__bell i {

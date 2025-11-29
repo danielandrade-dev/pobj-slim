@@ -455,7 +455,22 @@ const getMetricLabel = (metric: string): string => {
 }
 
 .prod-card:active {
-  transform: translateY(-2px) scale(0.99);
+  transform: translateY(-1px) scale(0.98);
+  transition-duration: 0.1s;
+}
+
+/* Microinteração: pulse no hover do badge */
+.badge:hover {
+  animation: badge-pulse-hover 0.4s ease-out;
+}
+
+@keyframes badge-pulse-hover {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.15);
+  }
 }
 
 .prod-card__title {
@@ -639,6 +654,12 @@ const getMetricLabel = (metric: string): string => {
   will-change: transform;
   transition: transform 0.8s cubic-bezier(0.25, 0.1, 0.25, 1), width 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
   animation: fillProgress 1s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+
+/* Animação suave da barra de progresso */
+.prod-card__var-track:hover .prod-card__var-fill {
+  filter: brightness(1.1);
+  transition: filter 0.2s ease;
 }
 
 @keyframes fillProgress {

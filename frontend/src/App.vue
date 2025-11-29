@@ -6,6 +6,7 @@ import OmegaLegacyModal from './components/OmegaLegacyModal.vue'
 import { useRoute } from 'vue-router'
 import './assets/bradesco-theme.css'
 import './assets/animations.css'
+import './assets/microinteractions.css'
 
 const route = useRoute()
 </script>

@@ -536,19 +536,36 @@ watch(() => period.value, (newPeriod) => {
   color: var(--text);
   font-size: 14px;
   font-family: inherit;
-  transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
   transform: scale(1);
+  position: relative;
 }
 
-.input:hover {
+.input:hover:not(:disabled):not(:focus) {
   border-color: rgba(179, 0, 0, 0.3);
+  box-shadow: 0 0 0 1px rgba(179, 0, 0, 0.1);
 }
 
 .input:focus {
   outline: none;
   border-color: var(--brand);
   box-shadow: 0 0 0 3px rgba(179, 0, 0, 0.12);
-  transform: scale(1.01);
+  transform: scale(1.005);
+}
+
+.input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: #f9fafb;
+}
+
+.input::placeholder {
+  color: #9ca3af;
+  transition: opacity 0.2s ease;
+}
+
+.input:focus::placeholder {
+  opacity: 0.5;
 }
 
 .filters__actions {

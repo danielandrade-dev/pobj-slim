@@ -1,32 +1,69 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+
 interface Props {
   variant?: 'primary' | 'secondary' | 'link' | 'info'
   type?: 'button' | 'submit' | 'reset'
   disabled?: boolean
   icon?: string
+  loading?: boolean
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   variant: 'secondary',
   type: 'button',
   disabled: false,
-  icon: undefined
+  icon: undefined,
+  loading: false
 })
 
 defineSlots<{
   default(): unknown
 }>()
+
+const buttonRef = ref<HTMLElement | null>(null)
+
+const handleClick = (event: MouseEvent) => {
+  if (props.disabled || props.loading) return
+  
+  // Ripple effect
+  const button = event.currentTarget as HTMLElement
+  const circle = document.createElement('span')
+  const diameter = Math.max(button.clientWidth, button.clientHeight)
+  const radius = diameter / 2
+
+  const rect = button.getBoundingClientRect()
+  circle.style.width = circle.style.height = `${diameter}px`
+  circle.style.left = `${event.clientX - rect.left - radius}px`
+  circle.style.top = `${event.clientY - rect.top - radius}px`
+  circle.classList.add('ripple')
+
+  const ripple = button.getElementsByClassName('ripple')[0]
+  if (ripple) {
+    ripple.remove()
+  }
+
+  button.appendChild(circle)
+
+  setTimeout(() => {
+    circle.remove()
+  }, 600)
+}
 </script>
 
 <template>
   <button
+    ref="buttonRef"
     :type="type"
-    :disabled="disabled"
-    :class="['btn', `btn--${variant}`]"
+    :disabled="disabled || loading"
+    :class="['btn', `btn--${variant}`, { 'btn--loading': loading }]"
     v-bind="$attrs"
+    @click="handleClick"
   >
-    <i v-if="icon" :class="icon" aria-hidden="true"></i>
-    <slot />
+    <span v-if="loading" class="btn__spinner"></span>
+    <i v-if="icon && !loading" :class="icon" aria-hidden="true"></i>
+    <span v-if="!loading"><slot /></span>
+    <span v-else class="btn__loading-text"><slot /></span>
   </button>
 </template>
 
@@ -158,6 +195,37 @@ defineSlots<{
 
 .btn--info:hover:not(:disabled) i {
   color: var(--brad-color-primary, #cc092f);
+}
+
+.btn--loading {
+  position: relative;
+  pointer-events: none;
+}
+
+.btn__spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: currentColor;
+  animation: spin 0.6s linear infinite;
+  margin-right: 8px;
+}
+
+.btn--secondary .btn__spinner {
+  border-color: rgba(0, 0, 0, 0.2);
+  border-top-color: currentColor;
+}
+
+.btn__loading-text {
+  opacity: 0.7;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 </style>
 
