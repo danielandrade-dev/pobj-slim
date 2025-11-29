@@ -1,9 +1,0 @@
-RewriteEngine On
-RewriteBase /pobj-slim/
-
-# Se já está na public, não reescreve mais
-RewriteCond %{REQUEST_URI} ^/pobj-slim/public/
-RewriteRule ^ - [L]
-
-# Enviar tudo para /public
-RewriteRule ^(.*)$ /pobj-slim/public/$1 [L]
