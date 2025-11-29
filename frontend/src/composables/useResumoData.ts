@@ -69,7 +69,35 @@ function buildFiltersFromState(state?: FilterState, period?: Period): ResumoFilt
   return filters
 }
 
+// Função para comparar dois objetos de filtros
+function filtersEqual(f1: ResumoFilters, f2: ResumoFilters): boolean {
+  const keys1 = Object.keys(f1).sort()
+  const keys2 = Object.keys(f2).sort()
+  
+  if (keys1.length !== keys2.length) {
+    return false
+  }
+  
+  for (const key of keys1) {
+    if (f1[key] !== f2[key]) {
+      return false
+    }
+  }
+  
+  return true
+}
+
 async function fetchResumo(filters: ResumoFilters): Promise<void> {
+  // Evita chamadas duplicadas com os mesmos filtros
+  if (lastFilters.value && filtersEqual(lastFilters.value, filters)) {
+    return
+  }
+  
+  // Evita múltiplas chamadas simultâneas
+  if (resumoLoading.value) {
+    return
+  }
+  
   lastFilters.value = filters
   resumoLoading.value = true
   resumoError.value = null
@@ -95,14 +123,26 @@ export function useResumoData(
 ) {
   if (!watcherRegistered) {
     watcherRegistered = true
+    
+    // Usa um timeout para evitar múltiplas chamadas no carregamento inicial
+    let timeoutId: ReturnType<typeof setTimeout> | null = null
+    
     watch(
       () => ({
         filters: filterState.value,
         period: period.value
       }),
       (current: WatchSources) => {
-        const filters = buildFiltersFromState(current.filters, current.period)
-        fetchResumo(filters)
+        // Debounce para evitar múltiplas chamadas rápidas
+        if (timeoutId) {
+          clearTimeout(timeoutId)
+        }
+        
+        timeoutId = setTimeout(() => {
+          const filters = buildFiltersFromState(current.filters, current.period)
+          fetchResumo(filters)
+          timeoutId = null
+        }, 100) // 100ms de debounce
       },
       { deep: true, immediate: true }
     )
@@ -115,9 +155,9 @@ export function useResumoData(
 
   return {
     resumo: computed(() => resumoPayload.value),
-    produtos: computed(() => resumoPayload.value?.produtos ?? []),
-    produtosMensais: computed(() => resumoPayload.value?.produtosMensais ?? []),
-    variavel: computed(() => resumoPayload.value?.variavel ?? []),
+    produtos: computed(() => resumoPayload.value?.cards ?? []),
+    produtosMensais: computed(() => resumoPayload.value?.classifiedCards ?? []),
+    variavel: computed(() => resumoPayload.value?.variableCard ?? []),
     businessSnapshot: computed(() => resumoPayload.value?.businessSnapshot ?? emptySnapshot),
     loading: computed(() => resumoLoading.value),
     error: computed(() => resumoError.value),

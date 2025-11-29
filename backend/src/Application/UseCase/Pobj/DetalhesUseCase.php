@@ -2,6 +2,7 @@
 
 namespace App\Application\UseCase\Pobj;
 
+use App\Domain\DTO\FilterDTO;
 use App\Repository\Pobj\FDetalhesRepository;
 
 class DetalhesUseCase
@@ -13,9 +14,9 @@ class DetalhesUseCase
         $this->repository = $repository;
     }
 
-    public function handle($filters = null): array
+    public function handle(?FilterDTO $filters = null): array
     {
-        return $this->repository->findAllOrderedByData();
+        return $this->repository->findDetalhes($filters);
     }
 }
 

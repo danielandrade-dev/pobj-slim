@@ -222,6 +222,8 @@ export interface ProdutoMensal {
   peso: number
   meta?: number
   realizado?: number
+  pontos?: number
+  pontos_meta?: number
   ating?: number
   atingido?: boolean
   ultima_atualizacao?: string
@@ -288,9 +290,9 @@ export interface Variavel {
 }
 
 export interface ResumoPayload {
-  produtos: Produto[]
-  produtosMensais: ProdutoMensal[]
-  variavel: Variavel[]
+  cards: Produto[]
+  classifiedCards: ProdutoMensal[]
+  variableCard: Variavel[]
   businessSnapshot: BusinessSnapshot
 }
 

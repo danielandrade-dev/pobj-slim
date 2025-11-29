@@ -19,7 +19,7 @@ class DetalhesController extends ControllerBase
     }
 
     /**
-     * @Route("/api/detalhes", name="api_detalhes", methods={"GET"})
+     * @Route("/api/pobj/detalhes", name="api_pobj_detalhes", methods={"GET"})
      */
     public function handle(Request $request): JsonResponse
     {

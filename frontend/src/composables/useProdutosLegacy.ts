@@ -22,6 +22,7 @@ export interface LegacyItem {
   metrica: string
   peso: number
   pontosMeta: number
+  pontosBackend?: number // Pontos vindos do backend
   meta: number
   realizado: number
   monthMeta: number
@@ -73,6 +74,12 @@ export function useProdutosLegacy(_filters?: Ref<ProdutoFilters | null>) {
       if (indicadoresMap.has(indicadorId)) {
         const itemExistente = indicadoresMap.get(indicadorId)!
         
+        // Preserva o peso se ainda não foi definido ou atualiza se necessário
+        if (!itemExistente.peso && produto.peso) {
+          itemExistente.peso = Number(produto.peso) || 0
+          itemExistente.pontosMeta = Number(produto.pontos_meta ?? produto.peso) || 0
+        }
+        
         // Soma os valores dos subindicadores
         itemExistente.meta = (itemExistente.meta || 0) + (produto.meta || 0)
         itemExistente.realizado = (itemExistente.realizado || 0) + (produto.realizado || 0)
@@ -118,8 +125,9 @@ export function useProdutosLegacy(_filters?: Ref<ProdutoFilters | null>) {
             id: produto.id_subindicador,
             nome: produto.subindicador,
             metrica: produto.metrica,
-            peso: produto.peso,
-            pontosMeta: produto.peso,
+            peso: Number(produto.peso) || 0,
+            pontosMeta: Number(produto.pontos_meta ?? produto.peso) || 0,
+            pontosBackend: produto.pontos ? Number(produto.pontos) : undefined,
             meta: produto.meta || 0,
             realizado: produto.realizado || 0,
             monthMeta: currentMonthData?.meta || 0,
@@ -139,8 +147,9 @@ export function useProdutosLegacy(_filters?: Ref<ProdutoFilters | null>) {
           id: indicadorId,
           nome: produto.indicador || 'Indicador',
           metrica: produto.metrica || 'valor',
-          peso: produto.peso || 0,
-          pontosMeta: produto.peso || 0,
+          peso: Number(produto.peso) || 0,
+          pontosMeta: Number(produto.pontos_meta ?? produto.peso) || 0,
+          pontosBackend: produto.pontos ? Number(produto.pontos) : undefined,
           meta: produto.meta || 0,
           realizado: produto.realizado || 0,
           monthMeta: currentMonthData?.meta || 0,
@@ -156,8 +165,9 @@ export function useProdutosLegacy(_filters?: Ref<ProdutoFilters | null>) {
             id: produto.id_subindicador,
             nome: produto.subindicador,
             metrica: produto.metrica,
-            peso: produto.peso,
-            pontosMeta: produto.peso,
+            peso: Number(produto.peso) || 0,
+            pontosMeta: Number(produto.pontos_meta ?? produto.peso) || 0,
+            pontosBackend: produto.pontos ? Number(produto.pontos) : undefined,
             meta: produto.meta || 0,
             realizado: produto.realizado || 0,
             monthMeta: currentMonthData?.meta || 0,
@@ -210,9 +220,18 @@ export function useProdutosLegacy(_filters?: Ref<ProdutoFilters | null>) {
         ? ((realVal / diasDecorridos) * diasRestantes) + realVal 
         : realVal
       
-      // Calcula pontos (limitado pelo peso)
-      const pontosBrutos = Math.min(pesoVal, realVal)
-      const pontos = Math.max(0, Math.min(pesoVal, pontosBrutos))
+      // Usa pontos do backend se disponível, senão calcula
+      let pontos: number
+      let pontosBrutos: number
+      if (item.pontosBackend !== undefined) {
+        // Usa pontos do backend
+        pontos = item.pontosBackend
+        pontosBrutos = pontos
+      } else {
+        // Calcula pontos (limitado pelo peso) - fallback para compatibilidade
+        pontosBrutos = Math.min(pesoVal, realVal)
+        pontos = Math.max(0, Math.min(pesoVal, pontosBrutos))
+      }
       
       // Calcula atingimento (percentual)
       const ating = metaVal > 0 ? (realVal / metaVal) : 0

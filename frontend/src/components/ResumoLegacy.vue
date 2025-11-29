@@ -222,7 +222,7 @@ const sectionHasExpandableRows = (section: LegacySection): boolean => {
                     </div>
                   </td>
                   <td class="resumo-legacy__col--peso">
-                    {{ formatINT(Math.round(item.pontosMeta || item.peso || 0)) }}
+                    {{ formatINT(item.pontosMeta || item.peso || 0) }}
                   </td>
                   <td>
                     <span
@@ -294,7 +294,7 @@ const sectionHasExpandableRows = (section: LegacySection): boolean => {
                       </div>
                     </td>
                     <td class="resumo-legacy__col--peso">
-                      {{ formatINT(Math.round(child.pontosMeta || child.peso || 0)) }}
+                      {{ formatINT(child.pontosMeta || child.peso || 0) }}
                     </td>
                     <td>
                       <span
@@ -313,36 +313,20 @@ const sectionHasExpandableRows = (section: LegacySection): boolean => {
                     <td class="resumo-legacy__col--real" :title="formatMetricFull(child.metrica, child.realizado)">
                       {{ formatByMetric(child.metrica, child.realizado) }}
                     </td>
-                    <td class="resumo-legacy__col--ref" :title="formatMetricFull(child.metrica, child.referenciaHoje)">
-                      {{ child.referenciaHoje != null ? formatByMetric(child.metrica, child.referenciaHoje) : '—' }}
+                    <td class="resumo-legacy__col--ref">
+                      —
                     </td>
-                    <td class="resumo-legacy__col--forecast" :title="formatMetricFull(child.metrica, child.projecao)">
-                      {{ child.projecao != null ? formatByMetric(child.metrica, child.projecao) : '—' }}
+                    <td class="resumo-legacy__col--forecast">
+                      —
                     </td>
-                    <td class="resumo-legacy__col--meta-dia" :title="formatMetricFull(child.metrica, child.metaDiariaNecessaria)">
-                      {{ child.metaDiariaNecessaria != null ? formatByMetric(child.metrica, child.metaDiariaNecessaria) : '—' }}
+                    <td class="resumo-legacy__col--meta-dia">
+                      —
                     </td>
                     <td class="resumo-legacy__col--pontos" :title="formatPoints(child.pontos, { withUnit: true })">
                       {{ '-'}}
                     </td>
                     <td class="resumo-legacy__col--ating">
-                      <div class="resumo-legacy__ating" title="Atingimento">
-                        <div
-                          :class="[
-                            'resumo-legacy__ating-meter',
-                            (child.ating || 0) >= 1 ? 'is-ok' : (child.ating || 0) >= 0.5 ? 'is-warn' : 'is-low'
-                          ]"
-                          :style="{ '--fill': Math.max(0, Math.min(1, (child.ating || 0))) }"
-                          role="progressbar"
-                          :aria-valuemin="0"
-                          :aria-valuemax="200"
-                          :aria-valuenow="Math.max(0, Math.min(200, (child.ating || 0) * 100))"
-                        >
-                          <span class="resumo-legacy__ating-value">
-                            {{ '—' }}
-                          </span>
-                        </div>
-                      </div>
+                      —
                     </td>
                     <td class="resumo-legacy__col--update">
                       {{ child.ultimaAtualizacao ? (child.ultimaAtualizacao.match(/^\d{4}-\d{2}-\d{2}$/) ? formatBRDate(child.ultimaAtualizacao) : child.ultimaAtualizacao) : '—' }}

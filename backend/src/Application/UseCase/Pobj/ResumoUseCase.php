@@ -3,47 +3,56 @@
 namespace App\Application\UseCase\Pobj;
 
 use App\Domain\DTO\FilterDTO;
+use App\Domain\DTO\Resumo\CardDTO;
+use App\Domain\DTO\Resumo\ClassifiedCardDTO;
+use App\Domain\DTO\Resumo\VariableCardDTO;
+use App\Domain\DTO\Resumo\BusinessSnapshotDTO;
+use App\Repository\Pobj\ResumoRepository;
 use DateInterval;
 use DatePeriod;
 use DateTimeImmutable;
 
 class ResumoUseCase
 {
-    /** @var ProdutoUseCase */
-    private $produtoUseCase;
-
-    /** @var VariavelUseCase */
-    private $variavelUseCase;
-
-    /** @var CalendarioUseCase */
-    private $calendarioUseCase;
+    private $resumoRepository;
 
     public function __construct(
-        ProdutoUseCase $produtoUseCase,
-        VariavelUseCase $variavelUseCase,
-        CalendarioUseCase $calendarioUseCase
+        ResumoRepository $resumoRepository
     ) {
-        $this->produtoUseCase = $produtoUseCase;
-        $this->variavelUseCase = $variavelUseCase;
-        $this->calendarioUseCase = $calendarioUseCase;
+        $this->resumoRepository = $resumoRepository;
     }
 
     /**
      * Retorna o payload completo consumido pelo ResumoView
      */
-    public function handle(FilterDTO $filters = null): array
+    public function handle(?FilterDTO $filters = null): array
     {
-        $produtos = $this->produtoUseCase->handle($filters);
-        $produtosMensais = $this->produtoUseCase->handleMonthly($filters);
-        $variavel = $this->variavelUseCase->handle($filters);
-        $calendario = $this->calendarioUseCase->getAll();
+        $produtos = $this->resumoRepository->findProdutos($filters);
+        $produtosMensais = $this->resumoRepository->findProdutosMensais($filters);
+        $variavel = $this->resumoRepository->findVariavel($filters);
+        $calendario = $this->resumoRepository->findCalendario();
         $businessSnapshot = $this->buildBusinessSnapshot($calendario);
 
+        // Converte para DTOs
+        $cards = array_map(function($produto) {
+            return CardDTO::fromArray($produto)->toArray();
+        }, $produtos);
+
+        $classifiedCards = array_map(function($produtoMensal) {
+            return ClassifiedCardDTO::fromArray($produtoMensal)->toArray();
+        }, $produtosMensais);
+
+        $variableCard = array_map(function($var) {
+            return VariableCardDTO::fromArray($var)->toArray();
+        }, $variavel);
+
+        $businessSnapshotDTO = BusinessSnapshotDTO::fromArray($businessSnapshot);
+
         return [
-            'produtos' => $produtos,
-            'produtosMensais' => $produtosMensais,
-            'variavel' => $variavel,
-            'businessSnapshot' => $businessSnapshot,
+            'cards' => $cards,
+            'classifiedCards' => $classifiedCards,
+            'variableCard' => $variableCard,
+            'businessSnapshot' => $businessSnapshotDTO->toArray(),
         ];
     }
 
