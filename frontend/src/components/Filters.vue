@@ -323,19 +323,23 @@ watch(() => period.value, (newPeriod) => {
         id="btn-abrir-filtros"
         variant="info"
         :aria-expanded="advancedFiltersOpen"
+        aria-controls="advanced-filters"
         @click="toggleAdvancedFilters"
+        @keydown.enter.prevent="toggleAdvancedFilters"
+        @keydown.space.prevent="toggleAdvancedFilters"
       >
         <i class="ti ti-chevron-down" :class="{ 'rotated': advancedFiltersOpen }" aria-hidden="true"></i>
-        {{ advancedFiltersOpen ? 'Fechar filtros' : 'Abrir filtros' }}
+        <span>{{ advancedFiltersOpen ? 'Fechar filtros avançados' : 'Abrir filtros avançados' }}</span>
       </Button>
     </div>
 
-    <div
+    <section
       id="advanced-filters"
       class="adv"
       :class="{ 'is-open': advancedFiltersOpen }"
       :aria-hidden="!advancedFiltersOpen"
-      :hidden="!advancedFiltersOpen"
+      :aria-labelledby="'btn-abrir-filtros'"
+      role="region"
     >
       <div class="adv__grid">
         <div class="filters__group">
@@ -433,7 +437,7 @@ watch(() => period.value, (newPeriod) => {
           </select>
         </div>
       </div>
-    </div>
+    </section>
   </section>
 </template>
 

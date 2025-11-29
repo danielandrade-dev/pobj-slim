@@ -234,7 +234,13 @@ const getMetricLabel = (metric: string): string => {
             :data-prod-id="item.id"
             :data-familia-id="item.familiaId"
             :data-familia-label="item.familiaNome"
+            role="article"
+            :aria-label="`Produto: ${item.nome}`"
+            tabindex="0"
             @mouseleave="closeTooltip"
+            @keydown.enter.prevent="openTooltip(item.id, $event)"
+            @keydown.space.prevent="openTooltip(item.id, $event)"
+            @keydown.escape="closeTooltip"
           >
             <div class="prod-card__title">
               <i :class="item.icon || 'ti ti-chart-line'"></i>
@@ -293,6 +299,7 @@ const getMetricLabel = (metric: string): string => {
                   aria-valuemin="0"
                   aria-valuemax="100"
                   :aria-valuenow="Math.round(calculatePontosRatio(item))"
+                  :aria-label="`Atingimento de pontos: ${calculatePontosRatio(item).toFixed(1)}%`"
                   :aria-valuetext="`${calculatePontosRatio(item).toFixed(1)}% (${formatPoints(item.pontos || 0)} de ${formatPoints(item.pontosMeta || 0)})`"
                 >
                   <span

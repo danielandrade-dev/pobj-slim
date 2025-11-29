@@ -51,15 +51,15 @@ const handleMenuAction = async (action: string): Promise<void> => {
 </script>
 
 <template>
-  <header class="topbar">
-    <div class="topbar__left">
-      <div class="logo">
+  <header class="topbar" role="banner">
+    <nav id="main-navigation" class="topbar__left" role="navigation" aria-label="Navegação principal">
+      <a href="/" class="logo" aria-label="Bradesco - Página inicial">
         <span class="logo__mark" aria-hidden="true"></span>
         <span class="logo__text">Bradesco</span>
-      </div>
-    </div>
+      </a>
+    </nav>
 
-    <div class="topbar__right">
+    <nav class="topbar__right" role="navigation" aria-label="Menu do usuário">
       <div class="topbar__notifications">
         <button
           id="btn-topbar-notifications"
@@ -68,11 +68,19 @@ const handleMenuAction = async (action: string): Promise<void> => {
           aria-haspopup="true"
           :aria-expanded="notificationsOpen"
           aria-controls="topbar-notification-panel"
+          aria-label="Notificações"
           @click="toggleNotifications"
+          @keydown.escape="notificationsOpen && toggleNotifications()"
         >
           <i class="ti ti-bell" aria-hidden="true"></i>
-          <span id="topbar-notification-badge" class="topbar__badge" hidden>0</span>
-          <span class="sr-only">Abrir notificações</span>
+          <span 
+            v-if="false" 
+            id="topbar-notification-badge" 
+            class="topbar__badge" 
+            aria-label="Notificações não lidas"
+            role="status"
+          >0</span>
+          <span class="sr-only">Abrir painel de notificações</span>
         </button>
         <Transition name="dropdown">
           <div
@@ -81,8 +89,10 @@ const handleMenuAction = async (action: string): Promise<void> => {
             class="topbar-notification-panel"
             role="menu"
             :aria-hidden="!notificationsOpen"
+            aria-label="Painel de notificações"
+            @keydown.escape="toggleNotifications()"
           >
-            <p class="topbar-notification-panel__empty">Nenhuma notificação no momento.</p>
+            <p class="topbar-notification-panel__empty" role="status">Nenhuma notificação no momento.</p>
           </div>
         </Transition>
       </div>
@@ -93,15 +103,18 @@ const handleMenuAction = async (action: string): Promise<void> => {
           type="button"
           aria-haspopup="true"
           :aria-expanded="userMenuOpen"
+          aria-controls="user-menu"
+          aria-label="Menu do usuário: João da Silva"
           @click="toggleUserMenu"
+          @keydown.escape="userMenuOpen && toggleUserMenu()"
         >
           <img
             class="userbox__avatar"
             src="https://i.pravatar.cc/80?img=12"
-            alt="Foto do usuário"
+            alt="Foto do usuário João da Silva"
           />
           <span class="userbox__name">João da Silva</span>
-          <i class="ti ti-chevron-down" aria-hidden="true"></i>
+          <i class="ti ti-chevron-down" aria-hidden="true" :aria-label="userMenuOpen ? 'Fechar menu' : 'Abrir menu'"></i>
         </button>
         <Transition name="dropdown">
           <div
@@ -110,11 +123,14 @@ const handleMenuAction = async (action: string): Promise<void> => {
             id="user-menu"
             role="menu"
             :aria-hidden="!userMenuOpen"
+            aria-label="Menu do usuário"
+            @keydown.escape="toggleUserMenu()"
           >
-          <span class="userbox__menu-title">Links úteis</span>
+          <span class="userbox__menu-title" role="heading" aria-level="2">Links úteis</span>
           <button
             class="userbox__menu-item"
             type="button"
+            role="menuitem"
             @click="handleMenuAction('portal')"
           >
             Portal PJ
@@ -123,8 +139,12 @@ const handleMenuAction = async (action: string): Promise<void> => {
             <button
               class="userbox__menu-item userbox__menu-item--has-sub"
               type="button"
+              role="menuitem"
               :aria-expanded="submenuOpen === 'manuais'"
+              aria-controls="user-submenu-manuais"
               @click="toggleSubmenu('manuais')"
+              @keydown.enter.prevent="toggleSubmenu('manuais')"
+              @keydown.space.prevent="toggleSubmenu('manuais')"
             >
               Manuais
               <i class="ti ti-chevron-right" aria-hidden="true"></i>
@@ -134,10 +154,13 @@ const handleMenuAction = async (action: string): Promise<void> => {
                 v-if="submenuOpen === 'manuais'"
                 class="userbox__submenu-list"
                 id="user-submenu-manuais"
+                role="menu"
+                aria-label="Submenu Manuais"
               >
               <button
                 class="userbox__menu-item"
                 type="button"
+                role="menuitem"
                 @click="handleMenuAction('manual1')"
               >
                 Manual 1
@@ -145,6 +168,7 @@ const handleMenuAction = async (action: string): Promise<void> => {
               <button
                 class="userbox__menu-item"
                 type="button"
+                role="menuitem"
                 @click="handleMenuAction('manual2')"
               >
                 Manual 2
@@ -155,6 +179,7 @@ const handleMenuAction = async (action: string): Promise<void> => {
           <button
             class="userbox__menu-item"
             type="button"
+            role="menuitem"
             @click="handleMenuAction('mapao')"
           >
             Mapão de Oportunidades
@@ -162,15 +187,18 @@ const handleMenuAction = async (action: string): Promise<void> => {
           <button
             class="userbox__menu-item"
             type="button"
+            role="menuitem"
             data-action="omega"
             @click="handleMenuAction('omega')"
           >
             Omega
           </button>
-          <hr class="userbox__divider" />
+          <hr class="userbox__divider" role="separator" aria-orientation="horizontal" />
           <button
             class="userbox__menu-item userbox__menu-item--logout"
             type="button"
+            role="menuitem"
+            aria-label="Sair da aplicação"
             @click="handleMenuAction('logout')"
           >
             <i class="ti ti-logout-2" aria-hidden="true"></i>
@@ -179,7 +207,7 @@ const handleMenuAction = async (action: string): Promise<void> => {
           </div>
         </Transition>
       </div>
-    </div>
+    </nav>
   </header>
 </template>
 

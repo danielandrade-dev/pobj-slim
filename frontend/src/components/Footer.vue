@@ -2,7 +2,7 @@
 </script>
 
 <template>
-  <footer class="footer">
+  <footer class="footer" role="contentinfo" aria-label="Rodapé">
     <div class="footer__container">
       <div class="footer__logo">
         <span class="footer__logo-mark" aria-hidden="true"></span>

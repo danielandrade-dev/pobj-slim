@@ -7,14 +7,19 @@ import { useRoute } from 'vue-router'
 import './assets/bradesco-theme.css'
 import './assets/animations.css'
 import './assets/microinteractions.css'
+import './assets/accessibility.css'
 
 const route = useRoute()
 </script>
 
 <template>
   <div class="app">
+    <!-- Skip Links para navegação rápida -->
+    <a href="#main-content" class="skip-link">Pular para conteúdo principal</a>
+    <a href="#main-navigation" class="skip-link">Pular para navegação</a>
+    
     <Header />
-    <main class="main-content">
+    <main id="main-content" class="main-content" role="main" aria-label="Conteúdo principal">
       <Transition
         name="page"
         mode="out-in"

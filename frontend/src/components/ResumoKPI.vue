@@ -25,6 +25,8 @@
         :aria-valuenow="pctIndicadores"
         aria-valuemin="0"
         aria-valuemax="100"
+        :aria-label="`Atingimento de indicadores: ${pctIndicadores.toFixed(1)}%`"
+        :aria-valuetext="`${pctIndicadores.toFixed(1)}% (${summary.indicadoresAtingidos} de ${summary.indicadoresTotal} indicadores)`"
       >
         <span 
           class="hitbar__track"

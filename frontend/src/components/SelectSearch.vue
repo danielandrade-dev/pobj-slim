@@ -102,7 +102,7 @@ const handleKeydown = (event: KeyboardEvent): void => {
   if (event.key === 'Escape') {
     isOpen.value = false
     searchTerm.value = ''
-  } else if (event.key === 'Enter' && filteredOptions.value.length > 0) {
+  } else if (event.key === 'Enter' && filteredOptions.value.length > 0 && isOpen.value) {
     event.preventDefault()
     const firstOption = filteredOptions.value[0]
     if (firstOption) {
@@ -111,7 +111,40 @@ const handleKeydown = (event: KeyboardEvent): void => {
   } else if (['ArrowDown', 'ArrowUp', ' '].includes(event.key) && !isOpen.value) {
     event.preventDefault()
     isOpen.value = true
+    setTimeout(() => {
+      inputRef.value?.focus()
+    }, 0)
+  } else if (event.key === 'ArrowDown' && isOpen.value) {
+    event.preventDefault()
+    focusNextOption()
+  } else if (event.key === 'ArrowUp' && isOpen.value) {
+    event.preventDefault()
+    focusPreviousOption()
   }
+}
+
+/**
+ * Foca na próxima opção
+ */
+const focusNextOption = (): void => {
+  const items = wrapperRef.value?.querySelectorAll('.select-search__item') as NodeListOf<HTMLElement>
+  if (!items || items.length === 0) return
+  
+  const currentIndex = Array.from(items).findIndex(item => item === document.activeElement)
+  const nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0
+  items[nextIndex]?.focus()
+}
+
+/**
+ * Foca na opção anterior
+ */
+const focusPreviousOption = (): void => {
+  const items = wrapperRef.value?.querySelectorAll('.select-search__item') as NodeListOf<HTMLElement>
+  if (!items || items.length === 0) return
+  
+  const currentIndex = Array.from(items).findIndex(item => item === document.activeElement)
+  const prevIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1
+  items[prevIndex]?.focus()
 }
 
 onMounted(() => {
@@ -158,45 +191,60 @@ watch(() => props.disabled, (disabled) => {
       tabindex="0"
       role="combobox"
       :aria-expanded="isOpen"
-      :aria-haspopup="true"
+      :aria-haspopup="listbox"
+      :aria-controls="`${id}-listbox`"
+      :aria-label="label || 'Selecione uma opção'"
     >
-      <span :class="{ 'is-placeholder': !modelValue }">{{ selectedLabel }}</span>
-      <i class="ti ti-chevron-down" :class="{ 'is-open': isOpen }"></i>
+      <span :class="{ 'is-placeholder': !modelValue }" :aria-label="modelValue ? selectedLabel : placeholder">{{ selectedLabel }}</span>
+      <i class="ti ti-chevron-down" :class="{ 'is-open': isOpen }" aria-hidden="true"></i>
     </div>
 
     <!-- Painel de busca -->
     <div
       v-if="isOpen"
+      :id="`${id}-listbox`"
       class="select-search__panel"
       role="listbox"
       :aria-label="label || 'Opções'"
+      @keydown.escape="isOpen = false"
     >
       <div class="select-search__box">
+        <label :for="`${id}-search`" class="sr-only">Pesquisar {{ label || 'opção' }}</label>
         <input
+          :id="`${id}-search`"
           ref="inputRef"
           v-model="searchTerm"
           type="search"
           class="input input--xs select-search__input"
           :placeholder="`Pesquisar ${label?.toLowerCase() || 'opção'}`"
           :aria-label="`Pesquisar ${label || 'opção'}`"
+          autocomplete="off"
+          @keydown.escape="isOpen = false"
+          @keydown.arrow-down.prevent="focusNextOption"
+          @keydown.arrow-up.prevent="focusPreviousOption"
         />
       </div>
-      <div class="select-search__results">
-        <button
+      <div class="select-search__results" role="group" :aria-label="`${filteredOptions.length} opções disponíveis`">
+        <div
           v-if="filteredOptions.length === 0"
-          type="button"
           class="select-search__empty"
-          disabled
+          role="status"
+          aria-live="polite"
         >
           Nenhum resultado encontrado
-        </button>
+        </div>
         <button
-          v-for="option in filteredOptions"
+          v-for="(option, index) in filteredOptions"
           :key="option.id"
           type="button"
           class="select-search__item"
           :class="{ 'is-selected': option.id === modelValue }"
+          role="option"
+          :aria-selected="option.id === modelValue"
+          :tabindex="index === 0 ? 0 : -1"
           @click="selectOption(option)"
+          @keydown.enter.prevent="selectOption(option)"
+          @keydown.space.prevent="selectOption(option)"
         >
           {{ option.nome }}
         </button>

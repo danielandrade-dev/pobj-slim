@@ -57,13 +57,17 @@ const handleClick = (event: MouseEvent) => {
     :type="type"
     :disabled="disabled || loading"
     :class="['btn', `btn--${variant}`, { 'btn--loading': loading }]"
+    :aria-busy="loading"
+    :aria-disabled="disabled || loading"
     v-bind="$attrs"
     @click="handleClick"
+    @keydown.enter.prevent="!disabled && !loading && handleClick($event as any)"
+    @keydown.space.prevent="!disabled && !loading && handleClick($event as any)"
   >
-    <span v-if="loading" class="btn__spinner"></span>
+    <span v-if="loading" class="btn__spinner" aria-hidden="true"></span>
     <i v-if="icon && !loading" :class="icon" aria-hidden="true"></i>
     <span v-if="!loading"><slot /></span>
-    <span v-else class="btn__loading-text"><slot /></span>
+    <span v-else class="btn__loading-text" aria-live="polite" aria-atomic="true"><slot /></span>
   </button>
 </template>
 
