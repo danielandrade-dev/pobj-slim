@@ -1,4 +1,4 @@
-INSERT INTO pobj_refactor.omega_status (id,label,tone,descricao,ordem,departamento_id) VALUES
+INSERT INTO omega_status (id,label,tone,descricao,ordem,departamento_id) VALUES
 	 ('aberto','Aberto','neutral','Chamado aberto e aguardando atendimento.',1,'0'),
 	 ('aguardando','Aguardando','warning','Chamado aguardando informações ou aprovação.',2,'0'),
 	 ('cancelado','Cancelado','danger','Chamado cancelado.',5,'0'),

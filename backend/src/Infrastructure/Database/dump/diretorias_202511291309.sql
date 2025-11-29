@@ -1,2 +1,2 @@
-INSERT INTO pobj_refactor.diretorias (segmento_id,nome,created_at,updated_at) VALUES
+INSERT INTO diretorias (segmento_id,nome,created_at,updated_at) VALUES
 	 (1,'Empresas','2025-11-25 01:52:39',NULL);

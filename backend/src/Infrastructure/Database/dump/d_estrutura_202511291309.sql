@@ -1,4 +1,4 @@
-INSERT INTO pobj_refactor.d_estrutura (funcional,nome,cargo_id,segmento_id,diretoria_id,regional_id,agencia_id,created_at,updated_at) VALUES
+INSERT INTO d_estrutura (funcional,nome,cargo_id,segmento_id,diretoria_id,regional_id,agencia_id,created_at,updated_at) VALUES
 	 ('i010001','José Gerente',4,1,8607,8486,1141,'2025-11-25 02:02:46','2025-11-25 03:46:53'),
 	 ('i020212','Pedro Gerente',4,1,8607,8486,1141,'2025-11-25 02:02:46','2025-11-25 03:46:53'),
 	 ('i020213','Maria Gerente',4,1,8607,8486,1267,'2025-11-25 02:02:46','2025-11-25 03:46:53'),

@@ -13,27 +13,13 @@ class DCalendarioRepository extends ServiceEntityRepository
         parent::__construct($registry, DCalendario::class);
     }
 
-    /**
-     * Busca calendário por data
-     */
-    public function findByData(\DateTimeInterface $data): ?DCalendario
-    {
-        return $this->createQueryBuilder('c')
-                    ->andWhere('c.data = :data')
-                    ->setParameter('data', $data)
-                    ->getQuery()
-                    ->getOneOrNullResult();
-    }
-
-    /**
-     * Lista todos os calendários ordenados por data
-     */
     public function findAllOrderedByData(): array
     {
         return $this->createQueryBuilder('c')
+                    ->select('c.data, c.ano, c.mes, c.mesNome, c.dia, c.diaDaSemana, c.semana, c.trimestre, c.semestre, c.ehDiaUtil')
                     ->orderBy('c.data', 'ASC')
                     ->getQuery()
-                    ->getResult();
+                    ->getArrayResult();
     }
 }
 

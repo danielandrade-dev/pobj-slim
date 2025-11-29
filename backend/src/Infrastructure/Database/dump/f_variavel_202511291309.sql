@@ -1,4 +1,4 @@
-INSERT INTO pobj_refactor.f_variavel (funcional,meta,variavel,dt_atualizacao) VALUES
+INSERT INTO f_variavel (funcional,meta,variavel,dt_atualizacao) VALUES
 	 ('i010001',1000.00,800.00,'2025-11-15'),
 	 ('i020212',1100.00,913.00,'2025-11-15'),
 	 ('i020213',1200.00,1272.00,'2025-11-15'),

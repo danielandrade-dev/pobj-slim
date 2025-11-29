@@ -1,4 +1,4 @@
--- pobj_refactor.cargos definição
+-- cargos definição
 
 CREATE TABLE `cargos` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -10,7 +10,7 @@ CREATE TABLE `cargos` (
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
--- pobj_refactor.d_calendario definição
+-- d_calendario definição
 
 CREATE TABLE `d_calendario` (
   `data` date NOT NULL,
@@ -28,7 +28,7 @@ CREATE TABLE `d_calendario` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
--- pobj_refactor.d_status_indicadores definição
+-- d_status_indicadores definição
 
 CREATE TABLE `d_status_indicadores` (
   `id` varchar(20) COLLATE utf8_unicode_ci NOT NULL,
@@ -38,7 +38,7 @@ CREATE TABLE `d_status_indicadores` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
--- pobj_refactor.familia definição
+-- familia definição
 
 CREATE TABLE `familia` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -48,7 +48,7 @@ CREATE TABLE `familia` (
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
--- pobj_refactor.omega_departamentos definição
+-- omega_departamentos definição
 
 CREATE TABLE `omega_departamentos` (
   `departamento` varchar(120) COLLATE utf8_unicode_ci NOT NULL,
@@ -61,7 +61,7 @@ CREATE TABLE `omega_departamentos` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
--- pobj_refactor.omega_usuarios definição
+-- omega_usuarios definição
 
 CREATE TABLE `omega_usuarios` (
   `id` varchar(40) COLLATE utf8_unicode_ci NOT NULL,
@@ -82,7 +82,7 @@ CREATE TABLE `omega_usuarios` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
--- pobj_refactor.segmentos definição
+-- segmentos definição
 
 CREATE TABLE `segmentos` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -94,7 +94,7 @@ CREATE TABLE `segmentos` (
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
--- pobj_refactor.diretorias definição
+-- diretorias definição
 
 CREATE TABLE `diretorias` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -108,7 +108,7 @@ CREATE TABLE `diretorias` (
 ) ENGINE=InnoDB AUTO_INCREMENT=8608 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
--- pobj_refactor.f_campanhas definição
+-- f_campanhas definição
 
 CREATE TABLE `f_campanhas` (
   `campanha_id` varchar(60) COLLATE utf8_unicode_ci NOT NULL,
@@ -150,7 +150,7 @@ CREATE TABLE `f_campanhas` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
--- pobj_refactor.f_leads_propensos definição
+-- f_leads_propensos definição
 
 CREATE TABLE `f_leads_propensos` (
   `database` date NOT NULL,
@@ -190,7 +190,7 @@ CREATE TABLE `f_leads_propensos` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
--- pobj_refactor.indicador definição
+-- indicador definição
 
 CREATE TABLE `indicador` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -203,7 +203,7 @@ CREATE TABLE `indicador` (
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
--- pobj_refactor.omega_status definição
+-- omega_status definição
 
 CREATE TABLE `omega_status` (
   `id` varchar(40) COLLATE utf8_unicode_ci NOT NULL,
@@ -218,7 +218,7 @@ CREATE TABLE `omega_status` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
--- pobj_refactor.regionais definição
+-- regionais definição
 
 CREATE TABLE `regionais` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -232,7 +232,7 @@ CREATE TABLE `regionais` (
 ) ENGINE=InnoDB AUTO_INCREMENT=8487 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
--- pobj_refactor.subindicador definição
+-- subindicador definição
 
 CREATE TABLE `subindicador` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -244,7 +244,7 @@ CREATE TABLE `subindicador` (
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
--- pobj_refactor.agencias definição
+-- agencias definição
 
 CREATE TABLE `agencias` (
   `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -259,7 +259,7 @@ CREATE TABLE `agencias` (
 ) ENGINE=InnoDB AUTO_INCREMENT=1268 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
--- pobj_refactor.d_estrutura definição
+-- d_estrutura definição
 
 CREATE TABLE `d_estrutura` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -287,7 +287,7 @@ CREATE TABLE `d_estrutura` (
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
--- pobj_refactor.d_produtos definição
+-- d_produtos definição
 
 CREATE TABLE `d_produtos` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -307,7 +307,7 @@ CREATE TABLE `d_produtos` (
 ) ENGINE=InnoDB AUTO_INCREMENT=84 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
--- pobj_refactor.f_detalhes definição
+-- f_detalhes definição
 
 CREATE TABLE `f_detalhes` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -345,7 +345,7 @@ CREATE TABLE `f_detalhes` (
 ) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
--- pobj_refactor.f_historico_ranking_pobj definição
+-- f_historico_ranking_pobj definição
 
 CREATE TABLE `f_historico_ranking_pobj` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -363,7 +363,7 @@ CREATE TABLE `f_historico_ranking_pobj` (
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
--- pobj_refactor.f_meta definição
+-- f_meta definição
 
 CREATE TABLE `f_meta` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -383,7 +383,7 @@ CREATE TABLE `f_meta` (
 ) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
--- pobj_refactor.f_pontos definição
+-- f_pontos definição
 
 CREATE TABLE `f_pontos` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -403,7 +403,7 @@ CREATE TABLE `f_pontos` (
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
--- pobj_refactor.f_realizados definição
+-- f_realizados definição
 
 CREATE TABLE `f_realizados` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -423,7 +423,7 @@ CREATE TABLE `f_realizados` (
 ) ENGINE=InnoDB AUTO_INCREMENT=27 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
--- pobj_refactor.f_variavel definição
+-- f_variavel definição
 
 CREATE TABLE `f_variavel` (
   `id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
@@ -439,7 +439,7 @@ CREATE TABLE `f_variavel` (
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
 
--- pobj_refactor.omega_chamados definição
+-- omega_chamados definição
 
 CREATE TABLE `omega_chamados` (
   `id` varchar(60) COLLATE utf8_unicode_ci NOT NULL,

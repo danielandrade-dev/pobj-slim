@@ -15,9 +15,7 @@ export type { CalendarioItem } from '../types'
  * @returns Promise com os dados do calendário ou null em caso de erro
  */
 export async function getCalendario(): Promise<CalendarioItem[] | null> {
-  const response = await apiGet<CalendarioItem[]>(ApiRoutes.CALENDARIO, {
-    _t: Date.now()
-  })
+  const response = await apiGet<CalendarioItem[]>(ApiRoutes.CALENDARIO)
 
   if (response.success && response.data) {
     return response.data

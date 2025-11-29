@@ -10,7 +10,7 @@ abstract class ControllerBase
     {
         return new JsonResponse($data, $status, [
             'Content-Type' => 'application/json; charset=utf-8'
-        ], JSON_UNESCAPED_UNICODE);
+        ], false);
     }
 
     protected function success($data): JsonResponse

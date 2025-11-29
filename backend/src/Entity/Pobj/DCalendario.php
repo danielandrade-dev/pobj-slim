@@ -12,7 +12,7 @@ class DCalendario
 {
     /**
      * @ORM\Id
-     * @ORM\Column(type="date")
+     * @ORM\Column(type="date", nullable=false)
      */
     private $data;
 

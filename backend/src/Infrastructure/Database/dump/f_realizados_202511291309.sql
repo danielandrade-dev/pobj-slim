@@ -1,4 +1,4 @@
-INSERT INTO pobj_refactor.f_realizados (id_contrato,funcional,data_realizado,realizado,produto_id) VALUES
+INSERT INTO f_realizados (id_contrato,funcional,data_realizado,realizado,produto_id) VALUES
 	 ('0000000001','i010001','2025-11-01',14000.00,1),
 	 ('0000000002','i010001','2025-11-02',14000.00,1),
 	 ('0000000003','i010001','2025-11-03',14000.00,1),
@@ -9,7 +9,7 @@ INSERT INTO pobj_refactor.f_realizados (id_contrato,funcional,data_realizado,rea
 	 ('0000000008','i010001','2025-11-08',14000.00,1),
 	 ('0000000009','i020212','2025-11-01',16000.00,1),
 	 ('0000000010','i020212','2025-11-02',16000.00,1);
-INSERT INTO pobj_refactor.f_realizados (id_contrato,funcional,data_realizado,realizado,produto_id) VALUES
+INSERT INTO f_realizados (id_contrato,funcional,data_realizado,realizado,produto_id) VALUES
 	 ('0000000011','i020212','2025-11-03',16000.00,1),
 	 ('0000000012','i020212','2025-11-04',16000.00,1),
 	 ('0000000013','i020212','2025-11-05',16000.00,1),
@@ -20,7 +20,7 @@ INSERT INTO pobj_refactor.f_realizados (id_contrato,funcional,data_realizado,rea
 	 ('0000000018','i020213','2025-11-02',18000.00,2),
 	 ('0000000019','i020213','2025-11-03',18000.00,2),
 	 ('0000000020','i020213','2025-11-04',18000.00,2);
-INSERT INTO pobj_refactor.f_realizados (id_contrato,funcional,data_realizado,realizado,produto_id) VALUES
+INSERT INTO f_realizados (id_contrato,funcional,data_realizado,realizado,produto_id) VALUES
 	 ('0000000021','i020213','2025-11-05',18000.00,2),
 	 ('0000000022','i020213','2025-11-06',18000.00,2),
 	 ('0000000023','i020213','2025-11-07',18000.00,2),

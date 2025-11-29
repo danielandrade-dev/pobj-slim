@@ -23,7 +23,34 @@ class CalendarioUseCase
      */
     public function getAll(): array
     {
-        return $this->repository->findAllOrderedByData();
+        $calendarios = $this->repository->findAllOrderedByData();
+        $result = [];
+        
+        foreach ($calendarios as $row) {
+            $data = $row['data'];
+            if ($data instanceof \DateTimeInterface) {
+                $data = $data->format('Y-m-d');
+            } elseif (is_string($data)) {
+                $data = $data;
+            } else {
+                $data = null;
+            }
+            
+            $result[] = [
+                'data' => $data,
+                'ano' => $row['ano'] ?? null,
+                'mes' => $row['mes'] ?? null,
+                'mesNome' => $row['mesNome'] ?? null,
+                'dia' => $row['dia'] ?? null,
+                'diaDaSemana' => $row['diaDaSemana'] ?? null,
+                'semana' => $row['semana'] ?? null,
+                'trimestre' => $row['trimestre'] ?? null,
+                'semestre' => $row['semestre'] ?? null,
+                'ehDiaUtil' => isset($row['ehDiaUtil']) ? ($row['ehDiaUtil'] ? 'Sim' : 'Não') : null,
+            ];
+        }
+        
+        return $result;
     }
 }
 

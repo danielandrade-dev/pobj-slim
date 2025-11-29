@@ -1,4 +1,4 @@
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-01-01',2025,1,'Janeiro',1,'quarta-feira',2,1,1,0),
 	 ('2025-01-02',2025,1,'Janeiro',2,'quinta-feira',2,1,1,1),
 	 ('2025-01-03',2025,1,'Janeiro',3,'sexta-feira',2,1,1,1),
@@ -9,7 +9,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-01-08',2025,1,'Janeiro',8,'quarta-feira',3,1,1,1),
 	 ('2025-01-09',2025,1,'Janeiro',9,'quinta-feira',3,1,1,1),
 	 ('2025-01-10',2025,1,'Janeiro',10,'sexta-feira',3,1,1,1);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-01-11',2025,1,'Janeiro',11,'sábado',3,1,1,0),
 	 ('2025-01-12',2025,1,'Janeiro',12,'domingo',3,1,1,0),
 	 ('2025-01-13',2025,1,'Janeiro',13,'segunda-feira',4,1,1,1),
@@ -20,7 +20,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-01-18',2025,1,'Janeiro',18,'sábado',4,1,1,0),
 	 ('2025-01-19',2025,1,'Janeiro',19,'domingo',4,1,1,0),
 	 ('2025-01-20',2025,1,'Janeiro',20,'segunda-feira',5,1,1,1);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-01-21',2025,1,'Janeiro',21,'terça-feira',5,1,1,1),
 	 ('2025-01-22',2025,1,'Janeiro',22,'quarta-feira',5,1,1,1),
 	 ('2025-01-23',2025,1,'Janeiro',23,'quinta-feira',5,1,1,1),
@@ -31,7 +31,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-01-28',2025,1,'Janeiro',28,'terça-feira',6,1,1,1),
 	 ('2025-01-29',2025,1,'Janeiro',29,'quarta-feira',6,1,1,1),
 	 ('2025-01-30',2025,1,'Janeiro',30,'quinta-feira',6,1,1,1);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-01-31',2025,1,'Janeiro',31,'sexta-feira',6,1,1,1),
 	 ('2025-02-01',2025,2,'Fevereiro',1,'sábado',7,1,1,0),
 	 ('2025-02-02',2025,2,'Fevereiro',2,'domingo',7,1,1,0),
@@ -42,7 +42,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-02-07',2025,2,'Fevereiro',7,'sexta-feira',8,1,1,1),
 	 ('2025-02-08',2025,2,'Fevereiro',8,'sábado',8,1,1,0),
 	 ('2025-02-09',2025,2,'Fevereiro',9,'domingo',8,1,1,0);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-02-10',2025,2,'Fevereiro',10,'segunda-feira',9,1,1,1),
 	 ('2025-02-11',2025,2,'Fevereiro',11,'terça-feira',9,1,1,1),
 	 ('2025-02-12',2025,2,'Fevereiro',12,'quarta-feira',9,1,1,1),
@@ -53,7 +53,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-02-17',2025,2,'Fevereiro',17,'segunda-feira',10,1,1,1),
 	 ('2025-02-18',2025,2,'Fevereiro',18,'terça-feira',10,1,1,1),
 	 ('2025-02-19',2025,2,'Fevereiro',19,'quarta-feira',10,1,1,1);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-02-20',2025,2,'Fevereiro',20,'quinta-feira',10,1,1,1),
 	 ('2025-02-21',2025,2,'Fevereiro',21,'sexta-feira',10,1,1,1),
 	 ('2025-02-22',2025,2,'Fevereiro',22,'sábado',10,1,1,0),
@@ -64,7 +64,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-02-27',2025,2,'Fevereiro',27,'quinta-feira',11,1,1,1),
 	 ('2025-02-28',2025,2,'Fevereiro',28,'sexta-feira',11,1,1,1),
 	 ('2025-03-01',2025,3,'Março',1,'sábado',12,1,1,0);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-03-02',2025,3,'Março',2,'domingo',12,1,1,0),
 	 ('2025-03-03',2025,3,'Março',3,'segunda-feira',13,1,1,1),
 	 ('2025-03-04',2025,3,'Março',4,'terça-feira',13,1,1,1),
@@ -75,7 +75,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-03-09',2025,3,'Março',9,'domingo',13,1,1,0),
 	 ('2025-03-10',2025,3,'Março',10,'segunda-feira',14,1,1,1),
 	 ('2025-03-11',2025,3,'Março',11,'terça-feira',14,1,1,1);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-03-12',2025,3,'Março',12,'quarta-feira',14,1,1,1),
 	 ('2025-03-13',2025,3,'Março',13,'quinta-feira',14,1,1,1),
 	 ('2025-03-14',2025,3,'Março',14,'sexta-feira',14,1,1,1),
@@ -86,7 +86,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-03-19',2025,3,'Março',19,'quarta-feira',15,1,1,1),
 	 ('2025-03-20',2025,3,'Março',20,'quinta-feira',15,1,1,1),
 	 ('2025-03-21',2025,3,'Março',21,'sexta-feira',15,1,1,1);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-03-22',2025,3,'Março',22,'sábado',15,1,1,0),
 	 ('2025-03-23',2025,3,'Março',23,'domingo',15,1,1,0),
 	 ('2025-03-24',2025,3,'Março',24,'segunda-feira',16,1,1,1),
@@ -97,7 +97,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-03-29',2025,3,'Março',29,'sábado',16,1,1,0),
 	 ('2025-03-30',2025,3,'Março',30,'domingo',16,1,1,0),
 	 ('2025-03-31',2025,3,'Março',31,'segunda-feira',17,1,1,1);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-04-01',2025,4,'Abril',1,'terça-feira',18,2,1,1),
 	 ('2025-04-02',2025,4,'Abril',2,'quarta-feira',18,2,1,1),
 	 ('2025-04-03',2025,4,'Abril',3,'quinta-feira',18,2,1,1),
@@ -108,7 +108,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-04-08',2025,4,'Abril',8,'terça-feira',19,2,1,1),
 	 ('2025-04-09',2025,4,'Abril',9,'quarta-feira',19,2,1,1),
 	 ('2025-04-10',2025,4,'Abril',10,'quinta-feira',19,2,1,1);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-04-11',2025,4,'Abril',11,'sexta-feira',19,2,1,1),
 	 ('2025-04-12',2025,4,'Abril',12,'sábado',19,2,1,0),
 	 ('2025-04-13',2025,4,'Abril',13,'domingo',19,2,1,0),
@@ -119,7 +119,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-04-18',2025,4,'Abril',18,'sexta-feira',20,2,1,0),
 	 ('2025-04-19',2025,4,'Abril',19,'sábado',20,2,1,0),
 	 ('2025-04-20',2025,4,'Abril',20,'domingo',20,2,1,0);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-04-21',2025,4,'Abril',21,'segunda-feira',21,2,1,0),
 	 ('2025-04-22',2025,4,'Abril',22,'terça-feira',21,2,1,1),
 	 ('2025-04-23',2025,4,'Abril',23,'quarta-feira',21,2,1,1),
@@ -130,7 +130,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-04-28',2025,4,'Abril',28,'segunda-feira',22,2,1,1),
 	 ('2025-04-29',2025,4,'Abril',29,'terça-feira',22,2,1,1),
 	 ('2025-04-30',2025,4,'Abril',30,'quarta-feira',22,2,1,1);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-05-01',2025,5,'Maio',1,'quinta-feira',23,2,1,0),
 	 ('2025-05-02',2025,5,'Maio',2,'sexta-feira',23,2,1,1),
 	 ('2025-05-03',2025,5,'Maio',3,'sábado',23,2,1,0),
@@ -141,7 +141,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-05-08',2025,5,'Maio',8,'quinta-feira',24,2,1,1),
 	 ('2025-05-09',2025,5,'Maio',9,'sexta-feira',24,2,1,1),
 	 ('2025-05-10',2025,5,'Maio',10,'sábado',24,2,1,0);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-05-11',2025,5,'Maio',11,'domingo',24,2,1,0),
 	 ('2025-05-12',2025,5,'Maio',12,'segunda-feira',25,2,1,1),
 	 ('2025-05-13',2025,5,'Maio',13,'terça-feira',25,2,1,1),
@@ -152,7 +152,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-05-18',2025,5,'Maio',18,'domingo',25,2,1,0),
 	 ('2025-05-19',2025,5,'Maio',19,'segunda-feira',26,2,1,1),
 	 ('2025-05-20',2025,5,'Maio',20,'terça-feira',26,2,1,1);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-05-21',2025,5,'Maio',21,'quarta-feira',26,2,1,1),
 	 ('2025-05-22',2025,5,'Maio',22,'quinta-feira',26,2,1,1),
 	 ('2025-05-23',2025,5,'Maio',23,'sexta-feira',26,2,1,1),
@@ -163,7 +163,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-05-28',2025,5,'Maio',28,'quarta-feira',27,2,1,1),
 	 ('2025-05-29',2025,5,'Maio',29,'quinta-feira',27,2,1,1),
 	 ('2025-05-30',2025,5,'Maio',30,'sexta-feira',27,2,1,1);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-05-31',2025,5,'Maio',31,'sábado',27,2,1,0),
 	 ('2025-06-01',2025,6,'Junho',1,'domingo',28,2,1,0),
 	 ('2025-06-02',2025,6,'Junho',2,'segunda-feira',29,2,1,1),
@@ -174,7 +174,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-06-07',2025,6,'Junho',7,'sábado',29,2,1,0),
 	 ('2025-06-08',2025,6,'Junho',8,'domingo',29,2,1,0),
 	 ('2025-06-09',2025,6,'Junho',9,'segunda-feira',30,2,1,1);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-06-10',2025,6,'Junho',10,'terça-feira',30,2,1,1),
 	 ('2025-06-11',2025,6,'Junho',11,'quarta-feira',30,2,1,1),
 	 ('2025-06-12',2025,6,'Junho',12,'quinta-feira',30,2,1,1),
@@ -185,7 +185,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-06-17',2025,6,'Junho',17,'terça-feira',31,2,1,1),
 	 ('2025-06-18',2025,6,'Junho',18,'quarta-feira',31,2,1,1),
 	 ('2025-06-19',2025,6,'Junho',19,'quinta-feira',31,2,1,0);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-06-20',2025,6,'Junho',20,'sexta-feira',31,2,1,1),
 	 ('2025-06-21',2025,6,'Junho',21,'sábado',31,2,1,0),
 	 ('2025-06-22',2025,6,'Junho',22,'domingo',31,2,1,0),
@@ -196,7 +196,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-06-27',2025,6,'Junho',27,'sexta-feira',32,2,1,1),
 	 ('2025-06-28',2025,6,'Junho',28,'sábado',32,2,1,0),
 	 ('2025-06-29',2025,6,'Junho',29,'domingo',32,2,1,0);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-06-30',2025,6,'Junho',30,'segunda-feira',33,2,1,1),
 	 ('2025-07-01',2025,7,'Julho',1,'terça-feira',34,3,2,1),
 	 ('2025-07-02',2025,7,'Julho',2,'quarta-feira',34,3,2,1),
@@ -207,7 +207,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-07-07',2025,7,'Julho',7,'segunda-feira',35,3,2,1),
 	 ('2025-07-08',2025,7,'Julho',8,'terça-feira',35,3,2,1),
 	 ('2025-07-09',2025,7,'Julho',9,'quarta-feira',35,3,2,1);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-07-10',2025,7,'Julho',10,'quinta-feira',35,3,2,1),
 	 ('2025-07-11',2025,7,'Julho',11,'sexta-feira',35,3,2,1),
 	 ('2025-07-12',2025,7,'Julho',12,'sábado',35,3,2,0),
@@ -218,7 +218,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-07-17',2025,7,'Julho',17,'quinta-feira',36,3,2,1),
 	 ('2025-07-18',2025,7,'Julho',18,'sexta-feira',36,3,2,1),
 	 ('2025-07-19',2025,7,'Julho',19,'sábado',36,3,2,0);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-07-20',2025,7,'Julho',20,'domingo',36,3,2,0),
 	 ('2025-07-21',2025,7,'Julho',21,'segunda-feira',37,3,2,1),
 	 ('2025-07-22',2025,7,'Julho',22,'terça-feira',37,3,2,1),
@@ -229,7 +229,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-07-27',2025,7,'Julho',27,'domingo',37,3,2,0),
 	 ('2025-07-28',2025,7,'Julho',28,'segunda-feira',38,3,2,1),
 	 ('2025-07-29',2025,7,'Julho',29,'terça-feira',38,3,2,1);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-07-30',2025,7,'Julho',30,'quarta-feira',38,3,2,1),
 	 ('2025-07-31',2025,7,'Julho',31,'quinta-feira',38,3,2,1),
 	 ('2025-08-01',2025,8,'Agosto',1,'sexta-feira',39,3,2,1),
@@ -240,7 +240,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-08-06',2025,8,'Agosto',6,'quarta-feira',40,3,2,1),
 	 ('2025-08-07',2025,8,'Agosto',7,'quinta-feira',40,3,2,1),
 	 ('2025-08-08',2025,8,'Agosto',8,'sexta-feira',40,3,2,1);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-08-09',2025,8,'Agosto',9,'sábado',40,3,2,0),
 	 ('2025-08-10',2025,8,'Agosto',10,'domingo',40,3,2,0),
 	 ('2025-08-11',2025,8,'Agosto',11,'segunda-feira',41,3,2,1),
@@ -251,7 +251,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-08-16',2025,8,'Agosto',16,'sábado',41,3,2,0),
 	 ('2025-08-17',2025,8,'Agosto',17,'domingo',41,3,2,0),
 	 ('2025-08-18',2025,8,'Agosto',18,'segunda-feira',42,3,2,1);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-08-19',2025,8,'Agosto',19,'terça-feira',42,3,2,1),
 	 ('2025-08-20',2025,8,'Agosto',20,'quarta-feira',42,3,2,1),
 	 ('2025-08-21',2025,8,'Agosto',21,'quinta-feira',42,3,2,1),
@@ -262,7 +262,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-08-26',2025,8,'Agosto',26,'terça-feira',43,3,2,1),
 	 ('2025-08-27',2025,8,'Agosto',27,'quarta-feira',43,3,2,1),
 	 ('2025-08-28',2025,8,'Agosto',28,'quinta-feira',43,3,2,1);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-08-29',2025,8,'Agosto',29,'sexta-feira',43,3,2,1),
 	 ('2025-08-30',2025,8,'Agosto',30,'sábado',43,3,2,0),
 	 ('2025-08-31',2025,8,'Agosto',31,'domingo',43,3,2,0),
@@ -273,7 +273,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-09-05',2025,9,'Setembro',5,'sexta-feira',44,3,2,1),
 	 ('2025-09-06',2025,9,'Setembro',6,'sábado',44,3,2,0),
 	 ('2025-09-07',2025,9,'Setembro',7,'domingo',44,3,2,0);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-09-08',2025,9,'Setembro',8,'segunda-feira',45,3,2,1),
 	 ('2025-09-09',2025,9,'Setembro',9,'terça-feira',45,3,2,1),
 	 ('2025-09-10',2025,9,'Setembro',10,'quarta-feira',45,3,2,1),
@@ -284,7 +284,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-09-15',2025,9,'Setembro',15,'segunda-feira',46,3,2,1),
 	 ('2025-09-16',2025,9,'Setembro',16,'terça-feira',46,3,2,1),
 	 ('2025-09-17',2025,9,'Setembro',17,'quarta-feira',46,3,2,1);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-09-18',2025,9,'Setembro',18,'quinta-feira',46,3,2,1),
 	 ('2025-09-19',2025,9,'Setembro',19,'sexta-feira',46,3,2,1),
 	 ('2025-09-20',2025,9,'Setembro',20,'sábado',46,3,2,0),
@@ -295,7 +295,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-09-25',2025,9,'Setembro',25,'quinta-feira',47,3,2,1),
 	 ('2025-09-26',2025,9,'Setembro',26,'sexta-feira',47,3,2,1),
 	 ('2025-09-27',2025,9,'Setembro',27,'sábado',47,3,2,0);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-09-28',2025,9,'Setembro',28,'domingo',47,3,2,0),
 	 ('2025-09-29',2025,9,'Setembro',29,'segunda-feira',48,3,2,1),
 	 ('2025-09-30',2025,9,'Setembro',30,'terça-feira',48,3,2,1),
@@ -306,7 +306,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-10-05',2025,10,'Outubro',5,'domingo',49,4,2,0),
 	 ('2025-10-06',2025,10,'Outubro',6,'segunda-feira',50,4,2,1),
 	 ('2025-10-07',2025,10,'Outubro',7,'terça-feira',50,4,2,1);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-10-08',2025,10,'Outubro',8,'quarta-feira',50,4,2,1),
 	 ('2025-10-09',2025,10,'Outubro',9,'quinta-feira',50,4,2,1),
 	 ('2025-10-10',2025,10,'Outubro',10,'sexta-feira',50,4,2,1),
@@ -317,7 +317,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-10-15',2025,10,'Outubro',15,'quarta-feira',51,4,2,1),
 	 ('2025-10-16',2025,10,'Outubro',16,'quinta-feira',51,4,2,1),
 	 ('2025-10-17',2025,10,'Outubro',17,'sexta-feira',51,4,2,1);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-10-18',2025,10,'Outubro',18,'sábado',51,4,2,0),
 	 ('2025-10-19',2025,10,'Outubro',19,'domingo',51,4,2,0),
 	 ('2025-10-20',2025,10,'Outubro',20,'segunda-feira',52,4,2,1),
@@ -328,7 +328,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-10-25',2025,10,'Outubro',25,'sábado',52,4,2,0),
 	 ('2025-10-26',2025,10,'Outubro',26,'domingo',52,4,2,0),
 	 ('2025-10-27',2025,10,'Outubro',27,'segunda-feira',53,4,2,1);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-10-28',2025,10,'Outubro',28,'terça-feira',53,4,2,1),
 	 ('2025-10-29',2025,10,'Outubro',29,'quarta-feira',53,4,2,1),
 	 ('2025-10-30',2025,10,'Outubro',30,'quinta-feira',53,4,2,1),
@@ -339,7 +339,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-11-04',2025,11,'Novembro',4,'terça-feira',55,4,2,1),
 	 ('2025-11-05',2025,11,'Novembro',5,'quarta-feira',55,4,2,1),
 	 ('2025-11-06',2025,11,'Novembro',6,'quinta-feira',55,4,2,1);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-11-07',2025,11,'Novembro',7,'sexta-feira',55,4,2,1),
 	 ('2025-11-08',2025,11,'Novembro',8,'sábado',55,4,2,0),
 	 ('2025-11-09',2025,11,'Novembro',9,'domingo',55,4,2,0),
@@ -350,7 +350,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-11-14',2025,11,'Novembro',14,'sexta-feira',56,4,2,1),
 	 ('2025-11-15',2025,11,'Novembro',15,'sábado',56,4,2,0),
 	 ('2025-11-16',2025,11,'Novembro',16,'domingo',56,4,2,0);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-11-17',2025,11,'Novembro',17,'segunda-feira',57,4,2,1),
 	 ('2025-11-18',2025,11,'Novembro',18,'terça-feira',57,4,2,1),
 	 ('2025-11-19',2025,11,'Novembro',19,'quarta-feira',57,4,2,1),
@@ -361,7 +361,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-11-24',2025,11,'Novembro',24,'segunda-feira',58,4,2,1),
 	 ('2025-11-25',2025,11,'Novembro',25,'terça-feira',58,4,2,1),
 	 ('2025-11-26',2025,11,'Novembro',26,'quarta-feira',58,4,2,1);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-11-27',2025,11,'Novembro',27,'quinta-feira',58,4,2,1),
 	 ('2025-11-28',2025,11,'Novembro',28,'sexta-feira',58,4,2,1),
 	 ('2025-11-29',2025,11,'Novembro',29,'sábado',58,4,2,0),
@@ -372,7 +372,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-12-04',2025,12,'Dezembro',4,'quinta-feira',59,4,2,1),
 	 ('2025-12-05',2025,12,'Dezembro',5,'sexta-feira',59,4,2,1),
 	 ('2025-12-06',2025,12,'Dezembro',6,'sábado',59,4,2,0);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-12-07',2025,12,'Dezembro',7,'domingo',59,4,2,0),
 	 ('2025-12-08',2025,12,'Dezembro',8,'segunda-feira',60,4,2,1),
 	 ('2025-12-09',2025,12,'Dezembro',9,'terça-feira',60,4,2,1),
@@ -383,7 +383,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-12-14',2025,12,'Dezembro',14,'domingo',60,4,2,0),
 	 ('2025-12-15',2025,12,'Dezembro',15,'segunda-feira',61,4,2,1),
 	 ('2025-12-16',2025,12,'Dezembro',16,'terça-feira',61,4,2,1);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-12-17',2025,12,'Dezembro',17,'quarta-feira',61,4,2,1),
 	 ('2025-12-18',2025,12,'Dezembro',18,'quinta-feira',61,4,2,1),
 	 ('2025-12-19',2025,12,'Dezembro',19,'sexta-feira',61,4,2,1),
@@ -394,7 +394,7 @@ INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_seman
 	 ('2025-12-24',2025,12,'Dezembro',24,'quarta-feira',62,4,2,1),
 	 ('2025-12-25',2025,12,'Dezembro',25,'quinta-feira',62,4,2,0),
 	 ('2025-12-26',2025,12,'Dezembro',26,'sexta-feira',62,4,2,1);
-INSERT INTO pobj_refactor.d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
+INSERT INTO d_calendario (`data`,ano,mes,mes_nome,dia,dia_da_semana,semana,trimestre,semestre,eh_dia_util) VALUES
 	 ('2025-12-27',2025,12,'Dezembro',27,'sábado',62,4,2,0),
 	 ('2025-12-28',2025,12,'Dezembro',28,'domingo',62,4,2,0),
 	 ('2025-12-29',2025,12,'Dezembro',29,'segunda-feira',63,4,2,1),
