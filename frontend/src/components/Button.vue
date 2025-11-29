@@ -48,8 +48,29 @@ defineSlots<{
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
   font-family: inherit;
+  transform: scale(1);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.btn:active::before {
+  width: 300px;
+  height: 300px;
 }
 
 .btn:disabled {
@@ -71,8 +92,13 @@ defineSlots<{
 
 .btn--primary:hover:not(:disabled) {
   background: linear-gradient(90deg, #b81570 40%, #cc092f 90%);
-  box-shadow: 0 6px 16px rgba(204, 9, 47, 0.35);
-  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(204, 9, 47, 0.4);
+  transform: translateY(-2px) scale(1.02);
+}
+
+.btn--primary:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+  box-shadow: 0 2px 8px rgba(204, 9, 47, 0.3);
 }
 
 .btn--primary:hover:not(:disabled) i {
@@ -82,6 +108,11 @@ defineSlots<{
 .btn--secondary:hover:not(:disabled) {
   background: rgba(0, 0, 0, 0.04);
   border-color: rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+}
+
+.btn--secondary:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
 }
 
 .btn--link {
@@ -94,7 +125,11 @@ defineSlots<{
 
 .btn--link:hover:not(:disabled) {
   background: rgba(204, 9, 47, 0.08);
-  transform: none;
+  transform: translateX(2px);
+}
+
+.btn--link:active:not(:disabled) {
+  transform: translateX(0);
 }
 
 .btn--info {
@@ -114,6 +149,11 @@ defineSlots<{
   background: rgba(204, 9, 47, 0.08);
   border-color: var(--brad-color-primary, #cc092f);
   color: var(--brad-color-primary, #cc092f);
+  transform: translateY(-1px);
+}
+
+.btn--info:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
 }
 
 .btn--info:hover:not(:disabled) i {

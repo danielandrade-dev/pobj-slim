@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { Transition } from 'vue'
 
 const notificationsOpen = ref(false)
 const userMenuOpen = ref(false)
@@ -73,15 +74,17 @@ const handleMenuAction = async (action: string): Promise<void> => {
           <span id="topbar-notification-badge" class="topbar__badge" hidden>0</span>
           <span class="sr-only">Abrir notificações</span>
         </button>
-        <div
-          id="topbar-notification-panel"
-          class="topbar-notification-panel"
-          role="menu"
-          :aria-hidden="!notificationsOpen"
-          :hidden="!notificationsOpen"
-        >
-          <p class="topbar-notification-panel__empty">Nenhuma notificação no momento.</p>
-        </div>
+        <Transition name="dropdown">
+          <div
+            v-if="notificationsOpen"
+            id="topbar-notification-panel"
+            class="topbar-notification-panel"
+            role="menu"
+            :aria-hidden="!notificationsOpen"
+          >
+            <p class="topbar-notification-panel__empty">Nenhuma notificação no momento.</p>
+          </div>
+        </Transition>
       </div>
       <div class="userbox">
         <button
@@ -100,14 +103,14 @@ const handleMenuAction = async (action: string): Promise<void> => {
           <span class="userbox__name">João da Silva</span>
           <i class="ti ti-chevron-down" aria-hidden="true"></i>
         </button>
-        <div
-          class="userbox__menu"
-          :class="{ 'is-open': userMenuOpen }"
-          id="user-menu"
-          role="menu"
-          :aria-hidden="!userMenuOpen"
-          :hidden="!userMenuOpen"
-        >
+        <Transition name="dropdown">
+          <div
+            v-if="userMenuOpen"
+            class="userbox__menu"
+            id="user-menu"
+            role="menu"
+            :aria-hidden="!userMenuOpen"
+          >
           <span class="userbox__menu-title">Links úteis</span>
           <button
             class="userbox__menu-item"
@@ -126,12 +129,12 @@ const handleMenuAction = async (action: string): Promise<void> => {
               Manuais
               <i class="ti ti-chevron-right" aria-hidden="true"></i>
             </button>
-            <div
-              class="userbox__submenu-list"
-              :class="{ 'is-open': submenuOpen === 'manuais' }"
-              id="user-submenu-manuais"
-              :hidden="submenuOpen !== 'manuais'"
-            >
+            <Transition name="submenu">
+              <div
+                v-if="submenuOpen === 'manuais'"
+                class="userbox__submenu-list"
+                id="user-submenu-manuais"
+              >
               <button
                 class="userbox__menu-item"
                 type="button"
@@ -146,7 +149,8 @@ const handleMenuAction = async (action: string): Promise<void> => {
               >
                 Manual 2
               </button>
-            </div>
+              </div>
+            </Transition>
           </div>
           <button
             class="userbox__menu-item"
@@ -172,7 +176,8 @@ const handleMenuAction = async (action: string): Promise<void> => {
             <i class="ti ti-logout-2" aria-hidden="true"></i>
             <span>Sair</span>
           </button>
-        </div>
+          </div>
+        </Transition>
       </div>
     </div>
   </header>
@@ -196,6 +201,18 @@ const handleMenuAction = async (action: string): Promise<void> => {
   box-shadow: 0 6px 16px rgba(204, 9, 47, 0.25);
   margin: 0;
   border: none;
+  animation: slideInDown 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .topbar__left,
@@ -224,14 +241,20 @@ const handleMenuAction = async (action: string): Promise<void> => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  transform: scale(1);
 }
 
 .topbar__bell:hover,
 .topbar__bell:focus-visible {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
   border-color: rgba(255, 255, 255, 1);
   outline: none;
+  transform: scale(1.1);
+}
+
+.topbar__bell:active {
+  transform: scale(0.95);
 }
 
 .topbar__bell i {
@@ -279,10 +302,26 @@ const handleMenuAction = async (action: string): Promise<void> => {
   flex-direction: column;
   gap: 8px;
   z-index: 1500;
+  transform-origin: top right;
 }
 
-.topbar-notification-panel[aria-hidden='true'] {
-  display: none;
+/* Transições para dropdown */
+.dropdown-enter-active {
+  transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.dropdown-leave-active {
+  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.dropdown-enter-from {
+  opacity: 0;
+  transform: translateY(-10px) scale(0.95);
+}
+
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-10px) scale(0.95);
 }
 
 .topbar-notification-panel__empty {
@@ -337,12 +376,18 @@ const handleMenuAction = async (action: string): Promise<void> => {
   color: #fff;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  transform: scale(1);
 }
 
 .userbox__trigger:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
   border-color: rgba(255, 255, 255, 1);
+  transform: scale(1.02);
+}
+
+.userbox__trigger:active {
+  transform: scale(0.98);
 }
 
 .userbox__trigger:focus-visible {
@@ -386,15 +431,12 @@ const handleMenuAction = async (action: string): Promise<void> => {
   box-shadow: 0 18px 38px rgba(15, 20, 36, 0.18);
   padding: 12px;
   min-width: 220px;
-  display: none;
-  z-index: 1400;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-}
-
-.userbox__menu.is-open {
   display: flex;
   flex-direction: column;
   gap: 6px;
+  z-index: 1400;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  transform-origin: top right;
 }
 
 .userbox__menu-title {
@@ -418,7 +460,8 @@ const handleMenuAction = async (action: string): Promise<void> => {
   justify-content: space-between;
   gap: 8px;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+  transform: translateX(0);
 }
 
 .userbox__menu-item:hover,
@@ -426,6 +469,7 @@ const handleMenuAction = async (action: string): Promise<void> => {
   background: rgba(204, 9, 47, 0.12);
   color: var(--brand);
   outline: none;
+  transform: translateX(4px);
 }
 
 .userbox__menu-item--logout {
@@ -455,7 +499,7 @@ const handleMenuAction = async (action: string): Promise<void> => {
 }
 
 .userbox__menu-item--has-sub i {
-  transition: transform 0.2s ease;
+  transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 .userbox__menu-item--has-sub[aria-expanded='true'] i {
@@ -463,14 +507,44 @@ const handleMenuAction = async (action: string): Promise<void> => {
 }
 
 .userbox__submenu-list {
-  display: none;
+  display: flex;
   flex-direction: column;
   gap: 4px;
   padding-left: 12px;
+  overflow: hidden;
 }
 
-.userbox__submenu-list.is-open {
-  display: flex;
+/* Transições para submenu */
+.submenu-enter-active {
+  transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.submenu-leave-active {
+  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.submenu-enter-from {
+  opacity: 0;
+  max-height: 0;
+  transform: translateX(-10px);
+}
+
+.submenu-enter-to {
+  opacity: 1;
+  max-height: 200px;
+  transform: translateX(0);
+}
+
+.submenu-leave-from {
+  opacity: 1;
+  max-height: 200px;
+  transform: translateX(0);
+}
+
+.submenu-leave-to {
+  opacity: 0;
+  max-height: 0;
+  transform: translateX(-10px);
 }
 
 .userbox__menu button {

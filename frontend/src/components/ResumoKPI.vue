@@ -190,14 +190,48 @@ const pctVariavel = computed(() => {
   gap: 12px;
   flex: 1 1 360px;
   min-width: 280px;
-  transition: 0.18s ease transform, 0.18s ease box-shadow, 0.18s ease border-color;
+  transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
   cursor: pointer;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Animação suave de entrada - elementos começam visíveis */
+@media (prefers-reduced-motion: no-preference) {
+  .kpi-pill {
+    animation: slideInUp 0.5s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+  }
+
+  .kpi-pill:nth-child(1) { 
+    animation-delay: 0.1s; 
+  }
+  .kpi-pill:nth-child(2) { 
+    animation-delay: 0.2s; 
+  }
+  .kpi-pill:nth-child(3) { 
+    animation-delay: 0.3s; 
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0.3;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .kpi-pill:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12);
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 20px 40px rgba(17, 23, 41, 0.15);
   border-color: #d7def1;
+}
+
+.kpi-pill:active {
+  transform: translateY(-2px) scale(0.99);
 }
 
 .kpi-strip__main {
@@ -297,9 +331,19 @@ const pctVariavel = computed(() => {
   background: #bbf7d0;
   border-radius: 999px;
   transform-origin: left center;
-  transform: scaleX(1);
+  transition: width 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
+  animation: fillProgress 1s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
   will-change: transform;
   z-index: 0;
+}
+
+@keyframes fillProgress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 
 .hitbar__thumb {

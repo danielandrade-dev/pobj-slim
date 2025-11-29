@@ -1,15 +1,26 @@
 <script setup lang="ts">
+import { Transition } from 'vue'
 import Header from './components/Header.vue'
 import Footer from './components/Footer.vue'
 import OmegaLegacyModal from './components/OmegaLegacyModal.vue'
+import { useRoute } from 'vue-router'
 import './assets/bradesco-theme.css'
+import './assets/animations.css'
+
+const route = useRoute()
 </script>
 
 <template>
   <div class="app">
     <Header />
     <main class="main-content">
-      <router-view />
+      <Transition
+        name="page"
+        mode="out-in"
+        appear
+      >
+        <router-view :key="route.path" />
+      </Transition>
     </main>
     <Footer />
     <OmegaLegacyModal />
@@ -69,5 +80,24 @@ body {
   flex: 1;
   width: 100%;
   padding-top: 66px; /* Altura do header fixo */
+}
+
+/* Transições de página */
+.page-enter-active {
+  transition: all 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.page-leave-active {
+  transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 </style>

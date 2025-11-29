@@ -455,6 +455,19 @@ watch(() => period.value, (newPeriod) => {
   box-shadow: var(--shadow);
   padding: 16px;
   margin-bottom: 16px;
+  animation: fadeInDown 0.4s cubic-bezier(0.25, 0.1, 0.25, 1) backwards;
+  transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .card--filters {
@@ -523,13 +536,19 @@ watch(() => period.value, (newPeriod) => {
   color: var(--text);
   font-size: 14px;
   font-family: inherit;
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  transform: scale(1);
+}
+
+.input:hover {
+  border-color: rgba(179, 0, 0, 0.3);
 }
 
 .input:focus {
   outline: none;
   border-color: var(--brand);
   box-shadow: 0 0 0 3px rgba(179, 0, 0, 0.12);
+  transform: scale(1.01);
 }
 
 .filters__actions {
@@ -556,17 +575,23 @@ watch(() => period.value, (newPeriod) => {
 .adv {
   max-height: 0;
   overflow: hidden;
-  transition: max-height 0.35s ease;
+  transition: all 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+  opacity: 0;
+  transform: translateY(-10px);
 }
 
 .adv.is-open {
   max-height: 600px;
   overflow: visible;
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .adv[aria-hidden='false'] {
   max-height: 600px;
   padding-top: 8px;
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .adv__grid {

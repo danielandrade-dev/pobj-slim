@@ -415,14 +415,47 @@ const getMetricLabel = (metric: string): string => {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
   cursor: pointer;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Animação suave de entrada - elementos começam visíveis */
+@media (prefers-reduced-motion: no-preference) {
+  .prod-card {
+    animation: slideInUp 0.5s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+  }
+
+  .prod-card:nth-child(1) { animation-delay: 0.05s; }
+  .prod-card:nth-child(2) { animation-delay: 0.1s; }
+  .prod-card:nth-child(3) { animation-delay: 0.15s; }
+  .prod-card:nth-child(4) { animation-delay: 0.2s; }
+  .prod-card:nth-child(5) { animation-delay: 0.25s; }
+  .prod-card:nth-child(6) { animation-delay: 0.3s; }
+  .prod-card:nth-child(7) { animation-delay: 0.35s; }
+  .prod-card:nth-child(8) { animation-delay: 0.4s; }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0.3;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .prod-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12);
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 20px 40px rgba(17, 23, 41, 0.15);
   border-color: #d7def1;
+}
+
+.prod-card:active {
+  transform: translateY(-2px) scale(0.99);
 }
 
 .prod-card__title {
@@ -471,6 +504,16 @@ const getMetricLabel = (metric: string): string => {
   white-space: nowrap;
   user-select: none;
   flex-shrink: 0;
+  transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  cursor: pointer;
+}
+
+.badge:hover {
+  transform: scale(1.1);
+}
+
+.badge:active {
+  transform: scale(0.95);
 }
 
 .badge--low {
@@ -594,6 +637,17 @@ const getMetricLabel = (metric: string): string => {
   transform-origin: left center;
   transform: scaleX(1);
   will-change: transform;
+  transition: transform 0.8s cubic-bezier(0.25, 0.1, 0.25, 1), width 0.8s cubic-bezier(0.25, 0.1, 0.25, 1);
+  animation: fillProgress 1s cubic-bezier(0.25, 0.1, 0.25, 1) forwards;
+}
+
+@keyframes fillProgress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 
 .prod-card__var-track.var--low .prod-card__var-fill {
