@@ -2,15 +2,20 @@
 
 namespace App\Application\UseCase\Pobj;
 
-use App\Application\UseCase\AbstractUseCase;
-use App\Domain\DTO\FilterDTO;
-use App\Infrastructure\Persistence\Pobj\HistoricoRepository;
+use App\Repository\Pobj\FHistoricoRankingPobjRepository;
 
-class HistoricoUseCase extends AbstractUseCase
+class HistoricoUseCase
 {
-    public function __construct(HistoricoRepository $repository)
+    private $repository;
+
+    public function __construct(FHistoricoRankingPobjRepository $repository)
     {
-        parent::__construct($repository);
+        $this->repository = $repository;
+    }
+
+    public function handle($filters = null): array
+    {
+        return $this->repository->findAllOrderedByRanking();
     }
 }
 

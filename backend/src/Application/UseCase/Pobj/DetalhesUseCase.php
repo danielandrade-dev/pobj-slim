@@ -2,15 +2,20 @@
 
 namespace App\Application\UseCase\Pobj;
 
-use App\Application\UseCase\AbstractUseCase;
-use App\Domain\DTO\FilterDTO;
-use App\Infrastructure\Persistence\Pobj\DetalhesRepository;
+use App\Repository\Pobj\FDetalhesRepository;
 
-class DetalhesUseCase extends AbstractUseCase
+class DetalhesUseCase
 {
-    public function __construct(DetalhesRepository $repository)
+    private $repository;
+
+    public function __construct(FDetalhesRepository $repository)
     {
-        parent::__construct($repository);
+        $this->repository = $repository;
+    }
+
+    public function handle($filters = null): array
+    {
+        return $this->repository->findAllOrderedByData();
     }
 }
 

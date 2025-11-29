@@ -2,20 +2,18 @@
 
 namespace App\Application\UseCase\Omega;
 
-use App\Application\UseCase\AbstractUseCase;
-use App\Infrastructure\Persistence\Omega\OmegaStructureRepository;
+use App\Repository\Omega\OmegaDepartamentoRepository;
 
 /**
  * UseCase para operações relacionadas a estrutura Omega
  */
-class OmegaStructureUseCase extends AbstractUseCase
+class OmegaStructureUseCase
 {
-    /**
-     * @param OmegaStructureRepository $repository
-     */
-    public function __construct(OmegaStructureRepository $repository)
+    private $repository;
+
+    public function __construct(OmegaDepartamentoRepository $repository)
     {
-        parent::__construct($repository);
+        $this->repository = $repository;
     }
 
     /**
@@ -24,7 +22,12 @@ class OmegaStructureUseCase extends AbstractUseCase
      */
     public function getStructure(): array
     {
-        return $this->repository->fetch(null);
+        return $this->repository->findAllOrderedByNome();
+    }
+
+    public function handle($filters = null): array
+    {
+        return $this->getStructure();
     }
 }
 

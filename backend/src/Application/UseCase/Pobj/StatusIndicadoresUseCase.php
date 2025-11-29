@@ -2,7 +2,7 @@
 
 namespace App\Application\UseCase\Pobj;
 
-use App\Infrastructure\Persistence\Pobj\StatusIndicadoresRepository;
+use App\Repository\Pobj\DStatusIndicadorRepository;
 
 /**
  * UseCase para operações relacionadas a status de indicadores
@@ -11,7 +11,7 @@ class StatusIndicadoresUseCase
 {
     private $statusRepository;
 
-    public function __construct(StatusIndicadoresRepository $statusRepository)
+    public function __construct(DStatusIndicadorRepository $statusRepository)
     {
         $this->statusRepository = $statusRepository;
     }
@@ -22,7 +22,15 @@ class StatusIndicadoresUseCase
      */
     public function handle(): array
     {
-        return $this->statusRepository->findAllAsArray();
+        $statuses = $this->statusRepository->findAllOrderedById();
+        $result = [];
+        foreach ($statuses as $status) {
+            $result[] = [
+                'id' => $status->getId(),
+                'label' => $status->getStatus(),
+            ];
+        }
+        return empty($result) ? [] : $result;
     }
 }
 

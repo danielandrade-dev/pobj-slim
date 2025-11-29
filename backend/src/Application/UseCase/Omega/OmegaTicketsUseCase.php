@@ -2,20 +2,18 @@
 
 namespace App\Application\UseCase\Omega;
 
-use App\Application\UseCase\AbstractUseCase;
-use App\Infrastructure\Persistence\Omega\OmegaTicketsRepository;
+use App\Repository\Omega\OmegaChamadoRepository;
 
 /**
  * UseCase para operações relacionadas a tickets Omega
  */
-class OmegaTicketsUseCase extends AbstractUseCase
+class OmegaTicketsUseCase
 {
-    /**
-     * @param OmegaTicketsRepository $repository
-     */
-    public function __construct(OmegaTicketsRepository $repository)
+    private $repository;
+
+    public function __construct(OmegaChamadoRepository $repository)
     {
-        parent::__construct($repository);
+        $this->repository = $repository;
     }
 
     /**
@@ -24,7 +22,12 @@ class OmegaTicketsUseCase extends AbstractUseCase
      */
     public function getAllTickets(): array
     {
-        return $this->repository->fetch(null);
+        return $this->repository->findAllOrderedByUpdated();
+    }
+
+    public function handle($filters = null): array
+    {
+        return $this->getAllTickets();
     }
 }
 

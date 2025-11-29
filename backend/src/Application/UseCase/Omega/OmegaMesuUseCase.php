@@ -3,13 +3,14 @@
 namespace App\Application\UseCase\Omega;
 
 use App\Application\UseCase\AbstractUseCase;
-use App\Infrastructure\Persistence\Omega\OmegaMesuRepository;
+use App\Repository\Omega\OmegaMesuRepository;
 
-class OmegaMesuUseCase extends AbstractUseCase
+class OmegaMesuUseCase
 {
+    private $repository;
+
     public function __construct(OmegaMesuRepository $repository)
     {
-        parent::__construct($repository);
+        $this->repository = $repository;
     }
 }
-

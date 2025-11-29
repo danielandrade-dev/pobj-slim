@@ -2,14 +2,20 @@
 
 namespace App\Application\UseCase\Pobj;
 
-use App\Application\UseCase\AbstractUseCase;
-use App\Infrastructure\Persistence\Pobj\PontosRepository;
+use App\Repository\Pobj\FPontosRepository;
 
-class PontosUseCase extends AbstractUseCase
+class PontosUseCase
 {
-    public function __construct(PontosRepository $repository)
+    private $repository;
+
+    public function __construct(FPontosRepository $repository)
     {
-        parent::__construct($repository);
+        $this->repository = $repository;
+    }
+
+    public function handle($filters = null): array
+    {
+        return $this->repository->findAllOrderedByData();
     }
 }
 

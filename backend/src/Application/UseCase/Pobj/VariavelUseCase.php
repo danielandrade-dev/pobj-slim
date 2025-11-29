@@ -2,15 +2,20 @@
 
 namespace App\Application\UseCase\Pobj;
 
-use App\Application\UseCase\AbstractUseCase;
-use App\Domain\DTO\FilterDTO;
-use App\Infrastructure\Persistence\Pobj\VariavelRepository;
+use App\Repository\Pobj\FVariavelRepository;
 
-class VariavelUseCase extends AbstractUseCase
+class VariavelUseCase
 {
-    public function __construct(VariavelRepository $repository)
+    private $repository;
+
+    public function __construct(FVariavelRepository $repository)
     {
-        parent::__construct($repository);
+        $this->repository = $repository;
+    }
+
+    public function handle($filters = null): array
+    {
+        return $this->repository->findAllOrderedByDataAtualizacao();
     }
 }
 

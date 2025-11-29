@@ -2,17 +2,18 @@
 
 namespace App\Application\UseCase\Pobj;
 
-use App\Application\UseCase\AbstractUseCase;
-use App\Infrastructure\Persistence\Pobj\CalendarioRepository;
+use App\Repository\Pobj\DCalendarioRepository;
 
 /**
  * UseCase para operações relacionadas ao calendário
  */
-class CalendarioUseCase extends AbstractUseCase
+class CalendarioUseCase
 {
-    public function __construct(CalendarioRepository $repository)
+    private $repository;
+
+    public function __construct(DCalendarioRepository $repository)
     {
-        parent::__construct($repository);
+        $this->repository = $repository;
     }
 
     /**
@@ -22,7 +23,7 @@ class CalendarioUseCase extends AbstractUseCase
      */
     public function getAll(): array
     {
-        return $this->repository->fetch(null);
+        return $this->repository->findAllOrderedByData();
     }
 }
 

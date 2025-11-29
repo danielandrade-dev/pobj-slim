@@ -2,17 +2,18 @@
 
 namespace App\Application\UseCase\Pobj;
 
-use App\Application\UseCase\AbstractUseCase;
 use App\Domain\DTO\FilterDTO;
-use App\Infrastructure\Persistence\Pobj\ProdutoRepository;
+use App\Repository\Pobj\DProdutoRepository;
 use App\Domain\Enum\Tables;
 use App\Infrastructure\Database\Connection;
 
-class ProdutoUseCase extends AbstractUseCase
+class ProdutoUseCase
 {
-    public function __construct(ProdutoRepository $repository)
+    private $repository;
+
+    public function __construct(DProdutoRepository $repository)
     {
-        parent::__construct($repository);
+        $this->repository = $repository;
     }
 
     /**
@@ -22,7 +23,7 @@ class ProdutoUseCase extends AbstractUseCase
     public function handle(FilterDTO $filters = null): array
     {
         // Busca produtos base
-        $produtos = $this->repository->fetch($filters);
+        $produtos = $this->repository->findAllOrdered();
         
         if (empty($produtos)) {
             return [];

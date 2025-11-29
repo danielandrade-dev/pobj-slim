@@ -2,14 +2,20 @@
 
 namespace App\Application\UseCase\Pobj;
 
-use App\Application\UseCase\AbstractUseCase;
-use App\Infrastructure\Persistence\Pobj\RealizadosRepository;
+use App\Repository\Pobj\FRealizadosRepository;
 
-class RealizadoUseCase extends AbstractUseCase
+class RealizadoUseCase
 {
-    public function __construct(RealizadosRepository $repository)
+    private $repository;
+
+    public function __construct(FRealizadosRepository $repository)
     {
-        parent::__construct($repository);
+        $this->repository = $repository;
+    }
+
+    public function handle($filters = null): array
+    {
+        return $this->repository->findAllOrderedByData();
     }
 }
 

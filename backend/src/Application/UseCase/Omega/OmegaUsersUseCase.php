@@ -2,20 +2,18 @@
 
 namespace App\Application\UseCase\Omega;
 
-use App\Application\UseCase\AbstractUseCase;
-use App\Infrastructure\Persistence\Omega\OmegaUsersRepository;
+use App\Repository\Omega\OmegaUsuarioRepository;
 
 /**
  * UseCase para operações relacionadas a usuários Omega
  */
-class OmegaUsersUseCase extends AbstractUseCase
+class OmegaUsersUseCase
 {
-    /**
-     * @param OmegaUsersRepository $repository
-     */
-    public function __construct(OmegaUsersRepository $repository)
+    private $repository;
+
+    public function __construct(OmegaUsuarioRepository $repository)
     {
-        parent::__construct($repository);
+        $this->repository = $repository;
     }
 
     /**
@@ -24,7 +22,12 @@ class OmegaUsersUseCase extends AbstractUseCase
      */
     public function getAllUsers(): array
     {
-        return $this->repository->fetch(null);
+        return $this->repository->findAllOrderedByNome();
+    }
+
+    public function handle($filters = null): array
+    {
+        return $this->getAllUsers();
     }
 }
 
