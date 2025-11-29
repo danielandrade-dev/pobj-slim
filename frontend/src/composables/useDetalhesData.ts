@@ -27,6 +27,7 @@ function buildFiltersFromState(state?: FilterState, period?: Period): DetalhesFi
     const regional = sanitizeValue(state.gerencia)
     const agencia = sanitizeValue(state.agencia)
     const gerente = sanitizeValue(state.gerente)
+    const gerenteGestao = sanitizeValue(state.ggestao)
     const familia = sanitizeValue(state.familia)
     const indicador = sanitizeValue(state.indicador)
     const subindicador = sanitizeValue(state.subindicador)
@@ -36,6 +37,7 @@ function buildFiltersFromState(state?: FilterState, period?: Period): DetalhesFi
     if (regional) filters.regional = regional
     if (agencia) filters.agencia = agencia
     if (gerente) filters.gerente = gerente
+    if (gerenteGestao) filters.gerenteGestao = gerenteGestao
     if (familia) filters.familia = familia
     if (indicador) filters.indicador = indicador
     if (subindicador) filters.subindicador = subindicador

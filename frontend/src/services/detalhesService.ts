@@ -13,6 +13,7 @@ export async function getDetalhes(filters?: DetalhesFilters): Promise<DetalhesIt
     if (filters.regional) params.regional = filters.regional
     if (filters.agencia) params.agencia = filters.agencia
     if (filters.gerente) params.gerente = filters.gerente
+    if (filters.gerenteGestao) params.gerenteGestao = filters.gerenteGestao
     if (filters.familia) params.familia = filters.familia
     if (filters.indicador) params.indicador = filters.indicador
     if (filters.subindicador) params.subindicador = filters.subindicador

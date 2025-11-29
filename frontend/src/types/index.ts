@@ -138,6 +138,8 @@ export interface DetalhesItem {
   agencia_nome?: string
   gerente_id?: string
   gerente_nome?: string
+  gerente_gestao_id?: string
+  gerente_gestao_nome?: string
   familia_id?: string
   familia_nome?: string
   id_indicador?: string
@@ -163,6 +165,7 @@ export interface DetalhesFilters {
   regional?: string
   agencia?: string
   gerente?: string
+  gerenteGestao?: string
   familia?: string
   indicador?: string
   subindicador?: string

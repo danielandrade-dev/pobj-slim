@@ -85,7 +85,7 @@ const detailViews = ref<DetailView[]>([
 interface TreeNode {
   id: string
   label: string
-  level: 'segmento' | 'diretoria' | 'regional' | 'agencia' | 'gerente' | 'familia' | 'indicador' | 'subindicador' | 'contrato'
+  level: 'segmento' | 'diretoria' | 'regional' | 'agencia' | 'gGestao' | 'gerente' | 'familia' | 'indicador' | 'subindicador' | 'contrato'
   children: TreeNode[]
   data: DetalhesItem[]
   summary: {
@@ -106,6 +106,7 @@ interface TreeNode {
     canal_venda?: string
     tipo_venda?: string
     gerente?: string
+    gerente_gestao?: string
     modalidade_pagamento?: string
     dt_vencimento?: string
     dt_cancelamento?: string
@@ -121,7 +122,7 @@ const LEVEL_HIERARCHY: Record<string, string[]> = {
   diretoria: ['diretoria', 'regional', 'agencia', 'gerente', 'familia', 'indicador', 'subindicador', 'contrato'],
   gerencia: ['regional', 'agencia', 'gerente', 'familia', 'indicador', 'subindicador', 'contrato'],
   agencia: ['agencia', 'gerente', 'familia', 'indicador', 'subindicador', 'contrato'],
-  gGestao: ['gerente', 'familia', 'indicador', 'subindicador', 'contrato'],
+  gGestao: ['gGestao', 'gerente', 'familia', 'indicador', 'subindicador', 'contrato'],
   gerente: ['gerente', 'familia', 'indicador', 'subindicador', 'contrato'],
   secao: ['familia', 'indicador', 'subindicador', 'contrato'],
   familia: ['indicador', 'subindicador', 'contrato'],
@@ -242,6 +243,7 @@ const contratosData = computed(() => {
         canal_venda: firstItem.canal_venda,
         tipo_venda: firstItem.tipo_venda,
         gerente: firstItem.gerente_nome,
+        gerente_gestao: firstItem.gerente_gestao_nome,
         modalidade_pagamento: firstItem.modalidade_pagamento,
         dt_vencimento: firstItem.dt_vencimento,
         dt_cancelamento: firstItem.dt_cancelamento,
@@ -313,6 +315,7 @@ const treeData = computed(() => {
           canal_venda: firstItem.canal_venda,
           tipo_venda: firstItem.tipo_venda,
           gerente: firstItem.gerente_nome,
+          gerente_gestao: firstItem.gerente_gestao_nome,
           modalidade_pagamento: firstItem.modalidade_pagamento,
           dt_vencimento: firstItem.dt_vencimento,
           dt_cancelamento: firstItem.dt_cancelamento,
@@ -358,6 +361,10 @@ function buildTreeHierarchy(items: DetalhesItem[], hierarchy: string[], level: n
       case 'agencia':
         key = item.agencia_id || 'sem-agencia'
         label = item.agencia_nome || 'Sem agência'
+        break
+      case 'gGestao':
+        key = item.gerente_gestao_id || 'sem-gerente-gestao'
+        label = item.gerente_gestao_nome || 'Sem gerente de gestão'
         break
       case 'gerente':
         key = item.gerente_id || 'sem-gerente'
@@ -407,6 +414,9 @@ function buildTreeHierarchy(items: DetalhesItem[], hierarchy: string[], level: n
         break
       case 'agencia':
         label = firstItem.agencia_nome || 'Sem agência'
+        break
+      case 'gGestao':
+        label = firstItem.gerente_gestao_nome || 'Sem gerente de gestão'
         break
       case 'gerente':
         label = firstItem.gerente_nome || 'Sem gerente'
@@ -843,6 +853,10 @@ onMounted(() => {
                   <div class="contrato-card__info-item">
                     <span class="contrato-card__label">Gerente:</span>
                     <span class="contrato-card__value">{{ contrato.detail.gerente || '—' }}</span>
+                  </div>
+                  <div v-if="contrato.detail.gerente_gestao" class="contrato-card__info-item">
+                    <span class="contrato-card__label">Gerente de gestão:</span>
+                    <span class="contrato-card__value">{{ contrato.detail.gerente_gestao }}</span>
                   </div>
                   <div class="contrato-card__info-item">
                     <span class="contrato-card__label">Canal:</span>

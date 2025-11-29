@@ -16,6 +16,8 @@ use App\Entity\Pobj\Agencia;
 use App\Entity\Pobj\Familia;
 use App\Entity\Pobj\Indicador;
 use App\Entity\Pobj\Subindicador;
+use App\Domain\Enum\Cargo;
+use App\Domain\DTO\Detalhes\DetalhesItemDTO;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -59,36 +61,49 @@ class FDetalhesRepository extends ServiceEntityRepository
         $whereClause = '';
 
         if ($filters) {
-            // Filtros de estrutura
-            $segmento = $filters->getSegmento();
-            $diretoria = $filters->getDiretoria();
-            $regional = $filters->getRegional();
-            $agencia = $filters->getAgencia();
+            // Filtros de estrutura (aplica apenas o mais específico da hierarquia)
+            // Hierarquia: gerente > gerenteGestao > agencia > regional > diretoria > segmento
             $gerente = $filters->getGerente();
+            $gerenteGestao = $filters->getGerenteGestao();
+            $agencia = $filters->getAgencia();
+            $regional = $filters->getRegional();
+            $diretoria = $filters->getDiretoria();
+            $segmento = $filters->getSegmento();
 
-            if ($segmento !== null && $segmento !== '') {
-                $whereClause .= " AND est.segmento_id = :segmento";
-                $params['segmento'] = $segmento;
-            }
-
-            if ($diretoria !== null && $diretoria !== '') {
-                $whereClause .= " AND est.diretoria_id = :diretoria";
-                $params['diretoria'] = $diretoria;
-            }
-
-            if ($regional !== null && $regional !== '') {
-                $whereClause .= " AND est.regional_id = :regional";
-                $params['regional'] = $regional;
-            }
-
-            if ($agencia !== null && $agencia !== '') {
-                $whereClause .= " AND est.agencia_id = :agencia";
-                $params['agencia'] = $agencia;
-            }
-
+            // Se tiver gerente, filtra apenas por funcional
             if ($gerente !== null && $gerente !== '') {
-                $whereClause .= " AND fr.funcional = :gerente";
-                $params['gerente'] = $gerente;
+                $whereClause .= " AND fr.funcional = :gerenteFuncional";
+                $params['gerenteFuncional'] = $gerente;
+            } elseif ($gerenteGestao !== null && $gerenteGestao !== '') {
+                // Se tiver gerente gestão, filtra por todos os gerentes da mesma estrutura
+                // (mesma agência, regional, diretoria e segmento)
+                $dEstruturaTable = $this->getTableName(DEstrutura::class);
+                $whereClause .= " AND EXISTS (
+                    SELECT 1 FROM {$dEstruturaTable} AS ggestao 
+                    WHERE ggestao.funcional = :gerenteGestaoFuncional
+                    AND ggestao.cargo_id = :cargoGerenteGestao
+                    AND ggestao.segmento_id = est.segmento_id
+                    AND ggestao.diretoria_id = est.diretoria_id
+                    AND ggestao.regional_id = est.regional_id
+                    AND ggestao.agencia_id = est.agencia_id
+                )";
+                $params['gerenteGestaoFuncional'] = $gerenteGestao;
+                $params['cargoGerenteGestao'] = Cargo::GERENTE_GESTAO;
+            } else {
+                // Aplica apenas o filtro mais específico da hierarquia de estrutura
+                if ($agencia !== null && $agencia !== '') {
+                    $whereClause .= " AND est.agencia_id = :agencia";
+                    $params['agencia'] = $agencia;
+                } elseif ($regional !== null && $regional !== '') {
+                    $whereClause .= " AND est.regional_id = :regional";
+                    $params['regional'] = $regional;
+                } elseif ($diretoria !== null && $diretoria !== '') {
+                    $whereClause .= " AND est.diretoria_id = :diretoria";
+                    $params['diretoria'] = $diretoria;
+                } elseif ($segmento !== null && $segmento !== '') {
+                    $whereClause .= " AND est.segmento_id = :segmento";
+                    $params['segmento'] = $segmento;
+                }
             }
 
             // Filtros de produto
@@ -123,10 +138,9 @@ class FDetalhesRepository extends ServiceEntityRepository
         }
 
         $sql = "SELECT
-                    fr.id_contrato,
-                    fr.id_contrato AS registro_id,
-                    fr.data_realizado AS data,
-                    fr.data_realizado AS competencia,
+                    COALESCE(det.registro_id, fr.id_contrato) AS registro_id,
+                    COALESCE(cal_comp.data, fr.data_realizado) AS data,
+                    COALESCE(cal_comp.data, fr.data_realizado) AS competencia,
                     cal.ano,
                     cal.mes,
                     cal.mes_nome,
@@ -138,8 +152,26 @@ class FDetalhesRepository extends ServiceEntityRepository
                     reg.nome AS gerencia_nome,
                     est.agencia_id,
                     ag.nome AS agencia_nome,
-                    fr.funcional AS gerente_id,
-                    est.nome AS gerente_nome,
+                    CASE 
+                        WHEN est.cargo_id = :cargoGerente THEN fr.funcional
+                        WHEN est.cargo_id = :cargoGerenteGestao THEN NULL
+                        ELSE NULL
+                    END AS gerente_id,
+                    CASE 
+                        WHEN est.cargo_id = :cargoGerente THEN est.nome
+                        WHEN est.cargo_id = :cargoGerenteGestao THEN NULL
+                        ELSE NULL
+                    END AS gerente_nome,
+                    CASE 
+                        WHEN est.cargo_id = :cargoGerente THEN ggestao.funcional
+                        WHEN est.cargo_id = :cargoGerenteGestao THEN fr.funcional
+                        ELSE NULL
+                    END AS gerente_gestao_id,
+                    CASE 
+                        WHEN est.cargo_id = :cargoGerente THEN ggestao.nome
+                        WHEN est.cargo_id = :cargoGerenteGestao THEN est.nome
+                        ELSE NULL
+                    END AS gerente_gestao_nome,
                     prod.familia_id,
                     fam.nm_familia AS familia_nome,
                     prod.indicador_id AS id_indicador,
@@ -172,6 +204,22 @@ class FDetalhesRepository extends ServiceEntityRepository
                     ON reg.id = est.regional_id
                 LEFT JOIN {$agenciaTable} AS ag
                     ON ag.id = est.agencia_id
+                LEFT JOIN (
+                    SELECT 
+                        g1.agencia_id,
+                        g1.funcional,
+                        g1.nome
+                    FROM {$dEstruturaTable} AS g1
+                    INNER JOIN (
+                        SELECT agencia_id, MIN(id) AS min_id
+                        FROM {$dEstruturaTable}
+                        WHERE cargo_id = :cargoGerenteGestao
+                        AND agencia_id IS NOT NULL
+                        GROUP BY agencia_id
+                    ) AS g2 ON g1.id = g2.min_id AND g1.agencia_id = g2.agencia_id
+                    WHERE g1.cargo_id = :cargoGerenteGestao
+                ) AS ggestao
+                    ON ggestao.agencia_id = est.agencia_id
                 LEFT JOIN {$familiaTable} AS fam
                     ON fam.id = prod.familia_id
                 LEFT JOIN {$indicadorTable} AS ind
@@ -185,89 +233,91 @@ class FDetalhesRepository extends ServiceEntityRepository
                     AND MONTH(meta.data_meta) = cal.mes
                 LEFT JOIN {$fDetalhesTable} AS det
                     ON det.contrato_id = fr.id_contrato
+                LEFT JOIN {$dCalendarioTable} AS cal_comp
+                    ON cal_comp.data = det.competencia
                 WHERE 1=1 {$whereClause}
                 ORDER BY est.diretoria_id, est.regional_id, est.agencia_id, est.nome, prod.familia_id, prod.indicador_id, prod.subindicador_id, fr.id_contrato";
+        
+        // Adiciona os parâmetros do cargo para o CASE
+        $params['cargoGerente'] = Cargo::GERENTE;
+        $params['cargoGerenteGestao'] = Cargo::GERENTE_GESTAO;
 
         $connection = $this->getEntityManager()->getConnection();
         $result = $connection->executeQuery($sql, $params);
         $rows = $result->fetchAllAssociative();
 
-        // Formata os dados
+        // Formata os dados usando DTO
         $detalhes = [];
         foreach ($rows as $row) {
             // Formata datas
             $data = $row['data'] ?? null;
             if ($data instanceof \DateTimeInterface) {
                 $data = $data->format('Y-m-d');
-            } elseif (is_string($data)) {
-                // Já está no formato correto
-            } else {
+            } elseif (!is_string($data) || $data === '') {
                 $data = null;
             }
 
             $competencia = $row['competencia'] ?? null;
             if ($competencia instanceof \DateTimeInterface) {
                 $competencia = $competencia->format('Y-m-d');
-            } elseif (is_string($competencia)) {
-                // Já está no formato correto
-            } else {
+            } elseif (!is_string($competencia) || $competencia === '') {
                 $competencia = null;
             }
 
             $dtVencimento = $row['dt_vencimento'] ?? null;
             if ($dtVencimento instanceof \DateTimeInterface) {
                 $dtVencimento = $dtVencimento->format('Y-m-d');
-            } elseif (is_string($dtVencimento)) {
-                // Já está no formato correto
-            } else {
+            } elseif (!is_string($dtVencimento) || $dtVencimento === '') {
                 $dtVencimento = null;
             }
 
             $dtCancelamento = $row['dt_cancelamento'] ?? null;
             if ($dtCancelamento instanceof \DateTimeInterface) {
                 $dtCancelamento = $dtCancelamento->format('Y-m-d');
-            } elseif (is_string($dtCancelamento)) {
-                // Já está no formato correto
-            } else {
+            } elseif (!is_string($dtCancelamento) || $dtCancelamento === '') {
                 $dtCancelamento = null;
             }
 
-            $detalhes[] = [
-                'registro_id' => $row['registro_id'] ?? $row['id_contrato'] ?? null,
-                'id_contrato' => $row['id_contrato'] ?? null,
-                'data' => $data,
-                'competencia' => $competencia,
-                'ano' => $row['ano'] ?? null,
-                'mes' => $row['mes'] ?? null,
-                'mes_nome' => $row['mes_nome'] ?? null,
-                'segmento_id' => $row['segmento_id'] ? (string)$row['segmento_id'] : null,
-                'segmento' => $row['segmento'] ?? null,
-                'diretoria_id' => $row['diretoria_id'] ? (string)$row['diretoria_id'] : null,
-                'diretoria_nome' => $row['diretoria_nome'] ?? null,
-                'gerencia_id' => $row['gerencia_id'] ? (string)$row['gerencia_id'] : null,
-                'gerencia_nome' => $row['gerencia_nome'] ?? null,
-                'agencia_id' => $row['agencia_id'] ? (string)$row['agencia_id'] : null,
-                'agencia_nome' => $row['agencia_nome'] ?? null,
-                'gerente_id' => $row['gerente_id'] ?? null,
-                'gerente_nome' => $row['gerente_nome'] ?? null,
-                'familia_id' => $row['familia_id'] ? (string)$row['familia_id'] : null,
-                'familia_nome' => $row['familia_nome'] ?? null,
-                'id_indicador' => $row['id_indicador'] ? (string)$row['id_indicador'] : null,
-                'ds_indicador' => $row['ds_indicador'] ?? null,
-                'id_subindicador' => $row['id_subindicador'] ? (string)$row['id_subindicador'] : null,
-                'subindicador' => $row['subindicador'] ?? null,
-                'peso' => $row['peso'] !== null ? (float)$row['peso'] : null,
-                'valor_realizado' => $row['valor_realizado'] !== null ? (float)$row['valor_realizado'] : null,
-                'valor_meta' => $row['valor_meta'] !== null ? (float)$row['valor_meta'] : null,
-                'meta_mensal' => $row['meta_mensal'] !== null ? (float)$row['meta_mensal'] : null,
-                'canal_venda' => $row['canal_venda'] ?? null,
-                'tipo_venda' => $row['tipo_venda'] ?? null,
-                'modalidade_pagamento' => $row['modalidade_pagamento'] ?? null,
-                'dt_vencimento' => $dtVencimento,
-                'dt_cancelamento' => $dtCancelamento,
-                'motivo_cancelamento' => $row['motivo_cancelamento'] ?? null,
-                'status_id' => $row['status_id'] !== null ? (int)$row['status_id'] : null,
-            ];
+            $dto = new DetalhesItemDTO(
+                $row['registro_id'] ?? null,
+                $row['registro_id'] ?? null,
+                $data,
+                $competencia,
+                $row['ano'] ?? null,
+                $row['mes'] ?? null,
+                $row['mes_nome'] ?? null,
+                $row['segmento_id'] ? (string)$row['segmento_id'] : null,
+                $row['segmento'] ?? null,
+                $row['diretoria_id'] ? (string)$row['diretoria_id'] : null,
+                $row['diretoria_nome'] ?? null,
+                $row['gerencia_id'] ? (string)$row['gerencia_id'] : null,
+                $row['gerencia_nome'] ?? null,
+                $row['agencia_id'] ? (string)$row['agencia_id'] : null,
+                $row['agencia_nome'] ?? null,
+                $row['gerente_id'] ?? null,
+                $row['gerente_nome'] ?? null,
+                $row['gerente_gestao_id'] ?? null,
+                $row['gerente_gestao_nome'] ?? null,
+                $row['familia_id'] ? (string)$row['familia_id'] : null,
+                $row['familia_nome'] ?? null,
+                $row['id_indicador'] ? (string)$row['id_indicador'] : null,
+                $row['ds_indicador'] ?? null,
+                $row['id_subindicador'] ? (string)$row['id_subindicador'] : null,
+                $row['subindicador'] ?? null,
+                $row['peso'] !== null ? (float)$row['peso'] : null,
+                $row['valor_realizado'] !== null ? (float)$row['valor_realizado'] : null,
+                $row['valor_meta'] !== null ? (float)$row['valor_meta'] : null,
+                $row['meta_mensal'] !== null ? (float)$row['meta_mensal'] : null,
+                $row['canal_venda'] ?? null,
+                $row['tipo_venda'] ?? null,
+                $row['modalidade_pagamento'] ?? null,
+                $dtVencimento,
+                $dtCancelamento,
+                $row['motivo_cancelamento'] ?? null,
+                $row['status_id'] !== null ? (int)$row['status_id'] : null
+            );
+
+            $detalhes[] = $dto->toArray();
         }
 
         return $detalhes;
