@@ -97,7 +97,7 @@ const handleMenuAction = async (action: string): Promise<void> => {
             src="https://i.pravatar.cc/80?img=12"
             alt="Foto do usuário"
           />
-          <span class="userbox__name">X Burguer</span>
+          <span class="userbox__name">João da Silva</span>
           <i class="ti ti-chevron-down" aria-hidden="true"></i>
         </button>
         <div

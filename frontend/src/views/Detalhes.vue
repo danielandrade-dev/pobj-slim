@@ -992,10 +992,10 @@ onMounted(() => {
   min-height: 100vh;
   width: 100%;
   padding: 20px 0;
-  background-color: var(--bg);
   color: var(--text);
   font-family: "Plus Jakarta Sans", Inter, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   box-sizing: border-box;
 }
 
