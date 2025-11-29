@@ -20,7 +20,6 @@ const { period } = usePeriodManager()
 const { detalhes: detalhesData, loading, error } = useDetalhesData(filterState, period)
 const expandedRows = ref<Set<string>>(new Set())
 const searchTerm = ref('')
-const compactMode = ref(false)
 const tableView = ref('diretoria')
 const activeDetailViewId = ref('default')
 const showColumnDesigner = ref(false)
@@ -601,10 +600,6 @@ function collapseAll() {
   expandedRows.value.clear()
 }
 
-function toggleCompactMode() {
-  compactMode.value = !compactMode.value
-}
-
 function handleTableViewChange(viewId: string) {
   tableView.value = viewId
   // Aqui você pode implementar a lógica para mudar a agregação dos dados
@@ -799,18 +794,6 @@ onMounted(() => {
               </button>
               <button
                 type="button"
-                class="table-toolbar__btn"
-                :class="{ 'is-active': compactMode }"
-                :aria-pressed="compactMode"
-                @click="toggleCompactMode"
-              >
-                <span class="table-toolbar__icon">
-                  <i :class="compactMode ? 'ti ti-arrows-minimize' : 'ti ti-layout-collage'"></i>
-                </span>
-                <span class="table-toolbar__text">{{ compactMode ? 'Modo confortável' : 'Modo compacto' }}</span>
-              </button>
-              <button
-                type="button"
                 class="table-toolbar__btn detail-view-manage"
                 title="Personalizar colunas da tabela"
                 @click="handleOpenColumnDesigner"
@@ -914,7 +897,7 @@ onMounted(() => {
           </div>
 
           <!-- Árvore hierárquica (quando não há busca) -->
-          <div v-else class="table-wrapper" :class="{ 'is-compact': compactMode }">
+          <div v-else class="table-wrapper">
             <table class="tree-table">
                   <thead>
                     <tr>
@@ -1135,22 +1118,26 @@ onMounted(() => {
   justify-content: center;
   gap: 6px;
   min-width: 118px;
-  padding: 6px 12px;
+  padding: 8px 14px;
   border-radius: 10px;
   border: 1px solid var(--stroke);
   background: var(--panel);
-  color: var(--info);
+  color: var(--brand);
   font-weight: 700;
-  font-size: 12px;
+  font-size: 13px;
   box-shadow: var(--shadow);
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  transition: all 0.2s ease;
   cursor: pointer;
   box-sizing: border-box;
+  font-family: inherit;
+  outline: none;
 }
 
 .table-toolbar__btn:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 16px 32px rgba(17, 23, 41, 0.12);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(179, 0, 0, 0.15);
+  border-color: var(--brand);
+  background: rgba(179, 0, 0, 0.08);
 }
 
 .table-toolbar__btn .table-toolbar__icon {
@@ -1160,8 +1147,8 @@ onMounted(() => {
   width: 26px;
   height: 26px;
   border-radius: 8px;
-  background: var(--omega-badge-bg);
-  color: var(--info);
+  background: rgba(179, 0, 0, 0.12);
+  color: var(--brand);
 }
 
 .table-toolbar__btn .table-toolbar__icon i {
@@ -1169,14 +1156,15 @@ onMounted(() => {
 }
 
 .table-toolbar__btn .table-toolbar__text {
-  font-size: 12px;
+  font-size: 13px;
   color: inherit;
 }
 
 .table-toolbar__btn.is-active {
-  background: var(--info);
+  background: var(--brand);
   color: #fff;
-  box-shadow: 0 18px 34px rgba(36, 107, 253, 0.24);
+  box-shadow: 0 4px 12px rgba(179, 0, 0, 0.25);
+  border-color: var(--brand);
 }
 
 .table-toolbar__btn.is-active .table-toolbar__icon {
@@ -1413,15 +1401,6 @@ onMounted(() => {
   }
 }
 
-/* Modo compacto da tabela */
-.table-wrapper.is-compact .tree-table tbody td {
-  padding: 6px 6px;
-}
-
-:deep(.table-wrapper.is-compact .toggle) {
-  width: 24px;
-  height: 22px;
-}
 
 .detail-view-manage i {
   margin-right: 6px;

@@ -84,7 +84,7 @@ const handleViewClick = (viewId: string) => {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
+  padding: 8px 14px;
   border-radius: 999px;
   border: 1px solid var(--stroke, #e7eaf2);
   background: var(--panel, #ffffff);
@@ -103,12 +103,13 @@ const handleViewClick = (viewId: string) => {
 .detail-chip:hover {
   box-shadow: var(--shadow, 0 12px 28px rgba(17, 23, 41, 0.08));
   transform: translateY(-1px);
+  border-color: #cbd5e1;
 }
 
 .detail-chip.is-active {
-  background: var(--omega-badge-bg, rgba(36, 107, 253, 0.12));
-  border-color: var(--info, #246BFD);
-  color: var(--info, #246BFD);
+  background: rgba(179, 0, 0, 0.12);
+  border-color: var(--brand, #b30000);
+  color: var(--brand, #b30000);
 }
 </style>
 

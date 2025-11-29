@@ -48,11 +48,11 @@ const handleChipClick = (viewId: string) => {
 .chip {
   user-select: none;
   cursor: pointer;
-  padding: 6px 10px;
+  padding: 8px 14px;
   border-radius: 999px;
   border: 1px solid var(--stroke, #e7eaf2);
   background: var(--panel, #ffffff);
-  color: var(--text-muted, #64748b);
+  color: var(--text, #0f1424);
   font-weight: 700;
   font-size: 13px;
   transition: all 0.15s ease;
@@ -62,12 +62,14 @@ const handleChipClick = (viewId: string) => {
 .chip:hover {
   box-shadow: var(--shadow, 0 12px 28px rgba(17, 23, 41, 0.08));
   transform: translateY(-1px);
+  border-color: #cbd5e1;
 }
 
 .chip.is-active {
-  background: var(--omega-badge-bg, rgba(36, 107, 253, 0.12));
-  border-color: var(--info, #246BFD);
-  color: var(--info, #246BFD);
+  background: rgba(179, 0, 0, 0.12);
+  border-color: var(--brand, #b30000);
+  color: var(--brand, #b30000);
+  box-shadow: 0 2px 8px rgba(179, 0, 0, 0.15);
 }
 </style>
 

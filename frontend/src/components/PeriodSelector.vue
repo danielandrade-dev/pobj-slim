@@ -163,6 +163,13 @@ onUnmounted(() => {
 
 <style scoped>
 .period-selector {
+  --brand: #b30000;
+  --brand-dark: #8f0000;
+  --stroke: #e7eaf2;
+  --text: #0f1424;
+  --muted: #6b7280;
+  --shadow: 0 12px 28px rgba(17, 23, 41, 0.08);
+
   position: relative;
 }
 
@@ -175,31 +182,37 @@ onUnmounted(() => {
 
 .period-inline .txt {
   font-size: 13px;
-  color: var(--muted, #6b7280);
+  color: var(--muted);
 }
 
 .period-inline strong {
-  color: var(--text, #0f1424);
+  color: var(--text);
   font-weight: 700;
 }
 
-.link-action {
+.period-selector .link-action {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  background: transparent;
-  border: none;
-  color: var(--brand, #b30000);
+  gap: 6px;
+  background: #fff;
+  border: 1px solid var(--stroke);
+  color: var(--brand);
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 6px;
-  transition: background 0.2s ease;
+  padding: 8px 14px;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  font-family: inherit;
+  outline: none;
 }
 
-.link-action:hover {
-  background: rgba(204, 9, 47, 0.08);
+.period-selector .link-action:hover {
+  background: rgba(179, 0, 0, 0.08);
+  border-color: var(--brand);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
 }
 </style>
 

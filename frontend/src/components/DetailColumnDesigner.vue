@@ -169,16 +169,29 @@ watch(() => props.modelValue, (open) => {
             <span class="detail-designer__views-hint">Carregue para ajustar ou excluir.</span>
           </div>
           <div class="detail-designer__views-list">
-            <button
+            <div
               v-for="view in props.views"
               :key="view.id"
-              type="button"
-              class="detail-view-chip"
-              :class="{ 'is-active': props.activeViewId === view.id }"
-              @click="handleLoadView(view.id)"
+              class="detail-view-chip-wrapper"
             >
-              {{ view.name }}
-            </button>
+              <button
+                type="button"
+                class="detail-view-chip"
+                :class="{ 'is-active': props.activeViewId === view.id }"
+                @click="handleLoadView(view.id)"
+              >
+                {{ view.name }}
+              </button>
+              <button
+                v-if="view.id !== 'default'"
+                type="button"
+                class="detail-view-chip__delete"
+                :aria-label="`Remover visão ${view.name}`"
+                @click.stop="handleDeleteView(view.id)"
+              >
+                <i class="ti ti-trash"></i>
+              </button>
+            </div>
           </div>
         </section>
 
@@ -444,6 +457,34 @@ watch(() => props.modelValue, (open) => {
   box-shadow: 0 2px 8px rgba(29, 78, 216, 0.15);
 }
 
+.detail-view-chip-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  position: relative;
+}
+
+.detail-view-chip__delete {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 1px solid #fee2e2;
+  background: rgba(254, 226, 226, 0.5);
+  color: #dc2626;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.detail-view-chip__delete:hover {
+  background: rgba(254, 226, 226, 0.8);
+  border-color: #fca5a5;
+  transform: scale(1.05);
+}
+
 .detail-designer__lists {
   display: flex;
   flex-wrap: wrap;
@@ -648,6 +689,69 @@ watch(() => props.modelValue, (open) => {
   align-items: center;
   justify-content: flex-end;
   flex-shrink: 0;
+}
+
+/* Estilos dos botões */
+.btn {
+  --brand: #b30000;
+  --brand-dark: #8f0000;
+  --stroke: #e7eaf2;
+  --text: #0f1424;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid var(--stroke);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn--primary {
+  background: linear-gradient(90deg, #cc092f 40%, #b81570 90%);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 4px 12px rgba(204, 9, 47, 0.25);
+}
+
+.btn--primary i {
+  color: #fff;
+  stroke-width: 1.5;
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: linear-gradient(90deg, #b81570 40%, #cc092f 90%);
+  box-shadow: 0 6px 16px rgba(204, 9, 47, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn--primary:hover:not(:disabled) i {
+  color: #fff;
+}
+
+.btn--secondary:hover:not(:disabled) {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+.detail-designer__save-btn,
+.detail-designer__action-btn {
+  min-height: 38px;
+  padding: 10px 16px;
 }
 
 @media (max-width: 780px) {
