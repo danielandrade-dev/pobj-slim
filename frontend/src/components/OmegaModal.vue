@@ -187,6 +187,16 @@ async function loadOmegaData() {
 function showLoadingState(root: HTMLElement | null) {
   if (!root) return
   
+  // Verifica se estamos usando componentes Vue (OmegaTable)
+  const omegaTableComponent = root.querySelector('.omega-table-container')
+  const isUsingVueComponents = !!omegaTableComponent
+  
+  // Se estiver usando componentes Vue, não manipula o DOM diretamente
+  if (isUsingVueComponents) {
+    console.log('⚠️ showLoadingState: Usando componentes Vue, não renderizando skeleton')
+    return
+  }
+  
   const mainContent = root.querySelector('.omega-main__content')
   if (mainContent) {
     mainContent.classList.add('omega-loading')

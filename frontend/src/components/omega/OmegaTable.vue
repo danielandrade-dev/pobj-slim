@@ -26,21 +26,43 @@ const currentPage = ref(1)
 const pageSize = ref(15)
 
 const filteredTickets = computed(() => {
-  let tickets = props.omega.tickets.value
+  let tickets = props.omega.tickets.value || []
   const currentUser = props.omega.currentUser.value
   const currentView = props.omega.currentView.value
 
+  console.log('🔍 OmegaTable - filteredTickets computed:', {
+    ticketsCount: tickets.length,
+    currentView,
+    currentUser: currentUser?.name,
+    searchQuery: props.searchQuery
+  })
+
+  // Se não há tickets, retorna array vazio
+  if (!tickets || tickets.length === 0) {
+    console.log('⚠️ OmegaTable - Nenhum ticket disponível')
+    return []
+  }
+
   // Filtra por view
   if (currentView === 'my' && currentUser) {
+    const beforeFilter = tickets.length
     tickets = tickets.filter((t) => t.requesterId === currentUser.id)
+    console.log('📋 Filtrado por "my":', beforeFilter, '->', tickets.length, 'tickets')
   } else if (currentView === 'assigned' && currentUser) {
+    const beforeFilter = tickets.length
     tickets = tickets.filter((t) => t.ownerId === currentUser.id)
+    console.log('📋 Filtrado por "assigned":', beforeFilter, '->', tickets.length, 'tickets')
   } else if (currentView === 'queue' && currentUser) {
+    const beforeFilter = tickets.length
     tickets = tickets.filter((t) => currentUser.queues?.includes(t.queue || ''))
+    console.log('📋 Filtrado por "queue":', beforeFilter, '->', tickets.length, 'tickets')
+  } else {
+    console.log('📋 Sem filtro de view, mostrando todos os tickets:', tickets.length)
   }
 
   // Aplica filtros
   tickets = props.filters.applyFilters(tickets)
+  console.log('📋 Após aplicar filtros:', tickets.length)
 
   // Aplica busca
   if (props.searchQuery) {
@@ -56,15 +78,28 @@ const filteredTickets = computed(() => {
       ].join(' ').toLowerCase()
       return searchableText.includes(query)
     })
+    console.log('📋 Após aplicar busca:', tickets.length)
   }
 
+  console.log('✅ OmegaTable - filteredTickets final:', tickets.length)
   return tickets
 })
 
 const paginatedTickets = computed(() => {
+  if (!filteredTickets.value || filteredTickets.value.length === 0) {
+    return []
+  }
   const start = (currentPage.value - 1) * pageSize.value
   const end = start + pageSize.value
-  return filteredTickets.value.slice(start, end)
+  const result = filteredTickets.value.slice(start, end)
+  console.log('📄 OmegaTable - paginatedTickets:', {
+    total: filteredTickets.value.length,
+    page: currentPage.value,
+    pageSize: pageSize.value,
+    resultCount: result.length,
+    result: result.map(t => t.id)
+  })
+  return result
 })
 
 const totalPages = computed(() => {
@@ -144,6 +179,16 @@ watch([() => props.filters.filters.value, () => props.searchQuery], () => {
 watch(() => props.omega.currentView.value, () => {
   currentPage.value = 1
 })
+
+// Debug: Watch tickets para ver quando chegam
+watch(() => props.omega.tickets.value, (tickets) => {
+  console.log('🎫 OmegaTable - Tickets atualizados:', tickets?.length || 0, tickets)
+}, { immediate: true, deep: true })
+
+// Debug: Watch currentUser
+watch(() => props.omega.currentUser.value, (user) => {
+  console.log('👤 OmegaTable - Usuário atual:', user?.name || 'Nenhum')
+}, { immediate: true })
 </script>
 
 <template>
@@ -206,13 +251,14 @@ watch(() => props.omega.currentView.value, () => {
               </div>
             </td>
           </tr>
-          <tr
-            v-for="ticket in paginatedTickets"
-            :key="ticket.id"
-            class="omega-table__row"
-            :data-ticket-id="ticket.id"
-            @click="handleTicketClick(ticket.id)"
-          >
+          <template v-else>
+            <tr
+              v-for="ticket in paginatedTickets"
+              :key="ticket.id"
+              class="omega-table__row"
+              :data-ticket-id="ticket.id"
+              @click="handleTicketClick(ticket.id)"
+            >
             <td v-if="canSelect" class="col-select" @click.stop>
               <input
                 type="checkbox"
@@ -258,7 +304,8 @@ watch(() => props.omega.currentView.value, () => {
                 {{ (props.omega.statuses.value.find(s => s.id === ticket.status) || { label: ticket.status }).label }}
               </span>
             </td>
-          </tr>
+            </tr>
+          </template>
         </tbody>
       </table>
     </div>
