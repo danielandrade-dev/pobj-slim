@@ -21,14 +21,12 @@ const toggleSubmenu = (submenu: string): void => {
   submenuOpen.value = submenuOpen.value === submenu ? null : submenu
 }
 
-// Fecha o menu ao clicar fora
 const handleClickOutside = (event: MouseEvent): void => {
   if (userboxRef.value && !userboxRef.value.contains(event.target as Node)) {
     closeUserMenu()
   }
 }
 
-// Fecha o menu ao pressionar Escape
 const handleEscape = (event: KeyboardEvent): void => {
   if (event.key === 'Escape' && userMenuOpen.value) {
     closeUserMenu()
@@ -251,7 +249,6 @@ const handleMenuAction = async (action: string): Promise<void> => {
   min-width: 0;
 }
 
-/* Transições para dropdown */
 .dropdown-enter-active {
   transition: all 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
@@ -552,7 +549,6 @@ const handleMenuAction = async (action: string): Promise<void> => {
   padding-bottom: 4px;
 }
 
-/* Transições para submenu */
 .submenu-enter-active {
   transition: all 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
@@ -597,7 +593,6 @@ const handleMenuAction = async (action: string): Promise<void> => {
   font-family: inherit;
 }
 
-/* Responsividade */
 @media (max-width: 640px) {
   .topbar {
     padding: 8px 12px;

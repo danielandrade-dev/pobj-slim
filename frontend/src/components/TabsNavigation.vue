@@ -295,7 +295,6 @@ const handleTabClick = (viewId: ViewType): void => {
 </style>
 
 <style>
-/* Estilos globais para .link-action (usado em botões criados dinamicamente) */
 .link-action {
   display: inline-flex !important;
   align-items: center;

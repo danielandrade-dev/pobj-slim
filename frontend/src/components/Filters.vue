@@ -20,10 +20,8 @@ const showAdvancedButton = ref(true)
 const { initData, isLoading: initLoading, loadInit } = useInitCache()
 const loading = initLoading
 
-// Usa filtros globais
 const { updateFilter, updatePeriod, clearFilters } = useGlobalFilters()
 
-// Usa o composable de hierarquia
 const {
   segmento,
   diretoria,
@@ -46,22 +44,19 @@ const {
   clearAll: clearHierarchy
 } = useHierarchyFilters(initData)
 
-// Filtros não hierárquicos
 const familias = ref<FilterOption[]>([])
 const indicadores = ref<FilterOption[]>([])
-const allSubindicadores = ref<FilterOption[]>([]) // Todas as opções de subindicadores
+const allSubindicadores = ref<FilterOption[]>([])
 const statusIndicadores = ref<FilterOption[]>([])
 
-// Valores selecionados (não hierárquicos)
 const selectedFamilia = ref('')
 const selectedIndicador = ref('')
 const selectedSubindicador = ref('')
 const selectedStatusKpi = ref('todos')
 
-// Subindicadores filtrados baseados no indicador selecionado
 const subindicadores = computed(() => {
   if (!selectedIndicador.value) {
-    return [] // Não mostra subindicadores se não há indicador selecionado
+    return []
   }
 
   const indicadorId = String(selectedIndicador.value).trim()
@@ -71,22 +66,18 @@ const subindicadores = computed(() => {
   })
 })
 
-// Verifica se o indicador selecionado tem subindicadores
 const hasSubindicadores = computed(() => {
   return subindicadores.value.length > 0
 })
 
-// Função para encontrar metadados de um item
 const findItemMeta = (id: string, items: FilterOption[]): FilterOption | null => {
   if (!id) return null
   const normalizedId = String(id).trim()
   return items.find(item => String(item.id).trim() === normalizedId) || null
 }
 
-// Handlers para família, indicador e subindicador
 const handleFamiliaChange = (value: string): void => {
   selectedFamilia.value = value
-  // Limpa indicador e subindicador quando família muda
   if (!value) {
     selectedIndicador.value = ''
     selectedSubindicador.value = ''
@@ -95,15 +86,12 @@ const handleFamiliaChange = (value: string): void => {
 
 const handleIndicadorChange = (value: string): void => {
   selectedIndicador.value = value
-  // Limpa subindicador quando indicador muda
   selectedSubindicador.value = ''
 
   if (value) {
-    // Tenta preencher família automaticamente
     const indicadorMeta = findItemMeta(value, indicadores.value)
     if (indicadorMeta?.id_familia) {
       const familiaId = String(indicadorMeta.id_familia).trim()
-      // Verifica se a família existe na lista
       const familiaExists = familias.value.some(fam => String(fam.id).trim() === familiaId)
       if (familiaExists) {
         selectedFamilia.value = familiaId
@@ -115,14 +103,11 @@ const handleIndicadorChange = (value: string): void => {
 const handleSubindicadorChange = (value: string): void => {
   selectedSubindicador.value = value
   if (value) {
-    // Tenta preencher indicador e família automaticamente
-    // Busca em todas as opções de subindicadores, não apenas nas filtradas
     const subindicadorMeta = findItemMeta(value, allSubindicadores.value)
 
     if (subindicadorMeta?.id_indicador) {
       const indicadorId = String(subindicadorMeta.id_indicador).trim()
 
-      // Verifica se o indicador existe na lista antes de selecionar
       const indicadorExists = indicadores.value.some(ind => {
         const indId = String(ind.id).trim()
         return indId === indicadorId
@@ -131,12 +116,10 @@ const handleSubindicadorChange = (value: string): void => {
       if (indicadorExists) {
         selectedIndicador.value = indicadorId
 
-        // Busca a família do indicador
         const indicadorMeta = findItemMeta(indicadorId, indicadores.value)
         if (indicadorMeta?.id_familia) {
           const familiaId = String(indicadorMeta.id_familia).trim()
 
-          // Verifica se a família existe na lista antes de selecionar
           const familiaExists = familias.value.some(fam => {
             const famId = String(fam.id).trim()
             return famId === familiaId
@@ -149,7 +132,6 @@ const handleSubindicadorChange = (value: string): void => {
       }
     }
   } else {
-    // Limpa quando desmarca
     selectedSubindicador.value = ''
   }
 }
@@ -159,8 +141,6 @@ const normalizeOption = (item: any): FilterOption => {
   const id = String(item.id || item.codigo || item.id_diretoria || item.id_regional || item.id_agencia || item.funcional || item.subId || item.subindicadorId || '').trim()
   const label = String(item.label || item.nome || id).trim()
 
-  // Preserva campos de relacionamento hierárquico
-  // Para subindicador, pode vir como indicador_id, indicadorId, ou através de relacionamento
   const idFamilia = item.id_familia ?? item.idFamilia ?? item.familia_id ?? item.familiaId
   const idIndicador = item.id_indicador ?? item.idIndicador ?? item.indicador_id ?? item.indicadorId ?? item.produtoId ?? item.produto_id
 
@@ -193,23 +173,19 @@ const loadEstrutura = async (): Promise<void> => {
   }
 }
 
-// Inicializa o gerenciador de período
 const { period, updatePeriodLabels, updatePeriod: updatePeriodLocal } = usePeriodManager()
 
-// Inicializa visão acumulada
 const { accumulatedView, handleViewChange, options: accumulatedViewOptions } = useAccumulatedView(
   period,
   updatePeriodLocal
 )
 
-// Opções para o select de status dos indicadores
 const statusKpiOptions = computed<FilterOption[]>(() => [
   { id: 'todos', nome: 'Todos' },
   { id: 'atingidos', nome: 'Atingidos' },
   { id: 'nao', nome: 'Não atingidos' }
 ])
 
-// Opções para o select de visão acumulada
 const visaoAcumuladaOptions = computed<FilterOption[]>(() => {
   return accumulatedViewOptions.map(opt => ({
     id: opt.value,
@@ -217,19 +193,16 @@ const visaoAcumuladaOptions = computed<FilterOption[]>(() => {
   }))
 })
 
-// Handler para mudança de status KPI
 const handleStatusKpiChange = (value: string): void => {
   selectedStatusKpi.value = value
 }
 
-// Handler para mudança de visão acumulada
 const handleVisaoAcumuladaChange = (value: string): void => {
   handleViewChange(value as 'mensal' | 'semestral' | 'anual')
 }
 
 onMounted(() => {
   loadEstrutura()
-  // Aplica filtros iniciais (incluindo período)
   applyFilters()
 })
 
@@ -238,13 +211,10 @@ const toggleAdvancedFilters = (): void => {
 }
 
 const handleFilter = (): void => {
-  // Aplica os filtros (já são aplicados automaticamente via watch, mas força atualização)
   applyFilters()
 }
 
-// Função para aplicar todos os filtros
 const applyFilters = (): void => {
-  // Atualiza filtros globais
   updateFilter('segmento', segmento.value)
   updateFilter('diretoria', diretoria.value)
   updateFilter('gerencia', gerencia.value)
@@ -256,7 +226,6 @@ const applyFilters = (): void => {
   updateFilter('subindicador', selectedSubindicador.value)
   updateFilter('status', selectedStatusKpi.value)
   
-  // Atualiza período global
   updatePeriod(period.value)
 }
 
@@ -267,22 +236,17 @@ const handleClear = (): void => {
   selectedSubindicador.value = ''
   selectedStatusKpi.value = 'todos'
   accumulatedView.value = 'mensal'
-  // Reseta período para mensal
   period.value = syncPeriodFromAccumulatedView('mensal', period.value)
   updatePeriodLabels()
   
-  // Limpa filtros globais
   clearFilters()
   updatePeriod(period.value)
 }
 
-// Sincroniza mudanças nos filtros locais com os globais automaticamente
 watch([segmento, diretoria, gerencia, agencia, ggestao, gerente, selectedFamilia, selectedIndicador, selectedSubindicador, selectedStatusKpi], () => {
-  // Aplica filtros automaticamente quando mudam
   applyFilters()
 }, { deep: true })
 
-// Sincroniza mudanças no período local com o global
 watch(() => period.value, (newPeriod) => {
   updatePeriod(newPeriod)
 }, { deep: true })

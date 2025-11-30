@@ -1,28 +1,20 @@
 import { ref } from 'vue'
 import { getCalendario, type CalendarioItem } from '../services/calendarioService'
 
-// Cache global do calendário
 const calendarioCache = ref<CalendarioItem[]>([])
 const isLoading = ref(false)
 const loadPromise = ref<Promise<CalendarioItem[] | null> | null>(null)
 
-/**
- * Composable para gerenciar o cache global do calendário
- * Carrega os dados apenas uma vez e reutiliza em todos os componentes
- */
 export function useCalendarioCache() {
   const loadCalendario = async (): Promise<CalendarioItem[] | null> => {
-    // Se já temos os dados em cache, retorna imediatamente
     if (calendarioCache.value.length > 0) {
       return calendarioCache.value
     }
 
-    // Se já está carregando, retorna a promise existente
     if (loadPromise.value) {
       return loadPromise.value
     }
 
-    // Inicia o carregamento
     isLoading.value = true
     loadPromise.value = getCalendario()
       .then((data) => {

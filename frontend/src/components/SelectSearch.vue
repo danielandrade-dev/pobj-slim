@@ -27,9 +27,6 @@ const searchTerm = ref('')
 const wrapperRef = ref<HTMLElement | null>(null)
 const inputRef = ref<HTMLInputElement | null>(null)
 
-/**
- * Simplifica texto para busca (remove acentos, converte para minúsculas)
- */
 const simplificarTexto = (text: string): string => {
   if (!text) return ''
   return text
@@ -39,32 +36,23 @@ const simplificarTexto = (text: string): string => {
     .trim()
 }
 
-/**
- * Opções filtradas baseadas no termo de busca
- */
   const filteredOptions = computed(() => {
     if (!searchTerm.value) {
-      return props.options.slice(0, 10) // Mostra apenas as primeiras 10 quando não há busca
+      return props.options.slice(0, 10)
     }
     
     const term = simplificarTexto(searchTerm.value)
     return props.options
       .filter(opt => simplificarTexto(opt.nome).includes(term))
-      .slice(0, 12) // Limita a 12 resultados
+      .slice(0, 12)
   })
 
-/**
- * Label do valor selecionado
- */
 const selectedLabel = computed(() => {
   if (!props.modelValue) return props.placeholder
   const selected = props.options.find(opt => opt.id === props.modelValue)
   return selected?.nome || props.placeholder
 })
 
-/**
- * Abre/fecha o dropdown
- */
 const toggleDropdown = (): void => {
   if (props.disabled) return
   isOpen.value = !isOpen.value
@@ -76,18 +64,12 @@ const toggleDropdown = (): void => {
   }
 }
 
-/**
- * Seleciona uma opção
- */
 const selectOption = (option: FilterOption): void => {
   emit('update:modelValue', option.id)
   isOpen.value = false
   searchTerm.value = ''
 }
 
-/**
- * Fecha o dropdown ao clicar fora
- */
 const handleClickOutside = (event: MouseEvent): void => {
   if (wrapperRef.value && !wrapperRef.value.contains(event.target as Node)) {
     isOpen.value = false
@@ -95,9 +77,6 @@ const handleClickOutside = (event: MouseEvent): void => {
   }
 }
 
-/**
- * Trata teclas do teclado
- */
 const handleKeydown = (event: KeyboardEvent): void => {
   if (event.key === 'Escape') {
     isOpen.value = false
@@ -123,9 +102,6 @@ const handleKeydown = (event: KeyboardEvent): void => {
   }
 }
 
-/**
- * Foca na próxima opção
- */
 const focusNextOption = (): void => {
   const items = wrapperRef.value?.querySelectorAll('.select-search__item') as NodeListOf<HTMLElement>
   if (!items || items.length === 0) return
@@ -135,9 +111,6 @@ const focusNextOption = (): void => {
   items[nextIndex]?.focus()
 }
 
-/**
- * Foca na opção anterior
- */
 const focusPreviousOption = (): void => {
   const items = wrapperRef.value?.querySelectorAll('.select-search__item') as NodeListOf<HTMLElement>
   if (!items || items.length === 0) return
@@ -155,7 +128,6 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
 })
 
-// Fecha quando desabilitado
 watch(() => props.disabled, (disabled) => {
   if (disabled) {
     isOpen.value = false
@@ -182,7 +154,6 @@ watch(() => props.disabled, (disabled) => {
       </option>
     </select>
     
-    <!-- Select visual customizado -->
     <div
       class="select-search__trigger"
       :class="{ 'is-disabled': disabled }"
@@ -199,7 +170,6 @@ watch(() => props.disabled, (disabled) => {
       <i class="ti ti-chevron-down" :class="{ 'is-open': isOpen }" aria-hidden="true"></i>
     </div>
 
-    <!-- Painel de busca -->
     <div
       v-if="isOpen"
       :id="`${id}-listbox`"

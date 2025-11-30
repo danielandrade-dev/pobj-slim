@@ -5,16 +5,13 @@ import { formatPoints, formatByMetric, formatBRLReadable } from '../utils/format
 import SelectInput from '../components/SelectInput.vue'
 import type { FilterOption } from '../types'
 
-// Estado do simulador
 const selectedIndicatorId = ref<string>('')
 const delta = ref<number>(0)
 const loading = ref(false)
 const error = ref<string | null>(null)
 
-// Dados reais - catálogo de indicadores
 const catalog = ref<SimuladorProduct[]>([])
 
-// Carrega dados
 const loadData = async () => {
   loading.value = true
   error.value = null
@@ -23,7 +20,6 @@ const loadData = async () => {
     const data = await getSimuladorProducts()
     if (data) {
       catalog.value = data
-      // Seleciona o primeiro produto se não houver seleção
       if (catalog.value.length > 0 && !selectedIndicatorId.value) {
         selectedIndicatorId.value = catalog.value[0]?.id || ''
       }
@@ -44,12 +40,10 @@ onMounted(() => {
   loadData()
 })
 
-// Indicador selecionado
 const selectedProduct = computed(() => {
   return catalog.value.find(item => item.id === selectedIndicatorId.value) || null
 })
 
-// Agrupa indicadores por seção
 const _groupedCatalog = computed(() => {
   const groups = new Map<string, SimuladorProduct[]>()
   catalog.value.forEach(item => {
@@ -67,7 +61,6 @@ const _groupedCatalog = computed(() => {
   }))
 })
 
-// Converte catálogo para opções do Select (com nome da seção no label)
 const selectOptions = computed<FilterOption[]>(() => {
   return catalog.value
     .map(item => ({
@@ -77,19 +70,16 @@ const selectOptions = computed<FilterOption[]>(() => {
     .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
 })
 
-// Handler para mudança de indicador
 const handleIndicatorChange = (value: string): void => {
   selectedIndicatorId.value = value
 }
 
-// Função auxiliar para converter para número
 const toNumber = (value: any): number => {
   if (value === null || value === undefined || value === '') return 0
   const n = typeof value === 'string' ? parseFloat(value) : value
   return Number.isFinite(n) ? n : 0
 }
 
-// Calcula os resultados da simulação
 const simulationResults = computed(() => {
   if (!selectedProduct.value) return null
 
@@ -137,7 +127,6 @@ const simulationResults = computed(() => {
   }
 })
 
-// Sugestões de atalhos
 const shortcuts = computed(() => {
   if (!selectedProduct.value) return []
   const product = selectedProduct.value
@@ -152,19 +141,16 @@ const shortcuts = computed(() => {
   ]
 })
 
-// Formata delta de moeda
 const formatCurrencyDelta = (value: number): string => {
   const formatted = formatBRLReadable(value)
   return value > 0 ? `+${formatted}` : formatted
 }
 
-// Formata delta de pontos
 const formatPointsDelta = (value: number): string => {
   const formatted = formatPoints(value, { withUnit: true })
   return value > 0 ? `+${formatted}` : formatted
 }
 
-// Aplica atalho
 const applyShortcut = (value: number) => {
   const product = selectedProduct.value
   if (!product) return
@@ -174,9 +160,7 @@ const applyShortcut = (value: number) => {
   delta.value = nextValue
 }
 
-// Handlers para o input de delta
 const handleDeltaBlur = (): void => {
-  // Garante que o valor está formatado corretamente ao sair do campo
   if (delta.value > 0 && selectedProduct.value) {
     const step = selectedProduct.value.metric === 'valor' ? 1000 : 1
     delta.value = Math.round(delta.value / step) * step
@@ -184,43 +168,32 @@ const handleDeltaBlur = (): void => {
 }
 
 const handleDeltaFocus = (event: FocusEvent): void => {
-  // Seleciona todo o texto ao focar para facilitar edição
   const target = event.target as HTMLInputElement
   target.select()
 }
 
-// Reseta delta quando muda o indicador
 watch(selectedIndicatorId, () => {
   delta.value = 0
 })
 
-// Valor formatado para exibição no input
 const deltaDisplay = computed({
   get: () => {
     if (!delta.value || delta.value === 0) return ''
-    // Formata como número com separadores de milhar (pt-BR)
     return new Intl.NumberFormat('pt-BR', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
     }).format(delta.value)
   },
   set: (value: string) => {
-    // Remove todos os caracteres não numéricos exceto vírgula e ponto
-    // Aceita tanto formato pt-BR (vírgula) quanto en-US (ponto)
     let cleaned = value.replace(/[^\d,.]/g, '')
     
-    // Se tiver vírgula, assume formato pt-BR e remove
     if (cleaned.includes(',')) {
       cleaned = cleaned.replace(/\./g, '').replace(',', '')
     } else if (cleaned.includes('.')) {
-      // Se tiver ponto, pode ser separador de milhar ou decimal
-      // Para valores grandes, assume separador de milhar
       const parts = cleaned.split('.')
       if (parts.length === 2 && parts[1]?.length && parts[1]?.length <= 2) {
-        // Decimal (ex: 123.45)
         cleaned = cleaned.replace('.', '')
       } else {
-        // Separador de milhar (ex: 1.234)
         cleaned = cleaned.replace(/\./g, '')
       }
     }
@@ -230,7 +203,6 @@ const deltaDisplay = computed({
   }
 })
 
-// Formata o valor para exibição no hint
 const formatDeltaDisplay = (value: number): string => {
   if (!value || value === 0) return '0'
   if (selectedProduct.value?.metric === 'valor') {
@@ -283,9 +255,7 @@ const formatDeltaDisplay = (value: number): string => {
               </div>
             </template>
 
-            <!-- Conteúdo real -->
             <template v-else>
-              <!-- Formulário de seleção -->
               <form id="sim-whatif-form" class="sim-whatif__form" @submit.prevent>
                 <div class="sim-whatif__field">
                   <label for="sim-whatif-indicador" class="muted">INDICADOR</label>
@@ -344,7 +314,6 @@ const formatDeltaDisplay = (value: number): string => {
                 </div>
               </form>
 
-            <!-- Atalhos rápidos -->
             <div 
               id="sim-whatif-shortcuts" 
               class="sim-quick"
@@ -365,7 +334,6 @@ const formatDeltaDisplay = (value: number): string => {
               </div>
             </div>
 
-            <!-- Resultados -->
             <div class="sim-whatif__results">
               <div class="sim-whatif__header">
                 <h4 id="sim-whatif-title">
@@ -408,7 +376,6 @@ const formatDeltaDisplay = (value: number): string => {
               </div>
 
               <div v-else id="sim-whatif-cards" class="sim-whatif-cards">
-                <!-- Card Remuneração Variável -->
                 <article class="sim-whatif-card sim-whatif-card--var">
                   <header class="sim-whatif-card__head">
                     <span class="sim-whatif-card__icon">
@@ -437,7 +404,6 @@ const formatDeltaDisplay = (value: number): string => {
                   </p>
                 </article>
 
-                <!-- Card Pontuação -->
                 <article class="sim-whatif-card sim-whatif-card--points">
                   <header class="sim-whatif-card__head">
                     <span class="sim-whatif-card__icon">
@@ -466,7 +432,6 @@ const formatDeltaDisplay = (value: number): string => {
                   </p>
                 </article>
 
-                <!-- Card Atingimento -->
                 <article class="sim-whatif-card sim-whatif-card--hit">
                   <header class="sim-whatif-card__head">
                     <span class="sim-whatif-card__icon">
@@ -496,7 +461,6 @@ const formatDeltaDisplay = (value: number): string => {
                 </article>
               </div>
 
-              <!-- Rodapé com informações -->
               <div v-if="selectedProduct && simulationResults" id="sim-whatif-foot" class="sim-whatif__foot">
                 <p>
                   Incremento informado: {{ formatByMetric(simulationResults.metric, simulationResults.deltaValue) }} · 

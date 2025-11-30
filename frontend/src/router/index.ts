@@ -47,7 +47,6 @@ const routes: RouteRecordRaw[] = [
   }
 ]
 
-// Usar o mesmo base do Vite (import.meta.env.BASE_URL)
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes

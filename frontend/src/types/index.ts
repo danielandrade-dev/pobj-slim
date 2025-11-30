@@ -1,15 +1,3 @@
-/**
- * Tipos e interfaces compartilhadas do projeto
- * Centraliza todas as definições de tipos para facilitar manutenção
- */
-
-// ============================================================================
-// FILTROS
-// ============================================================================
-
-/**
- * Opção de filtro genérica
- */
 export interface FilterOption {
   id: string
   nome: string
@@ -23,9 +11,6 @@ export interface FilterOption {
   id_indicador?: string
 }
 
-/**
- * Seleção hierárquica de filtros organizacionais
- */
 export interface HierarchySelection {
   segmento: string
   diretoria: string
@@ -35,13 +20,6 @@ export interface HierarchySelection {
   gerente: string
 }
 
-// ============================================================================
-// INIT
-// ============================================================================
-
-/**
- * Dados completos da estrutura organizacional retornados pela API
- */
 export interface InitData {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   segmentos: any[]
@@ -65,21 +43,11 @@ export interface InitData {
   status_indicadores: any[]
 }
 
-/**
- * Item de segmento
- */
 export interface SegmentoItem {
   id: string | number
   nome: string
 }
 
-// ============================================================================
-// PERÍODO E CALENDÁRIO
-// ============================================================================
-
-/**
- * Período de datas (início e fim)
- */
 export interface Period {
   start: string
   end: string
@@ -94,9 +62,6 @@ export interface BusinessSnapshot {
   today: string
 }
 
-/**
- * Item de calendário retornado pela API
- */
 export interface CalendarioItem {
   data: string
   competencia: string
@@ -112,13 +77,6 @@ export interface CalendarioItem {
   ehDiaUtil: number
 }
 
-// ============================================================================
-// API
-// ============================================================================
-
-/**
- * Resposta padrão da API
- */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface ApiResponse<T = any> {
   success: boolean
@@ -126,10 +84,6 @@ export interface ApiResponse<T = any> {
   error?: string
   message?: string
 }
-
-// ============================================================================
-// DETALHES
-// ============================================================================
 
 export interface DetalhesItem {
   registro_id?: string
@@ -183,10 +137,6 @@ export interface DetalhesFilters {
   dataInicio?: string
   dataFim?: string
 }
-
-// ============================================================================
-// PRODUTOS
-// ============================================================================
 
 export interface Produto {
   id: string
@@ -249,10 +199,6 @@ export interface ProdutoMensal {
   }>
 }
 
-// ============================================================================
-// RANKING
-// ============================================================================
-
 export interface RankingItem {
   data: string
   competencia: string
@@ -285,14 +231,6 @@ export interface RankingFilters {
   dataInicio?: string
   dataFim?: string
 }
-
-// ============================================================================
-// VARIÁVEIS
-// ============================================================================
-
-// ============================================================================
-// VARIÁVEIS
-// ============================================================================
 
 export interface Variavel {
   id?: string
@@ -332,13 +270,6 @@ export interface VariavelFilters {
   dataFim?: string
 }
 
-// ============================================================================
-// COMPONENTES
-// ============================================================================
-
-/**
- * Props do componente Button
- */
 export interface ButtonProps {
   variant?: 'primary' | 'secondary' | 'info' | 'link'
   icon?: string
@@ -346,18 +277,8 @@ export interface ButtonProps {
   disabled?: boolean
 }
 
-// ============================================================================
-// VIEWS E NAVEGAÇÃO
-// ============================================================================
-
-/**
- * View disponível no sistema
- */
 export type ViewType = 'cards' | 'table' | 'ranking' | 'exec' | 'simuladores' | 'campanhas'
 
-/**
- * Configuração de uma aba de navegação
- */
 export interface TabConfig {
   id: ViewType
   label: string

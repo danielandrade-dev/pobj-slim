@@ -1,17 +1,6 @@
-/**
- * Cliente HTTP genérico para chamadas à API
- * Abstrai a lógica de comunicação com o backend
- */
-
 import { API_BASE_URL } from '../config/api'
 import type { ApiResponse } from '../types'
 
-/**
- * Faz uma requisição GET genérica à API
- * @param path - Caminho da rota (pode ser completo ou relativo)
- * @param params - Parâmetros de query string
- * @returns Promise com a resposta da API
- */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function apiGet<T = any>(
   path: string,
@@ -19,12 +8,9 @@ export async function apiGet<T = any>(
   params?: Record<string, any>
 ): Promise<ApiResponse<T>> {
   try {
-    // Remove barra inicial do path se presente
     const cleanPath = path.startsWith('/') ? path : `/${path}`
 
-    // Usa a URL base da API (já configurada com porta própria)
     const baseUrl = API_BASE_URL
-    // Constrói a URL corretamente: base + path
     const fullUrl = baseUrl.endsWith('/') 
       ? `${baseUrl}${cleanPath.startsWith('/') ? cleanPath.slice(1) : cleanPath}`
       : `${baseUrl}${cleanPath}`
@@ -51,12 +37,10 @@ export async function apiGet<T = any>(
 
     const data = await response.json()
 
-    // Se a resposta já tem success/data, retorna como está
     if (data.success !== undefined) {
       return data
     }
 
-    // Caso contrário, assume que é sucesso
     return {
       success: true,
       data: data
@@ -70,13 +54,6 @@ export async function apiGet<T = any>(
   }
 }
 
-/**
- * Faz uma requisição POST genérica à API
- * @param path - Caminho da rota
- * @param body - Corpo da requisição
- * @param params - Parâmetros de query string
- * @returns Promise com a resposta da API
- */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function apiPost<T = any>(
   path: string,
@@ -88,9 +65,7 @@ export async function apiPost<T = any>(
   try {
     const cleanPath = path.startsWith('/') ? path : `/${path}`
 
-    // Usa a URL base da API (já configurada com porta própria)
     const baseUrl = API_BASE_URL
-    // Constrói a URL corretamente: base + path
     const fullUrl = baseUrl.endsWith('/') 
       ? `${baseUrl}${cleanPath.startsWith('/') ? cleanPath.slice(1) : cleanPath}`
       : `${baseUrl}${cleanPath}`

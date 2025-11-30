@@ -25,43 +25,28 @@ const emit = defineEmits<{
 const isOpen = ref(false)
 const wrapperRef = ref<HTMLElement | null>(null)
 
-/**
- * Label do valor selecionado
- */
 const selectedLabel = computed(() => {
   if (!props.modelValue) return props.placeholder
   const selected = props.options.find(opt => opt.id === props.modelValue)
   return selected?.nome || props.placeholder
 })
 
-/**
- * Abre/fecha o dropdown
- */
 const toggleDropdown = (): void => {
   if (props.disabled) return
   isOpen.value = !isOpen.value
 }
 
-/**
- * Seleciona uma opção
- */
 const selectOption = (option: FilterOption): void => {
   emit('update:modelValue', option.id)
   isOpen.value = false
 }
 
-/**
- * Fecha o dropdown ao clicar fora
- */
 const handleClickOutside = (event: MouseEvent): void => {
   if (wrapperRef.value && !wrapperRef.value.contains(event.target as Node)) {
     isOpen.value = false
   }
 }
 
-/**
- * Trata teclas do teclado
- */
 const handleKeydown = (event: KeyboardEvent): void => {
   if (event.key === 'Escape') {
     isOpen.value = false
@@ -83,9 +68,6 @@ const handleKeydown = (event: KeyboardEvent): void => {
   }
 }
 
-/**
- * Foca na próxima opção
- */
 const focusNextOption = (): void => {
   const items = wrapperRef.value?.querySelectorAll('.select__item') as NodeListOf<HTMLElement>
   if (!items || items.length === 0) return
@@ -95,9 +77,6 @@ const focusNextOption = (): void => {
   items[nextIndex]?.focus()
 }
 
-/**
- * Foca na opção anterior
- */
 const focusPreviousOption = (): void => {
   const items = wrapperRef.value?.querySelectorAll('.select__item') as NodeListOf<HTMLElement>
   if (!items || items.length === 0) return
@@ -115,7 +94,6 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
 })
 
-// Fecha quando desabilitado
 watch(() => props.disabled, (disabled) => {
   if (disabled) {
     isOpen.value = false
@@ -141,7 +119,6 @@ watch(() => props.disabled, (disabled) => {
       </option>
     </select>
     
-    <!-- Select visual customizado -->
     <div
       class="select__trigger"
       :class="{ 'is-disabled': disabled }"
@@ -158,7 +135,6 @@ watch(() => props.disabled, (disabled) => {
       <i class="ti ti-chevron-down" :class="{ 'is-open': isOpen }" aria-hidden="true"></i>
     </div>
 
-    <!-- Painel de opções -->
     <div
       v-if="isOpen"
       :id="`${id}-listbox`"

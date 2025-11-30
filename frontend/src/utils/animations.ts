@@ -1,10 +1,3 @@
-/**
- * Utilitários para animações usando Web Animations API
- */
-
-/**
- * Anima um elemento usando a Web Animations API
- */
 export function animateElement(
   element: HTMLElement,
   keyframes: Keyframe[] | PropertyIndexedKeyframes,
@@ -18,9 +11,6 @@ export function animateElement(
   })
 }
 
-/**
- * Animação de fade in
- */
 export function fadeIn(element: HTMLElement, duration: number = 300): Animation {
   return animateElement(
     element,
@@ -32,9 +22,6 @@ export function fadeIn(element: HTMLElement, duration: number = 300): Animation 
   )
 }
 
-/**
- * Animação de fade out
- */
 export function fadeOut(element: HTMLElement, duration: number = 300): Animation {
   return animateElement(
     element,
@@ -46,9 +33,6 @@ export function fadeOut(element: HTMLElement, duration: number = 300): Animation
   )
 }
 
-/**
- * Animação de slide in da direita
- */
 export function slideInRight(element: HTMLElement, duration: number = 300): Animation {
   return animateElement(
     element,
@@ -60,9 +44,6 @@ export function slideInRight(element: HTMLElement, duration: number = 300): Anim
   )
 }
 
-/**
- * Animação de slide in da esquerda
- */
 export function slideInLeft(element: HTMLElement, duration: number = 300): Animation {
   return animateElement(
     element,
@@ -74,9 +55,6 @@ export function slideInLeft(element: HTMLElement, duration: number = 300): Anima
   )
 }
 
-/**
- * Animação de scale in
- */
 export function scaleIn(element: HTMLElement, duration: number = 300): Animation {
   return animateElement(
     element,
@@ -88,9 +66,6 @@ export function scaleIn(element: HTMLElement, duration: number = 300): Animation
   )
 }
 
-/**
- * Animação de bounce suave
- */
 export function bounce(element: HTMLElement, duration: number = 600): Animation {
   return animateElement(
     element,
@@ -103,9 +78,6 @@ export function bounce(element: HTMLElement, duration: number = 600): Animation 
   )
 }
 
-/**
- * Animação de shimmer (loading)
- */
 export function shimmer(element: HTMLElement, duration: number = 2000): Animation {
   return animateElement(
     element,
@@ -117,9 +89,6 @@ export function shimmer(element: HTMLElement, duration: number = 2000): Animatio
   )
 }
 
-/**
- * Animação de stagger para listas
- */
 export function staggerChildren(
   parent: HTMLElement,
   selector: string,

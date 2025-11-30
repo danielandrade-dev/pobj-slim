@@ -69,7 +69,6 @@ function buildFiltersFromState(state?: FilterState, period?: Period): ResumoFilt
   return filters
 }
 
-// Função para comparar dois objetos de filtros
 function filtersEqual(f1: ResumoFilters, f2: ResumoFilters): boolean {
   const keys1 = Object.keys(f1).sort()
   const keys2 = Object.keys(f2).sort()
@@ -88,12 +87,10 @@ function filtersEqual(f1: ResumoFilters, f2: ResumoFilters): boolean {
 }
 
 async function fetchResumo(filters: ResumoFilters): Promise<void> {
-  // Evita chamadas duplicadas com os mesmos filtros
   if (lastFilters.value && filtersEqual(lastFilters.value, filters)) {
     return
   }
   
-  // Evita múltiplas chamadas simultâneas
   if (resumoLoading.value) {
     return
   }
@@ -124,7 +121,6 @@ export function useResumoData(
   if (!watcherRegistered) {
     watcherRegistered = true
     
-    // Usa um timeout para evitar múltiplas chamadas no carregamento inicial
     let timeoutId: ReturnType<typeof setTimeout> | null = null
     
     watch(
@@ -133,7 +129,6 @@ export function useResumoData(
         period: period.value
       }),
       (current: WatchSources) => {
-        // Debounce para evitar múltiplas chamadas rápidas
         if (timeoutId) {
           clearTimeout(timeoutId)
         }
@@ -142,7 +137,7 @@ export function useResumoData(
           const filters = buildFiltersFromState(current.filters, current.period)
           fetchResumo(filters)
           timeoutId = null
-        }, 100) // 100ms de debounce
+        }, 100)
       },
       { deep: true, immediate: true }
     )
