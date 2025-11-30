@@ -406,6 +406,82 @@ function resetOmegaFacts(){
   omegaState.notificationPanelOpen = false;
 }
 
+let omegaInitPromise = null;
+let omegaInitLoaded = false;
+
+function ensureOmegaInit(){
+  if (omegaInitLoaded) return Promise.resolve();
+  if (omegaInitPromise) return omegaInitPromise;
+
+  if (!omegaShouldUseApi()) {
+    return Promise.resolve();
+  }
+
+  omegaInitPromise = omegaApiGet('/omega/init')
+    .then((data) => {
+      if (!data || typeof data !== 'object') {
+        throw new Error('Resposta inválida do endpoint de inicialização');
+      }
+
+      // Processa estrutura
+      if (Array.isArray(data.structure)) {
+        applyOmegaStructureCatalog(data.structure);
+      }
+
+      // Processa status
+      if (Array.isArray(data.statuses)) {
+        const normalized = normalizeOmegaStatusRows(data.statuses);
+        if (normalized.length) {
+          applyStatusCatalog(normalized);
+        } else {
+          applyStatusCatalog(OMEGA_DEFAULT_STATUSES);
+        }
+      }
+
+      // Processa usuários
+      if (Array.isArray(data.users)) {
+        OMEGA_USERS = normalizeOmegaUserRows(data.users);
+        if (!OMEGA_USERS.length) {
+          throw new Error('Nenhum usuário disponível para o Omega');
+        }
+        const hintedId = resolveUserIdFromHint(omegaLaunchUserHint);
+        if (hintedId) {
+          omegaState.currentUserId = hintedId;
+          omegaLaunchUserHint = null;
+        } else if (!OMEGA_USERS.some((user) => user.id === omegaState.currentUserId)) {
+          omegaState.currentUserId = OMEGA_USERS[0]?.id || null;
+        }
+      }
+
+      // Processa tickets
+      if (Array.isArray(data.tickets)) {
+        resetOmegaFacts();
+        OMEGA_TICKETS = normalizeOmegaTicketRows(data.tickets);
+        OMEGA_TICKETS.forEach((ticket) => ingestHistoryFacts(ticket, { initial: true }));
+        omegaTicketCounter = OMEGA_TICKETS.reduce((max, ticket) => {
+          const seq = parseInt(ticket.id, 10);
+          return Number.isFinite(seq) ? Math.max(max, seq) : max;
+        }, 0);
+      }
+
+      // Processa MESU (se disponível)
+      if (Array.isArray(data.mesu)) {
+        applyMesuCatalog(data.mesu);
+      }
+
+      omegaInitLoaded = true;
+      omegaInitPromise = null;
+    })
+    .catch((err) => {
+      console.warn('Falha ao carregar dados de inicialização do Omega:', err);
+      omegaInitPromise = null;
+      // Não marca como carregado para permitir fallback para métodos individuais
+      return Promise.resolve();
+    });
+
+  return omegaInitPromise;
+}
+
 function ensureOmegaData(){
   if (OMEGA_TICKETS.length) return Promise.resolve(OMEGA_TICKETS);
   if (omegaDataPromise) return omegaDataPromise;
@@ -1230,13 +1306,42 @@ function openOmega(detail = null){
     detail = sanitized;
   }
   ensureDefaultExternalContacts();
+  
+  // Tenta usar inicialização otimizada se disponível
+  const initPromise = omegaShouldUseApi() 
+    ? ensureOmegaInit().then(() => {
+        // Se a inicialização foi bem-sucedida, marca as promises individuais como resolvidas
+        if (omegaInitLoaded) {
+          omegaDataPromise = Promise.resolve(OMEGA_TICKETS);
+          omegaUsersPromise = Promise.resolve(OMEGA_USERS);
+          omegaStatusPromise = Promise.resolve(OMEGA_STATUS_CATALOG);
+          omegaStructurePromise = Promise.resolve(OMEGA_TICKET_TYPES_BY_DEPARTMENT);
+          if (typeof omegaMesuPromise !== 'undefined') {
+            omegaMesuPromise = Promise.resolve(OMEGA_MESU_DATA);
+          }
+          omegaStructureReady = true;
+        }
+        return null;
+      })
+    : Promise.resolve(null);
+  
+  const dataPromises = initPromise.then(() => {
+    // Se a inicialização falhou ou não está disponível, usa métodos individuais
+    if (!omegaInitLoaded) {
+      return Promise.all([
+        ensureOmegaStructure(),
+        ensureOmegaData(),
+        ensureOmegaUsers(),
+        ensureOmegaStatuses(),
+        ensureOmegaMesu(),
+      ]);
+    }
+    return Promise.resolve();
+  });
+  
   Promise.all([
     ensureOmegaTemplate(),
-    ensureOmegaStructure(),
-    ensureOmegaData(),
-    ensureOmegaUsers(),
-    ensureOmegaStatuses(),
-    ensureOmegaMesu(),
+    dataPromises,
   ])
     .then(([root]) => {
       if (!root) return;
