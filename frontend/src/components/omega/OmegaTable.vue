@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, nextTick } from 'vue'
+import Icon from '../Icon.vue'
 import type { OmegaTicket, OmegaUser } from '../../types/omega'
 import type { useOmega } from '../../composables/useOmega'
 import type { useOmegaFilters } from '../../composables/useOmegaFilters'
@@ -140,6 +141,13 @@ function formatDate(dateString: string): string {
   }
 }
 
+// Função para converter ícone do formato "ti ti-*" para nome do componente Icon
+function getIconName(iconClass: string): string {
+  if (!iconClass) return 'circle'
+  // Remove "ti ti-" do início
+  return iconClass.replace(/^ti ti-/, '')
+}
+
 function handleTicketClick(ticketId: string) {
   emit('ticket-click', ticketId)
 }
@@ -217,23 +225,25 @@ watch(() => props.omega.currentView.value, () => {
           </tr>
         </thead>
         <tbody id="omega-ticket-rows">
-          <tr v-if="filteredTickets.length === 0" class="omega-empty-row">
-            <td :colspan="totalColumns" class="omega-empty-state">
-              <div class="omega-empty-state__content">
-                <i class="ti ti-inbox"></i>
-                <h3>Nenhum chamado encontrado</h3>
-                <p>Não há chamados para exibir nesta visualização.</p>
-                <button
-                  class="omega-btn omega-btn--primary"
-                  type="button"
-                  @click="$emit('new-ticket')"
-                >
-                  <i class="ti ti-plus"></i>
-                  <span>Registrar novo chamado</span>
-                </button>
-              </div>
-            </td>
-          </tr>
+          <template v-if="filteredTickets.length === 0">
+            <tr class="omega-empty-row">
+              <td :colspan="totalColumns" class="omega-empty-state">
+                <div class="omega-empty-state__content">
+                  <Icon name="inbox" :size="48" />
+                  <h3>Nenhum chamado encontrado</h3>
+                  <p>Não há chamados para exibir nesta visualização.</p>
+                  <button
+                    class="omega-btn omega-btn--primary"
+                    type="button"
+                    @click="$emit('new-ticket')"
+                  >
+                    <Icon name="plus" :size="18" />
+                    <span>Registrar novo chamado</span>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </template>
           <template v-else>
             <tr
               v-for="ticket in paginatedTickets"
@@ -247,13 +257,13 @@ watch(() => props.omega.currentView.value, () => {
                 type="checkbox"
                 :checked="bulk.selectedTicketIds.value.has(ticket.id)"
                 :value="ticket.id"
-                aria-label="Selecionar chamado {{ ticket.id }}"
+                :aria-label="`Selecionar chamado ${ticket.id}`"
                 @change="handleTicketSelect(ticket.id, ($event.target as HTMLInputElement).checked)"
               />
             </td>
             <td>
               <span class="omega-ticket__id">
-                <i class="ti ti-ticket"></i>
+                <Icon name="ticket" :size="18" />
                 {{ ticket.id }}
               </span>
             </td>
@@ -271,7 +281,7 @@ watch(() => props.omega.currentView.value, () => {
                 class="omega-badge"
                 :class="`omega-badge--${props.omega.getPriorityMeta(ticket.priority).tone}`"
               >
-                <i :class="props.omega.getPriorityMeta(ticket.priority).icon"></i>
+                <Icon :name="getIconName(props.omega.getPriorityMeta(ticket.priority).icon)" :size="14" />
                 {{ props.omega.getPriorityMeta(ticket.priority).label }}
               </span>
             </td>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, h } from 'vue'
+import Icon from './Icon.vue'
 
 interface Props {
   type?: 'success' | 'error' | 'info'
@@ -20,14 +21,14 @@ const emit = defineEmits<{
 
 const toastClass = computed(() => `toast toast--${props.type}`)
 
-const iconClass = computed(() => {
+const iconName = computed(() => {
   switch (props.type) {
     case 'success':
-      return 'ti ti-check-circle'
+      return 'circle-check'
     case 'error':
-      return 'ti ti-alert-circle'
+      return 'alert-circle'
     default:
-      return 'ti ti-info-circle'
+      return 'info-circle'
   }
 })
 
@@ -43,7 +44,7 @@ onMounted(() => {
 <template>
   <Transition name="toast">
     <div v-if="show" :class="toastClass" role="alert">
-      <i :class="iconClass" aria-hidden="true"></i>
+      <Icon :name="iconName" :size="20" />
       <span>{{ message }}</span>
     </div>
   </Transition>

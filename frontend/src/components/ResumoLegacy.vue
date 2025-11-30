@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import Icon from './Icon.vue'
 import { useProdutosLegacy } from '../composables/useProdutosLegacy'
 import { useGlobalFilters } from '../composables/useGlobalFilters'
 import { useFilteredProdutos } from '../composables/useFilteredProdutos'
@@ -70,7 +71,7 @@ const sectionHasExpandableRows = (section: LegacySection): boolean => {
                   :disabled="!sectionHasExpandableRows(section)"
                   @click="toggleSection(section.id)"
                 >
-                  <i class="ti ti-filter" aria-hidden="true"></i>
+                  <Icon name="filter" :size="16" />
                   <span class="resumo-legacy__section-toggle-label">
                     {{ expandedSections.has(section.id) ? 'Recolher filtros' : 'Abrir todos os filtros' }}
                   </span>
@@ -79,7 +80,7 @@ const sectionHasExpandableRows = (section: LegacySection): boolean => {
             </div>
             <div class="resumo-legacy__chips">
               <span class="resumo-legacy__chip">
-                <i class="ti ti-box-multiple" aria-hidden="true"></i>
+                <Icon name="box-multiple" :size="16" />
                 {{ formatINT(section.items.length || 0) }} indicadores
               </span>
               <span class="resumo-legacy__chip" :title="`Pontos: ${formatPoints(section.totals.pontosHit, { withUnit: true })} / ${formatPoints(section.totals.pontosTotal, { withUnit: true })}`">
@@ -140,11 +141,11 @@ const sectionHasExpandableRows = (section: LegacySection): boolean => {
                         :aria-expanded="expandedRows.has(`${section.id}-${item.id}`) || expandedSections.has(section.id)"
                         @click="toggleRow(`${section.id}-${item.id}`)"
                       >
-                        <i
-                          class="ti ti-chevron-right resumo-legacy__prod-toggle-icon"
-                          :class="{ 'is-expanded': expandedRows.has(`${section.id}-${item.id}`) || expandedSections.has(section.id) }"
-                          aria-hidden="true"
-                        ></i>
+                        <Icon
+                          name="chevron-right"
+                          :class="['resumo-legacy__prod-toggle-icon', { 'is-expanded': expandedRows.has(`${section.id}-${item.id}`) || expandedSections.has(section.id) }]"
+                          :size="16"
+                        />
                         <span class="resumo-legacy__prod-name" :title="item.nome">{{ item.nome }}</span>
                       </button>
                       <div v-else class="resumo-legacy__prod-name-wrapper">

@@ -108,6 +108,8 @@ aside[role="complementary"]::before {
 
 /* Exceção: ícones decorativos devem ser visíveis visualmente mesmo com aria-hidden */
 .tab-icon i[aria-hidden="true"],
+.tab-icon svg[aria-hidden="true"],
+svg[aria-hidden="true"],
 .ti[aria-hidden="true"],
 i.ti[aria-hidden="true"] {
   display: inline-block !important;

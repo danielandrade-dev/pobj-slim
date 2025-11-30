@@ -1,112 +1,80 @@
 import { API_BASE_URL } from '../config/api'
 import type { ApiResponse } from '../types'
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function apiGet<T = any>(
+function buildUrl(path: string, params?: Record<string, any>) {
+  const cleanPath = path.startsWith('/') ? path : `/${path}`
+  const base = API_BASE_URL.replace(/\/$/, '')
+  const url = new URL(base + cleanPath)
+
+  if (params) {
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null) {
+        url.searchParams.append(key, String(value))
+      }
+    })
+  }
+
+  return url.toString()
+}
+
+export async function apiGet<T>(
   path: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   params?: Record<string, any>
 ): Promise<ApiResponse<T>> {
   try {
-    const cleanPath = path.startsWith('/') ? path : `/${path}`
+    const url = buildUrl(path, params)
 
-    const baseUrl = API_BASE_URL
-    const fullUrl = baseUrl.endsWith('/') 
-      ? `${baseUrl}${cleanPath.startsWith('/') ? cleanPath.slice(1) : cleanPath}`
-      : `${baseUrl}${cleanPath}`
-    const url = new URL(fullUrl)
-
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          url.searchParams.append(key, String(value))
-        }
-      })
-    }
-
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+    const response = await fetch(url, {
+      method: 'GET'
+      // sem Content-Type no GET
     })
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      throw new Error(`HTTP ${response.status}`)
     }
 
     const data = await response.json()
 
-    if (data.success !== undefined) {
-      return data
-    }
-
-    return {
-      success: true,
-      data: data
-    }
-  } catch (error) {
-    console.error('API Error:', error)
+    return data.success !== undefined
+      ? data
+      : { success: true, data }
+  } catch (e) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: e instanceof Error ? e.message : 'Unknown error'
     }
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function apiPost<T = any>(
+export async function apiPost<T>(
   path: string,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   body?: Record<string, any>,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   params?: Record<string, any>
 ): Promise<ApiResponse<T>> {
   try {
-    const cleanPath = path.startsWith('/') ? path : `/${path}`
+    const url = buildUrl(path, params)
 
-    const baseUrl = API_BASE_URL
-    const fullUrl = baseUrl.endsWith('/') 
-      ? `${baseUrl}${cleanPath.startsWith('/') ? cleanPath.slice(1) : cleanPath}`
-      : `${baseUrl}${cleanPath}`
-    const url = new URL(fullUrl)
-
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== undefined && value !== null) {
-          url.searchParams.append(key, String(value))
-        }
-      })
-    }
-
-    const response = await fetch(url.toString(), {
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
-      body: body ? JSON.stringify(body) : undefined,
+      body: body ? JSON.stringify(body) : undefined
     })
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      throw new Error(`HTTP ${response.status}`)
     }
 
     const data = await response.json()
 
-    if (data.success !== undefined) {
-      return data
-    }
-
-    return {
-      success: true,
-      data: data
-    }
-  } catch (error) {
-    console.error('API Error:', error)
+    return data.success !== undefined
+      ? data
+      : { success: true, data }
+  } catch (e) {
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: e instanceof Error ? e.message : 'Unknown error'
     }
   }
 }
-

@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { Teleport } from 'vue'
 import SelectInput from './SelectInput.vue'
 import SelectSearch from './SelectSearch.vue'
+import Icon from './Icon.vue'
 import type { FilterOption } from '../types'
 import type { useOmega } from '../composables/useOmega'
 import type { useOmegaFilters } from '../composables/useOmegaFilters'
@@ -194,7 +195,7 @@ function toggleStatus(statusId: string) {
             aria-label="Fechar filtros"
             @click="handleClose"
           >
-            <i class="ti ti-x"></i>
+            <Icon name="x" :size="20" />
           </button>
         </header>
         <form id="omega-filter-form" class="omega-filter-form" @submit.prevent="handleApply">
@@ -303,7 +304,7 @@ function toggleStatus(statusId: string) {
           Limpar filtros
         </button>
         <button class="omega-btn omega-btn--primary" type="submit">
-          <i class="ti ti-check"></i>
+          <Icon name="check" :size="18" />
           <span>Aplicar</span>
         </button>
       </footer>

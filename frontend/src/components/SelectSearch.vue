@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import Icon from './Icon.vue'
 import type { FilterOption } from '../types'
 
 interface Props {
@@ -167,7 +168,7 @@ watch(() => props.disabled, (disabled) => {
       :aria-label="label || 'Selecione uma opção'"
     >
       <span :class="{ 'is-placeholder': !modelValue }" :aria-label="modelValue ? selectedLabel : placeholder">{{ selectedLabel }}</span>
-      <i class="ti ti-chevron-down" :class="{ 'is-open': isOpen }" aria-hidden="true"></i>
+      <Icon name="chevron-down" :size="16" :class="{ 'is-open': isOpen }" class="icon" />
     </div>
 
     <div

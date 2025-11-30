@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import Icon from './Icon.vue'
 import { formatINT, formatDate, formatBRL, formatBRLReadable, formatIntReadable } from '../utils/formatUtils'
 
 export interface TreeNode {
@@ -149,7 +150,7 @@ const contractId = computed(() => {
           :class="{ 'is-expanded': expanded || (node.level === 'contrato' && expanded) }"
           @click="emit('toggle', node.id)"
         >
-          <i :class="(expanded || (node.level === 'contrato' && expanded)) ? 'ti ti-chevron-down' : 'ti ti-chevron-right'"></i>
+          <Icon :name="(expanded || (node.level === 'contrato' && expanded)) ? 'chevron-down' : 'chevron-right'" :size="16" />
         </button>
         <span v-else class="toggle toggle--placeholder" aria-hidden="true"></span>
         <span class="label-strong">{{ node.label || '—' }}</span>
@@ -175,7 +176,7 @@ const contractId = computed(() => {
           aria-label="Abrir chamado"
           @click.stop="emit('action', { type: 'ticket', node })"
         >
-          <i class="ti ti-ticket"></i>
+          <Icon name="ticket" :size="16" />
         </button>
         <button
           v-if="node.level !== 'contrato'"
@@ -185,7 +186,7 @@ const contractId = computed(() => {
           aria-label="Ver oportunidades"
           @click.stop="emit('action', { type: 'opportunities', node })"
         >
-          <i class="ti ti-bulb"></i>
+          <Icon name="bulb" :size="16" />
         </button>
       </span>
     </td>
@@ -201,7 +202,7 @@ const contractId = computed(() => {
             <div class="contract-detail-card__id">
               <span class="contract-detail-card__id-label">CT-{{ contractId }}</span>
               <span v-if="isCanceled" class="contract-detail-card__badge contract-detail-card__badge--canceled">
-                <i class="ti ti-alert-triangle"></i>
+                <Icon name="alert-triangle" :size="16" />
                 Cancelado
               </span>
             </div>

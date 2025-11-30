@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { Teleport } from 'vue'
+import Icon from '../Icon.vue'
 import type { OmegaUser } from '../../types/omega'
 import type { useOmega } from '../../composables/useOmega'
 import { apiPost, apiGet } from '../../services/api'
@@ -152,7 +153,7 @@ watch(() => props.open, (isOpen) => {
             aria-label="Fechar"
             @click="closeModal"
           >
-            <i class="ti ti-x"></i>
+            <Icon name="x" :size="20" />
           </button>
         </header>
 
@@ -181,7 +182,7 @@ watch(() => props.open, (isOpen) => {
                   type="button"
                   @click="removeAnalyst(analyst.id)"
                 >
-                  <i class="ti ti-user-minus"></i>
+                  <Icon name="user-minus" :size="18" />
                   Remover
                 </button>
               </li>
@@ -208,7 +209,7 @@ watch(() => props.open, (isOpen) => {
                   type="button"
                   @click="addAnalyst(analyst.id)"
                 >
-                  <i class="ti ti-user-plus"></i>
+                  <Icon name="user-plus" :size="18" />
                   Adicionar
                 </button>
               </li>

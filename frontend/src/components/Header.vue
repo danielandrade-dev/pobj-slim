@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, inject } from 'vue'
+import Icon from './Icon.vue'
 
 const userMenuOpen = ref(false)
 const submenuOpen = ref<string | null>(null)
@@ -43,25 +44,11 @@ onUnmounted(() => {
   document.removeEventListener('keydown', handleEscape)
 })
 
-const openOmegaModal = (): void => {
-  if (typeof window === 'undefined') return
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const globalAny = window as any
-  const opener =
-    globalAny.__openOmegaFromVue ||
-    globalAny.openOmegaModule ||
-    globalAny.openOmega
-
-  if (typeof opener === 'function') {
-    opener()
-  } else {
-    console.warn('Módulo Omega não está disponível.')
-  }
-}
-
 const handleMenuAction = async (action: string): Promise<void> => {
   if (action === 'omega') {
-    openOmegaModal()
+    // Abre o Omega em nova aba
+    const omegaUrl = `${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/, '')}/omega`
+    window.open(omegaUrl, '_blank')
     userMenuOpen.value = false
     return
   }
@@ -101,11 +88,12 @@ const handleMenuAction = async (action: string): Promise<void> => {
             alt="Foto do usuário João da Silva"
           />
           <span class="userbox__name">João da Silva</span>
-          <i 
-            class="ti ti-chevron-down userbox__chevron" 
+          <Icon 
+            name="chevron-down"
+            :size="16" 
+            class="userbox__chevron" 
             :class="{ 'is-open': userMenuOpen }"
-            aria-hidden="true"
-          ></i>
+          />
         </button>
         <Transition name="dropdown">
           <div
@@ -140,7 +128,7 @@ const handleMenuAction = async (action: string): Promise<void> => {
               @keydown.space.prevent="toggleSubmenu('manuais')"
             >
               Manuais
-              <i class="ti ti-chevron-right" aria-hidden="true"></i>
+              <Icon name="chevron-right" :size="16" />
             </button>
             <Transition name="submenu">
               <div
@@ -194,7 +182,7 @@ const handleMenuAction = async (action: string): Promise<void> => {
             aria-label="Sair da aplicação"
             @click="handleMenuAction('logout')"
           >
-            <i class="ti ti-logout-2" aria-hidden="true"></i>
+            <Icon name="logout-2" :size="16" />
             <span>Sair</span>
           </button>
           </div>

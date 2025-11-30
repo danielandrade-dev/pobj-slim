@@ -163,44 +163,62 @@ const groupedRanking = computed(() => {
   const selectionForLevel = getRankingSelectionForLevel(level)
   const hasSelectionForLevel = !!selectionForLevel && !isDefaultSelection(selectionForLevel)
 
+  // Quando há um filtro aplicado, mostra ranking do mesmo nível (mesmo grupo)
+  // Se não há filtro, mostra ranking do nível padrão
   let targetLevel = level
   let targetKeyField = keyField
   let targetLabelField = labelField
 
+  // Se há seleção no nível atual, mantém o ranking no mesmo nível para mostrar o grupo
+  // Não avança para o próximo nível
   if (hasSelectionForLevel) {
-    const levelHierarchy: Record<string, string> = {
-      segmento: 'diretoria',
-      diretoria: 'gerencia',
-      gerencia: 'agencia',
-      agencia: 'gerenteGestao',
-      gerenteGestao: 'gerente',
-      gerente: 'gerente'
-    }
-
-    const nextLevel = levelHierarchy[level]
-    if (nextLevel && nextLevel !== level) {
-      targetLevel = nextLevel
-      targetKeyField = RANKING_KEY_FIELDS[targetLevel] || targetKeyField
-      targetLabelField = RANKING_LABEL_FIELDS[targetLevel] || targetLabelField
-    }
+    // Mantém o mesmo nível para mostrar todos do grupo
+    targetLevel = level
+    targetKeyField = keyField
+    targetLabelField = labelField
   }
 
+  // Filtra os dados para pegar apenas os itens do mesmo grupo
   let filteredData = rankingData.value
   if (hasSelectionForLevel && selectionForLevel) {
-    filteredData = rankingData.value.filter(item => {
+    // Encontra o item selecionado para identificar o grupo
+    const selectedItem = rankingData.value.find(item => {
       const itemKey = (item as unknown as Record<string, string>)[keyField]
       const itemLabel = (item as any)[labelField]
       return matchesSelection(selectionForLevel, itemKey, itemLabel)
     })
+
+    if (selectedItem) {
+      // Identifica o grupo baseado no nível pai
+      const parentLevelHierarchy: Record<string, string> = {
+        segmento: null as any,
+        diretoria: 'segmento_id',
+        gerencia: 'diretoria_id',
+        agencia: 'gerencia_id',
+        gerenteGestao: 'agencia_id',
+        gerente: 'gerente_gestao_id'
+      }
+
+      const parentKeyField = parentLevelHierarchy[level]
+      if (parentKeyField) {
+        const parentKey = (selectedItem as any)[parentKeyField]
+        // Filtra todos os itens que pertencem ao mesmo grupo (mesmo pai)
+        filteredData = rankingData.value.filter(item => {
+          const itemParentKey = (item as any)[parentKeyField]
+          return itemParentKey === parentKey
+        })
+      } else {
+        // Se não há nível pai (segmento), mostra todos
+        filteredData = rankingData.value
+      }
+    }
   }
 
+  // Agrupa por nível alvo
   const groups = new Map<string, {
     unidade: string
     label: string
-    real_mens: number
-    real_acum: number
-    meta_mens: number
-    meta_acum: number
+    pontos: number
     count: number
   }>()
 
@@ -212,58 +230,27 @@ const groupedRanking = computed(() => {
       groups.set(key, {
         unidade: key,
         label,
-        real_mens: 0,
-        real_acum: 0,
-        meta_mens: 0,
-        meta_acum: 0,
+        pontos: 0,
         count: 0
       })
     }
 
     const group = groups.get(key)!
-    const realizado = item.realizado_mensal || 0
-    const meta = item.meta_mensal || 0
-
-    group.real_mens += realizado
-    group.real_acum += realizado
-    group.meta_mens += meta
-    group.meta_acum += meta
+    // Soma o realizado da f-pontos (usando pontos ou realizado_mensal como fallback)
+    const pontos = item.pontos || item.realizado_mensal || 0
+    group.pontos += pontos
     group.count += 1
   })
 
   return Array.from(groups.values())
-    .map(g => {
-      let p_mens = 0
-      let p_acum = 0
-
-      if (g.meta_mens > 0) {
-        const ating_mens = g.real_mens / g.meta_mens
-        p_mens = ating_mens * 100
-      } else {
-        p_mens = g.real_mens / 100000
-      }
-
-      if (g.meta_acum > 0) {
-        const ating_acum = g.real_acum / g.meta_acum
-        p_acum = ating_acum * 100
-      } else {
-        p_acum = g.real_acum / 100000
-      }
-
-      return {
-        ...g,
-        p_mens,
-        p_acum
-      }
-    })
-    .sort((a, b) => b.p_acum - a.p_acum)
+    .sort((a, b) => b.pontos - a.pontos)
 })
 
 const formatPoints = (value: number | null | undefined): string => {
   if (value == null || isNaN(value)) return '—'
   return new Intl.NumberFormat('pt-BR', {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
   }).format(value)
 }
 
@@ -272,11 +259,15 @@ const shouldMaskName = (item: any, index: number): boolean => {
   const selectionForLevel = getRankingSelectionForLevel(level)
   const hasSelectionForLevel = !!selectionForLevel && !isDefaultSelection(selectionForLevel)
 
-  if (index === 0) return false
+  // Se não há filtro aplicado, mascara todos exceto o primeiro
+  if (!hasSelectionForLevel) {
+    return index !== 0
+  }
 
+  // Se há filtro aplicado, mostra apenas o item que corresponde ao filtro
   if (hasSelectionForLevel && selectionForLevel) {
     const matches = matchesSelection(selectionForLevel, item.unidade, item.label)
-    if (matches) return false
+    return !matches // Mascara se não corresponder ao filtro
   }
 
   return true
@@ -306,15 +297,13 @@ const shouldMaskName = (item: any, index: number): boolean => {
                     <tr>
                       <th class="pos-col">#</th>
                       <th class="unit-col">Unidade</th>
-                      <th class="points-col">Pontos (mensal)</th>
-                      <th class="points-col">Pontos (acumulado)</th>
+                      <th class="points-col">Pontos</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr v-for="i in 10" :key="i" class="rk-row">
                       <td class="pos-col"><div class="skeleton skeleton--text" style="height: 16px; width: 20px; margin: 0 auto;"></div></td>
                       <td class="unit-col"><div class="skeleton skeleton--text" style="height: 16px; width: 80%;"></div></td>
-                      <td class="points-col"><div class="skeleton skeleton--text" style="height: 16px; width: 60px; margin: 0 auto;"></div></td>
                       <td class="points-col"><div class="skeleton skeleton--text" style="height: 16px; width: 60px; margin: 0 auto;"></div></td>
                     </tr>
                   </tbody>
@@ -368,8 +357,7 @@ const shouldMaskName = (item: any, index: number): boolean => {
                   <tr>
                     <th class="pos-col">#</th>
                     <th class="unit-col">Unidade</th>
-                    <th class="points-col">Pontos (mensal)</th>
-                    <th class="points-col">Pontos (acumulado)</th>
+                    <th class="points-col">Pontos</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -383,8 +371,7 @@ const shouldMaskName = (item: any, index: number): boolean => {
                     <td class="unit-col rk-name">
                       {{ shouldMaskName(item, index) ? '*****' : item.label }}
                     </td>
-                    <td class="points-col">{{ formatPoints(item.p_mens) }}</td>
-                    <td class="points-col">{{ formatPoints(item.p_acum) }}</td>
+                    <td class="points-col">{{ formatPoints(item.pontos) }}</td>
                   </tr>
                 </tbody>
               </table>

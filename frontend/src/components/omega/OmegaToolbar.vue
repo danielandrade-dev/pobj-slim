@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import Icon from '../Icon.vue'
 import type { useOmega } from '../../composables/useOmega'
 import type { useOmegaFilters } from '../../composables/useOmegaFilters'
 import type { useOmegaBulk } from '../../composables/useOmegaBulk'
@@ -73,7 +74,7 @@ watch(() => props.filters.filters.value, () => {
 <template>
   <div class="omega-toolbar" role="group" aria-label="Filtros da central Omega">
     <label class="omega-search" for="omega-search">
-      <i class="ti ti-search"></i>
+      <Icon name="search" :size="18" />
       <input
         id="omega-search"
         v-model="searchQuery"
@@ -96,7 +97,7 @@ watch(() => props.filters.filters.value, () => {
             aria-controls="omega-filter-panel"
             @click="handleFilterToggle"
           >
-            <i class="ti ti-adjustments-horizontal"></i>
+            <Icon name="adjustments-horizontal" :size="18" />
             <span>Filtros</span>
           </button>
           <button
@@ -117,7 +118,7 @@ watch(() => props.filters.filters.value, () => {
             :disabled="isRefreshing"
             @click="handleRefresh"
           >
-            <i :class="isRefreshing ? 'ti ti-loader-2' : 'ti ti-refresh'"></i>
+            <Icon :name="isRefreshing ? 'loader-2' : 'refresh'" :size="18" />
             <span>Atualizar lista</span>
           </button>
         </div>
@@ -131,7 +132,7 @@ watch(() => props.filters.filters.value, () => {
         :disabled="!hasSelection"
         @click="handleBulkStatus"
       >
-        <i class="ti ti-arrows-exchange"></i>
+        <Icon name="arrows-exchange" :size="18" />
         <span>Alterar status</span>
       </button>
       <button
@@ -140,7 +141,7 @@ watch(() => props.filters.filters.value, () => {
         type="button"
         @click="handleNewTicket"
       >
-        <i class="ti ti-plus"></i>
+        <Icon name="plus" :size="18" />
         <span>Registrar chamado</span>
       </button>
     </div>
@@ -164,7 +165,7 @@ watch(() => props.filters.filters.value, () => {
   align-items: center;
 }
 
-.omega-search i {
+.omega-search :deep(svg) {
   position: absolute;
   left: 12px;
   color: var(--muted, #6b7280);

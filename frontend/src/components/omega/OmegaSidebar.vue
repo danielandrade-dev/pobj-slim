@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
+import Icon from '../Icon.vue'
 import type { useOmega } from '../../composables/useOmega'
 
 interface Props {
@@ -39,6 +40,13 @@ function toggleCollapse() {
 function handleNavClick(viewId: string) {
   emit('nav-click', viewId)
 }
+
+// Função para converter ícone do formato "ti ti-*" para nome do componente Icon
+function getIconName(iconClass: string): string {
+  if (!iconClass) return 'circle'
+  // Remove "ti ti-" do início
+  return iconClass.replace(/^ti ti-/, '')
+}
 </script>
 
 <template>
@@ -56,7 +64,7 @@ function handleNavClick(viewId: string) {
       @click="toggleCollapse"
     >
       <span class="sr-only">Alternar menu</span>
-      <i :class="collapsed ? 'ti ti-chevron-right' : 'ti ti-chevron-left'" aria-hidden="true"></i>
+      <Icon :name="collapsed ? 'chevron-right' : 'chevron-left'" :size="18" aria-hidden="true" />
     </button>
 
     <section class="omega-profile" aria-label="Perfil selecionado">
@@ -75,7 +83,7 @@ function handleNavClick(viewId: string) {
         type="button"
         @click="handleNavClick(item.id)"
       >
-        <i :class="item.icon" aria-hidden="true"></i>
+        <Icon :name="getIconName(item.icon)" :size="20" aria-hidden="true" />
         <span v-if="!collapsed">{{ item.label }}</span>
       </button>
     </nav>

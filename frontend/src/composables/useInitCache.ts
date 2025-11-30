@@ -1,47 +1,43 @@
-import { ref } from 'vue'
+import { ref, readonly } from 'vue'
 import { getInit, type InitData } from '../services/initService'
 
 const initCache = ref<InitData | null>(null)
 const isLoading = ref(false)
-const loadPromise = ref<Promise<InitData | null> | null>(null)
+let loadPromise: Promise<InitData | null> | null = null
 
 export function useInitCache() {
   const loadInit = async (): Promise<InitData | null> => {
-    if (initCache.value) {
-      return initCache.value
-    }
+    // Já temos no cache
+    if (initCache.value) return initCache.value
 
-    if (loadPromise.value) {
-      return loadPromise.value
-    }
+    // Já existe requisição em andamento
+    if (loadPromise) return loadPromise
 
     isLoading.value = true
-    loadPromise.value = getInit()
+
+    // Garante requisição única
+    loadPromise = getInit()
       .then((data) => {
-        if (data) {
-          initCache.value = data
-        }
+        if (data) initCache.value = data
         return data
       })
       .finally(() => {
         isLoading.value = false
-        loadPromise.value = null
+        loadPromise = null
       })
 
-    return loadPromise.value
+    return loadPromise
   }
 
-  const clearCache = (): void => {
+  const clearCache = () => {
     initCache.value = null
-    loadPromise.value = null
+    loadPromise = null
   }
 
   return {
-    initData: initCache,
-    isLoading,
+    initData: readonly(initCache),
+    isLoading: readonly(isLoading),
     loadInit,
     clearCache
   }
 }
-
-

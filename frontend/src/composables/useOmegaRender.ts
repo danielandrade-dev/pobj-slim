@@ -246,6 +246,13 @@ export function useOmegaRender(
     if (!tbody) {
       return
     }
+    
+    // Verifica se estamos usando componentes Vue (OmegaTable)
+    const container = root.querySelector('.omega-table-container')
+    if (container) {
+      // Não manipula o DOM se estiver usando componentes Vue
+      return
+    }
 
     let tickets = omega.tickets.value
     const statuses = omega.statuses.value
@@ -452,44 +459,47 @@ export function useOmegaRender(
   }
 
   function renderOmegaData() {
+    // Procura primeiro pela página Omega, depois pelo modal (compatibilidade)
+    const pageElement = document.getElementById('omega-page')
     const modalElement = document.getElementById('omega-modal')
-    if (!modalElement || modalElement.hidden) {
+    const rootElement = pageElement || modalElement
+    
+    if (!rootElement || (modalElement && modalElement.hidden)) {
       console.warn('⚠️ Modal não encontrado ou está oculto')
       return
     }
 
-
     // Verifica se estamos usando componentes Vue (OmegaTable)
-    const omegaTableComponent = modalElement.querySelector('.omega-table-container')
+    const omegaTableComponent = rootElement.querySelector('.omega-table-container')
     const isUsingVueComponents = !!omegaTableComponent
 
     // Renderiza usuários no select (ainda necessário para o header)
-    renderUsers(modalElement)
+    renderUsers(rootElement)
 
     // Renderiza tickets na tabela APENAS se não estiver usando componentes Vue
     if (!isUsingVueComponents) {
-      renderTickets(modalElement)
+      renderTickets(rootElement)
     }
 
     // Renderiza perfil do usuário atual
-    renderProfile(modalElement)
+    renderProfile(rootElement)
 
     // Renderiza navegação
-    renderNavigation(modalElement)
+    renderNavigation(rootElement)
 
     // Renderiza estrutura (departamentos e tipos) nos selects
-    renderStructure(modalElement)
+    renderStructure(rootElement)
 
     // Renderiza select de prioridade
-    renderPrioritySelect(modalElement)
+    renderPrioritySelect(rootElement)
 
     // Renderiza painel bulk APENAS se não estiver usando componentes Vue
     if (!isUsingVueComponents) {
-      bulk.renderBulkPanel(modalElement)
+      bulk.renderBulkPanel(rootElement)
     }
 
     // Atualiza estado do botão de filtros (se existir no DOM)
-    const filterToggle = modalElement.querySelector('#omega-filters-toggle')
+    const filterToggle = rootElement.querySelector('#omega-filters-toggle')
     if (filterToggle) {
       filterToggle.setAttribute('data-active', filters.hasActiveFilters() ? 'true' : 'false')
     }

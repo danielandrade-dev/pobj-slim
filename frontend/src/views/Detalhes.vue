@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
+import Icon from '../components/Icon.vue'
 import type { DetalhesItem } from '../services/detalhesService'
 import { useGlobalFilters } from '../composables/useGlobalFilters'
 import { usePeriodManager } from '../composables/usePeriodManager'
@@ -10,8 +12,8 @@ import TableViewChips from '../components/TableViewChips.vue'
 import DetailViewBar, { type DetailView } from '../components/DetailViewBar.vue'
 import AppliedFiltersBar from '../components/AppliedFiltersBar.vue'
 import DetailColumnDesigner from '../components/DetailColumnDesigner.vue'
-import OmegaModal from '../components/OmegaModal.vue'
 
+const router = useRouter()
 const { filterState } = useGlobalFilters()
 const { period } = usePeriodManager()
 
@@ -464,47 +466,20 @@ function calculateSummary(items: DetalhesItem[]) {
 
 const detailOpenRows = ref<Set<string>>(new Set())
 
-const omegaModalOpen = ref(false)
-
 function handleAction(payload: { type: 'ticket' | 'opportunities', node: TreeNode }) {
   if (payload.type === 'ticket') {
-    // Abre o modal Omega com dados pré-preenchidos
-    omegaModalOpen.value = true
-    
-    // Aguarda o modal estar montado e então abre o drawer com dados iniciais
-    nextTick(() => {
-      // Aguarda um pouco mais para garantir que o modal esteja totalmente montado
-      setTimeout(() => {
-        if (typeof window !== 'undefined') {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const globalAny = window as any
-          if (globalAny.__openOmegaFromVue) {
-            const observation = buildTicketObservation(payload.node)
-            globalAny.__openOmegaFromVue({
-              openDrawer: true,
-              intent: 'new-ticket',
-              preferredQueue: 'POBJ',
-              queue: 'POBJ',
-              observation
-            })
-          } else {
-            // Fallback: tenta novamente após mais um delay
-            setTimeout(() => {
-              if (globalAny.__openOmegaFromVue) {
-                const observation = buildTicketObservation(payload.node)
-                globalAny.__openOmegaFromVue({
-                  openDrawer: true,
-                  intent: 'new-ticket',
-                  preferredQueue: 'POBJ',
-                  queue: 'POBJ',
-                  observation
-                })
-              }
-            }, 500)
-          }
-        }
-      }, 100)
+    // Abre o Omega em nova aba com dados pré-preenchidos
+    const observation = buildTicketObservation(payload.node)
+    const params = new URLSearchParams({
+      openDrawer: 'true',
+      intent: 'new-ticket',
+      preferredQueue: 'POBJ',
+      queue: 'POBJ',
+      observation
     })
+    // Usa o router para construir a URL corretamente
+    const omegaRoute = router.resolve({ name: 'Omega', query: Object.fromEntries(params) })
+    window.open(omegaRoute.href, '_blank')
   } else if (payload.type === 'opportunities') {
     // TODO: Implementar abertura de oportunidades
     console.log('Abrir oportunidades para:', payload.node)
@@ -603,9 +578,9 @@ function getColumnLabel(columnId: string): string {
 
 function getSortIcon(columnId: string): string {
   if (sortState.value.id !== columnId || !sortState.value.direction) {
-    return 'ti ti-arrows-up-down'
+    return 'arrows-up-down'
   }
-  return sortState.value.direction === 'asc' ? 'ti ti-arrow-up' : 'ti ti-arrow-down'
+  return sortState.value.direction === 'asc' ? 'arrow-up' : 'arrow-down'
 }
 
 function handleSort(columnId: string) {
@@ -814,7 +789,7 @@ onMounted(() => {
                 class="table-toolbar__btn"
                 @click="expandAll"
               >
-                <span class="table-toolbar__icon"><i class="ti ti-chevrons-down"></i></span>
+                <span class="table-toolbar__icon"><Icon name="chevrons-down" :size="16" /></span>
                 <span class="table-toolbar__text">Expandir tudo</span>
               </button>
               <button
@@ -822,7 +797,7 @@ onMounted(() => {
                 class="table-toolbar__btn"
                 @click="collapseAll"
               >
-                <span class="table-toolbar__icon"><i class="ti ti-chevrons-up"></i></span>
+                <span class="table-toolbar__icon"><Icon name="chevrons-up" :size="16" /></span>
                 <span class="table-toolbar__text">Recolher tudo</span>
               </button>
               <button
@@ -831,7 +806,7 @@ onMounted(() => {
                 title="Personalizar colunas da tabela"
                 @click="handleOpenColumnDesigner"
               >
-                <span class="table-toolbar__icon"><i class="ti ti-columns"></i></span>
+                <span class="table-toolbar__icon"><Icon name="columns" :size="16" /></span>
                 <span class="table-toolbar__text">Personalizar colunas</span>
               </button>
             </div>
@@ -956,7 +931,7 @@ onMounted(() => {
                           @click="handleSort('__label__')"
                         >
                           {{ firstColumnLabel }}
-                          <span class="tree-sort__icon"><i :class="getSortIcon('__label__')"></i></span>
+                          <span class="tree-sort__icon"><Icon :name="getSortIcon('__label__')" :size="16" /></span>
                         </button>
                       </th>
                   <th
@@ -971,7 +946,7 @@ onMounted(() => {
                       @click="handleSort(columnId)"
                     >
                       {{ getColumnLabel(columnId) }}
-                      <span class="tree-sort__icon"><i :class="getSortIcon(columnId)"></i></span>
+                      <span class="tree-sort__icon"><Icon :name="getSortIcon(columnId)" :size="16" /></span>
                     </button>
                   </th>
                 </tr>

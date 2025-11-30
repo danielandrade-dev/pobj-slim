@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import Icon from './Icon.vue'
 import { useGlobalFilters, type FilterState } from '../composables/useGlobalFilters'
 
 const { filterState, clearFilter } = useGlobalFilters()
@@ -109,7 +110,7 @@ const handleRemove = (key: string) => {
         :aria-label="`Remover ${filter.label}`"
         @click="handleRemove(filter.key)"
       >
-        <i class="ti ti-x"></i>
+        <Icon name="x" :size="14" />
       </button>
     </div>
   </div>

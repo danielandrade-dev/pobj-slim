@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
+import Icon from '../Icon.vue'
 import type { OmegaTicket, OmegaUser } from '../../types/omega'
 import type { useOmega } from '../../composables/useOmega'
 import { createOmegaNotification, createPobjNotification } from '../../composables/useOmegaNotifications'
@@ -69,9 +70,20 @@ const statusMeta = computed(() => {
   return status || { label: selectedTicket.value.status || '—', tone: 'neutral' }
 })
 
+// Função para converter ícone do formato "ti ti-*" para nome do componente Icon
+function getIconName(iconClass: string): string {
+  if (!iconClass) return 'circle'
+  // Remove "ti ti-" do início
+  return iconClass.replace(/^ti ti-/, '')
+}
+
 const priorityMeta = computed(() => {
-  if (!selectedTicket.value) return { label: '—', tone: 'neutral', icon: 'ti ti-circle' }
-  return props.omega.getPriorityMeta(selectedTicket.value.priority || 'media')
+  if (!selectedTicket.value) return { label: '—', tone: 'neutral', icon: 'circle' }
+  const meta = props.omega.getPriorityMeta(selectedTicket.value.priority || 'media')
+  return {
+    ...meta,
+    icon: getIconName(meta.icon)
+  }
 })
 
 const requesterDisplay = computed(() => {
@@ -139,13 +151,13 @@ function handlePanelClick(e: MouseEvent) {
 
 function getTimelineIcon(entry: any): string {
   const action = (entry.action || '').toLowerCase()
-  if (action.includes('abertura') || action.includes('criado')) return 'ti ti-plus'
-  if (action.includes('comentário') || action.includes('comentario')) return 'ti ti-message'
-  if (action.includes('status') || action.includes('atualizado')) return 'ti ti-refresh'
-  if (action.includes('atribuído') || action.includes('atribuido')) return 'ti ti-user-check'
-  if (action.includes('cancelado')) return 'ti ti-x'
-  if (action.includes('resolvido')) return 'ti ti-check'
-  return 'ti ti-circle'
+  if (action.includes('abertura') || action.includes('criado')) return 'plus'
+  if (action.includes('comentário') || action.includes('comentario')) return 'message'
+  if (action.includes('status') || action.includes('atualizado')) return 'refresh'
+  if (action.includes('atribuído') || action.includes('atribuido')) return 'user-check'
+  if (action.includes('cancelado')) return 'x'
+  if (action.includes('resolvido')) return 'check'
+  return 'circle'
 }
 
 function getTimelineMarkerClass(entry: any): string {
@@ -270,7 +282,7 @@ async function handleUpdateSubmit(event: Event) {
             title="Fechar detalhamento"
             @click="closeModal"
           >
-            <i class="ti ti-x"></i>
+            <Icon name="x" :size="20" />
           </button>
         </header>
         <div class="omega-ticket-modal__body">
@@ -342,7 +354,7 @@ async function handleUpdateSubmit(event: Event) {
               >
                 <div class="omega-timeline__marker-wrapper">
                   <div class="omega-timeline__marker" :class="getTimelineMarkerClass(entry)">
-                    <i :class="getTimelineIcon(entry)"></i>
+                    <Icon :name="getTimelineIcon(entry)" :size="16" />
                   </div>
                 </div>
                 <div class="omega-timeline__content">
@@ -364,7 +376,7 @@ async function handleUpdateSubmit(event: Event) {
                     </div>
                     <div v-if="entry.status" class="omega-timeline__meta">
                       <span class="omega-timeline__status-badge">
-                        <i class="ti ti-info-circle"></i>
+                        <Icon name="info-circle" :size="16" />
                         Status alterado para: <strong>{{ props.omega.statuses.value.find(s => s.id === entry.status)?.label || entry.status }}</strong>
                       </span>
                     </div>
@@ -373,7 +385,7 @@ async function handleUpdateSubmit(event: Event) {
               </li>
             </ol>
             <div v-else class="omega-timeline-empty">
-              <i class="ti ti-clock"></i>
+              <Icon name="clock" :size="48" />
               <p>Nenhuma atualização registrada ainda.</p>
             </div>
           </section>
@@ -410,7 +422,7 @@ async function handleUpdateSubmit(event: Event) {
                   class="omega-btn omega-btn--primary"
                   :disabled="isSubmitting || !updateComment.trim()"
                 >
-                  <i class="ti ti-message-plus"></i>
+                  <Icon name="message-plus" :size="18" />
                   <span>{{ isSubmitting ? 'Enviando...' : 'Enviar comentário' }}</span>
                 </button>
               </footer>
@@ -423,7 +435,7 @@ async function handleUpdateSubmit(event: Event) {
             class="omega-ticket-update omega-ticket-update--blocked"
           >
             <div class="omega-ticket-update__blocked-message">
-              <i class="ti ti-lock"></i>
+              <Icon name="lock" :size="24" />
               <p>
                 <strong>Este chamado está {{ statusMeta.label.toLowerCase() }}.</strong>
                 <br>

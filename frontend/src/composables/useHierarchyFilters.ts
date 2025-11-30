@@ -2,6 +2,22 @@ import { ref, computed, type Ref } from 'vue'
 import type { InitData } from '../services/initService'
 import type { FilterOption, HierarchySelection } from '../types'
 
+// Tipo que aceita InitData com arrays mutáveis ou readonly
+type InitDataReadonly = {
+  readonly segmentos: readonly any[]
+  readonly diretorias: readonly any[]
+  readonly regionais: readonly any[]
+  readonly agencias: readonly any[]
+  readonly gerentes_gestao: readonly any[]
+  readonly gerentes: readonly any[]
+  readonly familias: readonly any[]
+  readonly indicadores: readonly any[]
+  readonly subindicadores: readonly any[]
+  readonly status_indicadores: readonly any[]
+}
+
+type InitDataCompatible = InitData | InitDataReadonly
+
 const normalizeId = (v: any): string =>
   v == null || v === '' ? '' : String(v).trim()
 
@@ -49,7 +65,7 @@ const normalizeOption = (item: any, type: string): FilterOption => {
   }
 }
 
-export function useHierarchyFilters(estruturaData: Ref<InitData | null>) {
+export function useHierarchyFilters(estruturaData: Ref<InitDataCompatible | null> | { readonly value: InitDataCompatible | null }) {
   const state = {
     segmento: ref(''),
     diretoria: ref(''),

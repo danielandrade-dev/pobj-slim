@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import Icon from './Icon.vue'
 import { useInitCache } from '../composables/useInitCache'
 import { useHierarchyFilters } from '../composables/useHierarchyFilters'
 import { usePeriodManager } from '../composables/usePeriodManager'
@@ -301,10 +302,12 @@ watch(() => period.value, (newPeriod) => {
         />
       </div>
       <div class="filters__actions">
-        <Button id="btn-filtrar" variant="primary" icon="ti ti-search" :disabled="isSimuladoresPage" @click="handleFilter">
+        <Button id="btn-filtrar" variant="primary" :disabled="isSimuladoresPage" @click="handleFilter">
+          <Icon name="search" :size="16" />
           Filtrar
         </Button>
-        <Button id="btn-limpar" variant="secondary" icon="ti ti-x" @click="handleClear">
+        <Button id="btn-limpar" variant="secondary" @click="handleClear">
+          <Icon name="x" :size="16" />
           Limpar filtros
         </Button>
       </div>
@@ -320,7 +323,7 @@ watch(() => period.value, (newPeriod) => {
         @keydown.enter.prevent="toggleAdvancedFilters"
         @keydown.space.prevent="toggleAdvancedFilters"
       >
-        <i class="ti ti-chevron-down" :class="{ 'rotated': advancedFiltersOpen }" aria-hidden="true"></i>
+        <Icon name="chevron-down" :size="16" :class="{ 'rotated': advancedFiltersOpen }" />
         <span>{{ advancedFiltersOpen ? 'Fechar filtros avançados' : 'Abrir filtros avançados' }}</span>
       </Button>
     </div>
@@ -626,12 +629,9 @@ watch(() => period.value, (newPeriod) => {
   display: block;
 }
 
-.ti-chevron-down {
-  transition: transform 0.2s ease;
-}
-
-.ti-chevron-down.rotated {
+.rotated {
   transform: rotate(180deg);
+  transition: transform 0.2s ease;
 }
 
 @media (max-width: 1024px) {

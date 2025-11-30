@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue'
+import Icon from './Icon.vue'
 import { getDefaultPeriod, formatBRDate } from '../services/calendarioService'
 import { useCalendarioCache } from '../composables/useCalendarioCache'
 
@@ -139,7 +140,7 @@ onUnmounted(() => {
         class="link-action"
         @click="buttonRef && openDatePopover(buttonRef)"
       >
-        <i class="ti ti-chevron-down"></i> Alterar data
+        <Icon name="chevron-down" :size="16" /> Alterar data
       </button>
     </div>
   </div>

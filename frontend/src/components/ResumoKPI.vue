@@ -5,7 +5,7 @@
       class="kpi-pill"
     >
       <div class="kpi-strip__main">
-        <span class="kpi-icon"><i class="ti ti-list-check"></i></span>
+        <span class="kpi-icon"><Icon name="list-check" :size="22" /></span>
         <div class="kpi-strip__text">
           <span class="kpi-strip__label">Indicadores</span>
           <div class="kpi-strip__stats">
@@ -45,7 +45,7 @@
       class="kpi-pill"
     >
       <div class="kpi-strip__main">
-        <span class="kpi-icon"><i class="ti ti-medal"></i></span>
+        <span class="kpi-icon"><Icon name="medal" :size="22" /></span>
         <div class="kpi-strip__text">
           <span class="kpi-strip__label">Pontos</span>
           <div class="kpi-strip__stats">
@@ -83,7 +83,7 @@
       class="kpi-pill"
     >
       <div class="kpi-strip__main">
-        <span class="kpi-icon"><i class="ti ti-cash"></i></span>
+        <span class="kpi-icon"><Icon name="cash" :size="22" /></span>
         <div class="kpi-strip__text">
           <span class="kpi-strip__label">
             Variável <span class="kpi-label-emphasis">Estimada</span>
@@ -126,6 +126,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import Icon from './Icon.vue'
 import { useResumoSummary } from '../composables/useResumoSummary'
 import { useGlobalFilters } from '../composables/useGlobalFilters'
 import { formatBRLReadable, formatPoints, formatIntReadable } from '../utils/formatUtils'

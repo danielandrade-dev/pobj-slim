@@ -1,16 +1,52 @@
 <script setup lang="ts">
+import { defineAsyncComponent, onMounted } from 'vue'
 import Header from './components/Header.vue'
 import Footer from './components/Footer.vue'
-import Filters from './components/Filters.vue'
-import TabsNavigation from './components/TabsNavigation.vue'
-import OmegaModal from './components/OmegaModal.vue'
-import { useRoute } from 'vue-router'
-import './assets/bradesco-theme.css'
-import './assets/animations.css'
-import './assets/microinteractions.css'
-import './assets/accessibility.css'
+import { useRoute, useRouter } from 'vue-router'
+
+
+onMounted(async () => {
+  await Promise.all([
+    import('./assets/animations.css'),
+    import('./assets/microinteractions.css'),
+    import('./assets/accessibility.css')
+  ])
+})
 
 const route = useRoute()
+const router = useRouter()
+const Filters = defineAsyncComponent(() => import('./components/Filters.vue'))
+const TabsNavigation = defineAsyncComponent(() => import('./components/TabsNavigation.vue'))
+
+// Função para abrir Omega em nova aba
+const openOmegaInNewTab = (detail?: { openDrawer?: boolean; intent?: string; preferredQueue?: string; queue?: string; observation?: string }): void => {
+  if (typeof window === 'undefined') return
+  
+  const query: Record<string, string> = {}
+  if (detail?.openDrawer || detail?.intent === 'new-ticket') {
+    query.openDrawer = 'true'
+    query.intent = 'new-ticket'
+    if (detail.preferredQueue || detail.queue) {
+      query.preferredQueue = detail.preferredQueue || detail.queue || 'POBJ'
+      query.queue = detail.preferredQueue || detail.queue || 'POBJ'
+    }
+    if (detail.observation) {
+      query.observation = detail.observation
+    }
+  }
+  
+  const omegaRoute = router.resolve({ name: 'Omega', query })
+  window.open(omegaRoute.href, '_blank')
+}
+
+// Registra funções globais para compatibilidade
+if (typeof window !== 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const globalAny = window as any
+  globalAny.__openOmegaFromVue = openOmegaInNewTab
+  globalAny.openOmegaModule = openOmegaInNewTab
+  globalAny.openOmega = openOmegaInNewTab
+}
 </script>
 
 <template>
@@ -20,16 +56,15 @@ const route = useRoute()
     
     <Header />
     <main id="main-content" class="main-content" role="main" aria-label="Conteúdo principal">
-      <div class="main-container">
-        <Filters />
-        <TabsNavigation />
+      <div class="main-container" :class="{ 'is-omega': route.name === 'Omega' }">
+        <Filters v-if="route.name !== 'Omega'" />
+        <TabsNavigation v-if="route.name !== 'Omega'" />
         
-        <div class="view-content">
+        <div class="view-content" :class="{ 'is-omega': route.name === 'Omega' }">
           <router-view v-slot="{ Component }">
             <Transition
               name="page"
               mode="out-in"
-              appear
             >
               <component :is="Component" :key="route.path" />
             </Transition>
@@ -37,8 +72,7 @@ const route = useRoute()
         </div>
       </div>
     </main>
-    <Footer />
-    <OmegaModal />
+    <Footer v-if="route.name !== 'Omega'" />
   </div>
 </template>
 
@@ -67,21 +101,16 @@ body {
   font-family: "Bradesco", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
-.ti {
-  font-family: 'tabler-icons' !important;
-  font-style: normal;
-  font-weight: normal;
-  font-variant: normal;
-  text-transform: none;
-  line-height: 1;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Garantir que SVGs dos ícones sejam exibidos */
+svg {
+  display: inline-block !important;
+  vertical-align: middle;
 }
 
 body {
   background-color: #f6f7fc;
   background-image:
-    url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%20320%20320%27%3E%3Ctext%20x%3D%2750%25%27%20y%3D%2750%25%27%20fill%3D%27rgba%2815%2C20%2C36%2C0.08%29%27%20font-size%3D%2720%27%20font-family%3D%27Plus%20Jakarta%20Sans%2C%20sans-serif%27%20text-anchor%3D%27middle%27%20dominant-baseline%3D%27middle%27%20transform%3D%27rotate%28-30%20160%20160%29%27%3EX%20Burguer%20%E2%80%A2%20Funcional%201234567%3C/text%3E%3C/svg%3E"),
+    url("./bg.svg"),
     radial-gradient(1200px 720px at 95% -30%, #dfe8ff 0%, transparent 60%),
     radial-gradient(1100px 720px at -25% -10%, #ffe6ea 0%, transparent 55%);
   background-repeat: repeat, no-repeat, no-repeat;
@@ -107,14 +136,26 @@ body {
   padding-top: 66px; /* Altura do header fixo */
 }
 
+
 .main-container {
   max-width: min(1600px, 96vw);
   margin: 18px auto;
   padding: 0 16px;
 }
 
+.main-container.is-omega {
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 .view-content {
   width: 100%;
+}
+
+.view-content.is-omega {
+  width: 100%;
+  padding: 0;
 }
 
 .page-enter-active {

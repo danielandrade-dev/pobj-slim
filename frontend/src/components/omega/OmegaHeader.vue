@@ -1,29 +1,25 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue'
 import SelectInput from '../SelectInput.vue'
+import Icon from '../Icon.vue'
 import type { FilterOption } from '../../types'
 import type { useOmega } from '../../composables/useOmega'
-import type { useOmegaFullscreen } from '../../composables/useOmegaFullscreen'
 
 interface Props {
   omega: ReturnType<typeof useOmega>
-  fullscreen: ReturnType<typeof useOmegaFullscreen>
+  showClose?: boolean
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  showClose: true
+})
 
 const emit = defineEmits<{
   'close': []
-  'fullscreen-toggle': []
 }>()
 
 const notificationOpen = ref(false)
 const notificationCount = ref(0)
-
-const isFullscreen = computed(() => {
-  const modal = document.getElementById('omega-modal')
-  return modal ? modal.classList.contains('omega-modal--fullscreen') : false
-})
 
 const userOptions = computed<FilterOption[]>(() => {
   const users = props.omega.users.value
@@ -59,11 +55,6 @@ function handleUserChange(userId: string) {
 function toggleNotifications() {
   notificationOpen.value = !notificationOpen.value
 }
-
-function handleFullscreen() {
-  props.fullscreen.setOmegaFullscreen()
-  emit('fullscreen-toggle')
-}
 </script>
 
 <template>
@@ -76,24 +67,13 @@ function handleFullscreen() {
     </div>
     <div class="omega-header__actions">
       <button
-        id="omega-fullscreen"
-        class="omega-icon-btn"
-        type="button"
-        :aria-pressed="isFullscreen ? 'true' : 'false'"
-        aria-label="Entrar em tela cheia"
-        title="Tela cheia (F)"
-        @click="handleFullscreen"
-      >
-        <i :class="isFullscreen ? 'ti ti-arrows-minimize' : 'ti ti-arrows-maximize'"></i>
-      </button>
-
-      <button
+        v-if="showClose"
         class="omega-icon-btn omega-header__close"
         type="button"
         aria-label="Fechar central Omega"
         @click="emit('close')"
       >
-        <i class="ti ti-x"></i>
+        <Icon name="x" :size="20" />
       </button>
 
       <div class="omega-notification-center">
@@ -106,7 +86,7 @@ function handleFullscreen() {
           aria-controls="omega-notification-panel"
           @click="toggleNotifications"
         >
-          <i class="ti ti-bell"></i>
+          <Icon name="bell" :size="20" />
           <span
             v-if="notificationCount > 0"
             id="omega-notification-badge"
@@ -132,7 +112,7 @@ function handleFullscreen() {
               aria-label="Fechar notificações"
               @click="notificationOpen = false"
             >
-              <i class="ti ti-x"></i>
+              <Icon name="x" :size="20" />
             </button>
           </header>
           <div class="omega-notification-panel__body">
@@ -161,12 +141,16 @@ function handleFullscreen() {
 
 <style scoped>
 .omega-header {
+  position: sticky;
+  top: 66px; /* Altura do header principal */
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 20px 24px;
   border-bottom: 1px solid rgba(148, 163, 184, 0.2);
   background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .omega-header__left {

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import Icon from '../components/Icon.vue'
+
 const goBack = (): void => {
   window.history.back()
 }
@@ -8,7 +10,7 @@ const goBack = (): void => {
   <div class="error-container">
     <div class="error-card">
       <div class="error-icon">
-        <i class="ti ti-alert-circle"></i>
+        <Icon name="alert-circle" :size="64" />
       </div>
       <h1 class="error-code">404</h1>
       <h2 class="error-title">Página não encontrada</h2>
@@ -18,11 +20,11 @@ const goBack = (): void => {
       </p>
       <div class="error-actions">
         <router-link to="/" class="btn btn-primary">
-          <i class="ti ti-home"></i>
+          <Icon name="home" :size="16" />
           Voltar para o início
         </router-link>
         <button @click="goBack" class="btn btn-secondary">
-          <i class="ti ti-arrow-left"></i>
+          <Icon name="arrow-left" :size="16" />
           Voltar
         </button>
       </div>

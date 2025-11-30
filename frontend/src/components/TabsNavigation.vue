@@ -1,18 +1,19 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, h } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import Icon from './Icon.vue'
 import type { ViewType, TabConfig } from '../types'
 
 const router = useRouter()
 const route = useRoute()
 
 const views: TabConfig[] = [
-  { id: 'cards', label: 'Resumo', icon: 'ti ti-dashboard', ariaLabel: 'Resumo', path: '/' },
-  { id: 'table', label: 'Detalhamento', icon: 'ti ti-list-tree', ariaLabel: 'Detalhamento', path: '/detalhes' },
-  { id: 'ranking', label: 'Rankings', icon: 'ti ti-trophy', ariaLabel: 'Rankings', path: '/ranking' },
-  { id: 'exec', label: 'Visão executiva', icon: 'ti ti-chart-line', ariaLabel: 'Visão executiva', path: '/exec' },
-  { id: 'simuladores', label: 'Simuladores', icon: 'ti ti-calculator', ariaLabel: 'Simuladores', path: '/simuladores' },
-  { id: 'campanhas', label: 'Campanhas', icon: 'ti ti-speakerphone', ariaLabel: 'Campanhas', path: '/campanhas' }
+  { id: 'cards', label: 'Resumo', icon: 'dashboard', ariaLabel: 'Resumo', path: '/' },
+  { id: 'table', label: 'Detalhamento', icon: 'list-tree', ariaLabel: 'Detalhamento', path: '/detalhes' },
+  { id: 'ranking', label: 'Rankings', icon: 'trophy', ariaLabel: 'Rankings', path: '/ranking' },
+  { id: 'exec', label: 'Visão executiva', icon: 'chart-line', ariaLabel: 'Visão executiva', path: '/exec' },
+  { id: 'simuladores', label: 'Simuladores', icon: 'calculator', ariaLabel: 'Simuladores', path: '/simuladores' },
+  { id: 'campanhas', label: 'Campanhas', icon: 'speakerphone', ariaLabel: 'Campanhas', path: '/campanhas' }
 ]
 
 const activeView = computed<ViewType>(() => {
@@ -41,7 +42,7 @@ const handleTabClick = (viewId: ViewType): void => {
       @click="handleTabClick(view.id)"
     >
       <span class="tab-icon">
-        <i :class="view.icon" aria-hidden="true"></i>
+        <Icon :name="view.icon" :size="16" />
       </span>
       <span class="tab-label">{{ view.label }}</span>
     </button>

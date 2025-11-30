@@ -2,6 +2,7 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import { Teleport } from 'vue'
 import SelectInput from '../SelectInput.vue'
+import Icon from '../Icon.vue'
 import type { FilterOption } from '../../types'
 import type { useOmega } from '../../composables/useOmega'
 
@@ -292,7 +293,7 @@ watch(department, () => {
             aria-label="Fechar formulário"
             @click="handleClose"
           >
-            <i class="ti ti-x"></i>
+            <Icon name="x" :size="20" />
           </button>
         </header>
 
@@ -363,7 +364,7 @@ watch(department, () => {
             <div class="omega-form-flow__approvals">
               <article class="omega-flow-approval">
                 <div class="omega-flow-approval__icon" aria-hidden="true">
-                  <i class="ti ti-user-check"></i>
+                  <Icon name="user-check" :size="18" />
                 </div>
                 <div class="omega-flow-approval__body">
                   <span class="omega-flow-approval__label">Gerente da agência solicitante</span>
@@ -393,7 +394,7 @@ watch(department, () => {
               </article>
               <article class="omega-flow-approval">
                 <div class="omega-flow-approval__icon" aria-hidden="true">
-                  <i class="ti ti-building-bank"></i>
+                  <Icon name="building-bank" :size="18" />
                 </div>
                 <div class="omega-flow-approval__body">
                   <span class="omega-flow-approval__label">Gerente da agência cedente</span>
@@ -445,7 +446,7 @@ watch(department, () => {
                   type="button"
                   @click="handleAddFile"
                 >
-                  <i class="ti ti-paperclip"></i>
+                  <Icon name="paperclip" :size="18" />
                   <span>Adicionar arquivo</span>
                 </button>
               </div>
@@ -491,7 +492,7 @@ watch(department, () => {
               class="omega-btn omega-btn--primary"
               type="submit"
             >
-              <i class="ti ti-device-floppy"></i>
+              <Icon name="device-floppy" :size="18" />
               <span>Salvar</span>
             </button>
           </footer>

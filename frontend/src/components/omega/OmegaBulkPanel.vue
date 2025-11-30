@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import SelectInput from '../SelectInput.vue'
+import Icon from '../Icon.vue'
 import type { FilterOption } from '../../types'
 import type { useOmega } from '../../composables/useOmega'
 import type { useOmegaBulk } from '../../composables/useOmegaBulk'
@@ -94,7 +95,7 @@ watch(isOpen, (open) => {
           aria-label="Fechar"
           @click="handleClose"
         >
-          <i class="ti ti-x"></i>
+          <Icon name="x" :size="20" />
         </button>
       </header>
       <p id="omega-bulk-hint" class="omega-bulk-form__hint">{{ hintText }}</p>
@@ -123,7 +124,7 @@ watch(isOpen, (open) => {
           class="omega-btn omega-btn--primary"
           :disabled="!selectedStatus"
         >
-          <i class="ti ti-check"></i>
+          <Icon name="check" :size="18" />
           <span>Aplicar</span>
         </button>
       </footer>

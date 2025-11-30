@@ -6,6 +6,7 @@ import Campanhas from '../views/Campanhas.vue'
 import Simuladores from '../views/Simuladores.vue'
 import Detalhes from '../views/Detalhes.vue'
 import VisaoExecutiva from '../views/VisaoExecutiva.vue'
+import Omega from '../views/Omega.vue'
 import NotFound from '../views/NotFound.vue'
 
 const routes: RouteRecordRaw[] = [
@@ -39,6 +40,11 @@ const routes: RouteRecordRaw[] = [
     path: '/exec',
     name: 'VisaoExecutiva',
     component: VisaoExecutiva
+  },
+  {
+    path: '/omega',
+    name: 'Omega',
+    component: Omega
   },
   {
     path: '/:pathMatch(.*)*',
