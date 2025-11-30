@@ -386,32 +386,6 @@ class ResumoRepository extends ServiceEntityRepository
     }
 
     /**
-     * Converte array de objetos DProduto para array de arrays
-     */
-    private function convertProdutosToArray(array $produtos): array
-    {
-        $result = [];
-        foreach ($produtos as $produto) {
-            $familia = $produto->getFamilia();
-            $indicador = $produto->getIndicador();
-            $subindicador = $produto->getSubindicador();
-            
-            $result[] = [
-                'id' => $produto->getId(),
-                'id_familia' => $familia ? $familia->getId() : null,
-                'familia' => $familia ? $familia->getNmFamilia() : '',
-                'id_indicador' => $indicador ? $indicador->getId() : null,
-                'indicador' => $indicador ? $indicador->getNmIndicador() : '',
-                'id_subindicador' => $subindicador ? $subindicador->getId() : null,
-                'subindicador' => $subindicador ? $subindicador->getNmSubindicador() : null,
-                'metrica' => $produto->getMetrica() ?? 'valor',
-                'peso' => $produto->getPeso() ?? 0,
-            ];
-        }
-        return $result;
-    }
-
-    /**
      * Retorna variáveis ordenadas por data de atualização
      */
     public function findVariavel(?FilterDTO $filters = null): array
