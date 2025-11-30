@@ -1,18 +1,11 @@
 <script setup lang="ts">
-import Filters from '../components/Filters.vue'
-import TabsNavigation from '../components/TabsNavigation.vue'
 import ResumoView from './ResumoView.vue'
 </script>
 
 <template>
   <div class="home-wrapper">
-    <div class="container">
-      <Filters />
-      <TabsNavigation />
-
-      <!-- Visão de resumo com opção de cards ou tabela clássica -->
-      <ResumoView />
-    </div>
+    <!-- Visão de resumo com opção de cards ou tabela clássica -->
+    <ResumoView />
   </div>
 </template>
 
@@ -37,11 +30,6 @@ import ResumoView from './ResumoView.vue'
   -moz-osx-font-smoothing: grayscale;
 }
 
-.container {
-  max-width: min(1600px, 96vw);
-  margin: 18px auto;
-  padding: 0 16px;
-}
 
 </style>
 

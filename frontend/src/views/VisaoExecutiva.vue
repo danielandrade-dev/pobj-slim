@@ -3,8 +3,6 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useGlobalFilters } from '../composables/useGlobalFilters'
 import { formatBRLReadable, formatBRL, formatDate } from '../utils/formatUtils'
 import { getExecData, type ExecFilters, type ExecData } from '../services/execService'
-import Filters from '../components/Filters.vue'
-import TabsNavigation from '../components/TabsNavigation.vue'
 
 const { filterState, period } = useGlobalFilters()
 
@@ -278,11 +276,7 @@ onMounted(() => {
 
 <template>
   <div class="exec-wrapper">
-    <div class="container">
-      <Filters />
-      <TabsNavigation />
-
-      <div id="view-exec" class="exec-view">
+    <div id="view-exec" class="exec-view">
         <!-- Skeleton Loading -->
         <template v-if="loading">
           <div class="skeleton skeleton--context" style="height: 24px; width: 200px; margin-bottom: 24px; border-radius: 6px;"></div>
@@ -545,7 +539,6 @@ onMounted(() => {
         </template>
       </div>
     </div>
-  </div>
 </template>
 
 <style scoped>
@@ -569,12 +562,6 @@ onMounted(() => {
   font-family: var(--brad-font-family, inherit);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-.container {
-  max-width: min(1600px, 96vw);
-  margin: 18px auto;
-  padding: 0 16px;
 }
 
 .exec-view {

@@ -5,8 +5,6 @@ import { useGlobalFilters } from '../composables/useGlobalFilters'
 import { usePeriodManager } from '../composables/usePeriodManager'
 import { useDetalhesData } from '../composables/useDetalhesData'
 import { formatINT, formatCurrency, formatDate } from '../utils/formatUtils'
-import Filters from '../components/Filters.vue'
-import TabsNavigation from '../components/TabsNavigation.vue'
 import TreeTableRow, { type TreeNode } from '../components/TreeTableRow.vue'
 import TableViewChips from '../components/TableViewChips.vue'
 import DetailViewBar, { type DetailView } from '../components/DetailViewBar.vue'
@@ -711,11 +709,7 @@ onMounted(() => {
 
 <template>
   <div class="detalhes-wrapper">
-    <div class="container">
-      <Filters />
-      <TabsNavigation />
-
-      <div class="detalhes-view">
+    <div class="detalhes-view">
         <div class="card card--detalhes">
           <header class="card__header">
             <div class="title-subtitle">
@@ -953,20 +947,19 @@ onMounted(() => {
           </template>
         </div>
       </div>
-    </div>
 
-    <!-- Modal de personalização de colunas -->
-    <DetailColumnDesigner
-      v-model="showColumnDesigner"
-      :selected-columns="activeColumns"
-      :views="detailViews"
-      :active-view-id="activeDetailViewId"
-      @apply="handleApplyColumns"
-      @save="handleSaveView"
-      @load-view="handleDetailViewChange"
-      @delete-view="handleDeleteView"
-    />
-  </div>
+      <!-- Modal de personalização de colunas -->
+      <DetailColumnDesigner
+        v-model="showColumnDesigner"
+        :selected-columns="activeColumns"
+        :views="detailViews"
+        :active-view-id="activeDetailViewId"
+        @apply="handleApplyColumns"
+        @save="handleSaveView"
+        @load-view="handleDetailViewChange"
+        @delete-view="handleDeleteView"
+      />
+    </div>
 </template>
 
 <style scoped>
@@ -1001,11 +994,6 @@ onMounted(() => {
   box-sizing: border-box;
 }
 
-.container {
-  max-width: min(1600px, 96vw);
-  margin: 18px auto;
-  padding: 0 16px;
-}
 
 .card {
   background: var(--panel);

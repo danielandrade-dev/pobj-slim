@@ -3,8 +3,6 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useGlobalFilters } from '../composables/useGlobalFilters'
 import { formatINT, formatPoints } from '../utils/formatUtils'
-import Filters from '../components/Filters.vue'
-import TabsNavigation from '../components/TabsNavigation.vue'
 
 const { filterState } = useGlobalFilters()
 
@@ -530,11 +528,7 @@ watch([filterState], () => {
 
 <template>
   <div class="campanhas-wrapper">
-    <div class="container">
-      <Filters />
-      <TabsNavigation />
-
-      <div class="campanhas-view">
+    <div class="campanhas-view">
         <!-- Skeleton Loading -->
         <template v-if="loading && !sprintAtual">
           <div class="campanhas-content">
@@ -927,7 +921,6 @@ watch([filterState], () => {
         </template>
       </div>
     </div>
-  </div>
 </template>
 
 <style scoped>
@@ -953,12 +946,6 @@ watch([filterState], () => {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   box-sizing: border-box;
-}
-
-.container {
-  max-width: min(1600px, 96vw);
-  margin: 18px auto;
-  padding: 0 16px;
 }
 
 .campanhas-view {

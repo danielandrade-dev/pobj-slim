@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import Header from './components/Header.vue'
 import Footer from './components/Footer.vue'
+import Filters from './components/Filters.vue'
+import TabsNavigation from './components/TabsNavigation.vue'
 import OmegaLegacyModal from './components/OmegaLegacyModal.vue'
 import { useRoute } from 'vue-router'
 import './assets/bradesco-theme.css'
@@ -19,15 +21,22 @@ const route = useRoute()
     
     <Header />
     <main id="main-content" class="main-content" role="main" aria-label="Conteúdo principal">
-      <router-view v-slot="{ Component }">
-        <Transition
-          name="page"
-          mode="out-in"
-          appear
-        >
-          <component :is="Component" :key="route.path" />
-        </Transition>
-      </router-view>
+      <div class="main-container">
+        <Filters />
+        <TabsNavigation />
+        
+        <div class="view-content">
+          <router-view v-slot="{ Component }">
+            <Transition
+              name="page"
+              mode="out-in"
+              appear
+            >
+              <component :is="Component" :key="route.path" />
+            </Transition>
+          </router-view>
+        </div>
+      </div>
     </main>
     <Footer />
     <OmegaLegacyModal />
@@ -99,6 +108,16 @@ body {
   flex: 1;
   width: 100%;
   padding-top: 66px; /* Altura do header fixo */
+}
+
+.main-container {
+  max-width: min(1600px, 96vw);
+  margin: 18px auto;
+  padding: 0 16px;
+}
+
+.view-content {
+  width: 100%;
 }
 
 /* Transições de página */

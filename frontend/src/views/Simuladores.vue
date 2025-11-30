@@ -2,8 +2,6 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { getSimuladorProducts, type SimuladorProduct } from '../services/simuladorService'
 import { formatPoints, formatByMetric, formatBRLReadable } from '../utils/formatUtils'
-import Filters from '../components/Filters.vue'
-import TabsNavigation from '../components/TabsNavigation.vue'
 
 // Estado do simulador
 const selectedIndicatorId = ref<string>('')
@@ -167,11 +165,7 @@ watch(selectedIndicatorId, () => {
 
 <template>
   <div class="simuladores-wrapper">
-    <div class="container">
-      <Filters />
-      <TabsNavigation />
-
-      <div class="simuladores-view">
+    <div class="simuladores-view">
         <section class="card card--simuladores">
           <header class="card__header">
             <div class="title-subtitle">
@@ -444,7 +438,6 @@ watch(selectedIndicatorId, () => {
         </section>
       </div>
     </div>
-  </div>
 </template>
 
 <style scoped>
@@ -468,12 +461,6 @@ watch(selectedIndicatorId, () => {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   box-sizing: border-box;
-}
-
-.container {
-  max-width: min(1600px, 96vw);
-  margin: 18px auto;
-  padding: 0 16px;
 }
 
 .simuladores-view {

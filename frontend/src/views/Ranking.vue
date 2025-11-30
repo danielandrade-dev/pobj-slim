@@ -3,8 +3,6 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { getRanking, type RankingItem, type RankingFilters } from '../services/rankingService'
 import { useGlobalFilters } from '../composables/useGlobalFilters'
 import { formatINT } from '../utils/formatUtils'
-import Filters from '../components/Filters.vue'
-import TabsNavigation from '../components/TabsNavigation.vue'
 
 const { filterState, period } = useGlobalFilters()
 
@@ -317,11 +315,7 @@ const shouldMaskName = (item: any, index: number): boolean => {
 
 <template>
   <div class="ranking-wrapper">
-    <div class="container">
-      <Filters />
-      <TabsNavigation />
-
-      <div class="ranking-view">
+    <div class="ranking-view">
         <!-- Skeleton Loading -->
         <template v-if="loading">
           <div class="ranking-content">
@@ -431,7 +425,6 @@ const shouldMaskName = (item: any, index: number): boolean => {
         </template>
       </div>
     </div>
-  </div>
 </template>
 
 <style scoped>
@@ -459,11 +452,6 @@ const shouldMaskName = (item: any, index: number): boolean => {
   box-sizing: border-box;
 }
 
-.container {
-  max-width: min(1600px, 96vw);
-  margin: 18px auto;
-  padding: 0 16px;
-}
 
 .ranking-view {
   width: 100%;
