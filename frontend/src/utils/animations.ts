@@ -129,7 +129,7 @@ export function staggerChildren(
   const children = Array.from(parent.querySelectorAll(selector)) as HTMLElement[]
   return children.map((child, index) => {
     const anim = animationFn(child)
-    anim.startTime = anim.startTime + (index * delay)
+    anim.startTime = (anim.startTime as number) + (index * delay)
     return anim
   })
 }

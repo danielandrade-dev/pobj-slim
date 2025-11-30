@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { getSimuladorProducts, type SimuladorProduct } from '../services/simuladorService'
 import { formatPoints, formatByMetric, formatBRLReadable } from '../utils/formatUtils'
-import Select from '../components/Select.vue'
+import SelectInput from '../components/SelectInput.vue'
 import type { FilterOption } from '../types'
 
 // Estado do simulador
@@ -25,7 +25,7 @@ const loadData = async () => {
       catalog.value = data
       // Seleciona o primeiro produto se não houver seleção
       if (catalog.value.length > 0 && !selectedIndicatorId.value) {
-        selectedIndicatorId.value = catalog.value[0].id
+        selectedIndicatorId.value = catalog.value[0]?.id || ''
       }
     } else {
       error.value = 'Erro ao carregar produtos'
@@ -50,7 +50,7 @@ const selectedProduct = computed(() => {
 })
 
 // Agrupa indicadores por seção
-const groupedCatalog = computed(() => {
+const _groupedCatalog = computed(() => {
   const groups = new Map<string, SimuladorProduct[]>()
   catalog.value.forEach(item => {
     const key = item.sectionId || item.sectionLabel || '__'
@@ -216,7 +216,7 @@ const deltaDisplay = computed({
       // Se tiver ponto, pode ser separador de milhar ou decimal
       // Para valores grandes, assume separador de milhar
       const parts = cleaned.split('.')
-      if (parts.length === 2 && parts[1].length <= 2) {
+      if (parts.length === 2 && parts[1]?.length && parts[1]?.length <= 2) {
         // Decimal (ex: 123.45)
         cleaned = cleaned.replace('.', '')
       } else {
@@ -289,7 +289,7 @@ const formatDeltaDisplay = (value: number): string => {
               <form id="sim-whatif-form" class="sim-whatif__form" @submit.prevent>
                 <div class="sim-whatif__field">
                   <label for="sim-whatif-indicador" class="muted">INDICADOR</label>
-                  <Select
+                  <SelectInput
                     id="sim-whatif-indicador"
                     :model-value="selectedIndicatorId"
                     :options="selectOptions"

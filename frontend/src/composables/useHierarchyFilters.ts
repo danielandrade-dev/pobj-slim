@@ -90,8 +90,6 @@ const normalizeOption = (item: any, fieldType?: 'segmento' | 'diretoria' | 'regi
     id_agencia: idAgencia ? normalizeId(idAgencia) : undefined,
     id_gestor: idGestor ? normalizeId(idGestor) : undefined,
     funcional,
-    // Preserva o ID original numérico para comparações hierárquicas
-    id_original: idOriginal
   }
 }
 
@@ -190,7 +188,7 @@ export function useHierarchyFilters(estruturaData: Ref<InitData | null>) {
     if (agencia.value) {
       const agenciaMeta = findItemMeta(agencia.value, allAgencias.value)
       if (agenciaMeta) {
-        const agenciaIdNumero = normalizeId(agenciaMeta.id_original || agenciaMeta.id)
+        const agenciaIdNumero = normalizeId(agenciaMeta.id_agencia || agenciaMeta.id)
         filtered = filtered.filter(opt => {
           // opt.id_agencia é o ID numérico da agência do gerente de gestão
           const optAgenciaId = normalizeId(opt.id_agencia || '')
@@ -209,7 +207,7 @@ export function useHierarchyFilters(estruturaData: Ref<InitData | null>) {
         const gestorId = normalizeId(gerenteMeta.id_gestor)
         // Compara com o id_original (numérico) do gerente de gestão
         filtered = filtered.filter(opt => {
-          const optIdOriginal = normalizeId(opt.id_original || '')
+          const optIdOriginal = normalizeId(opt.id_gestor || '')
           return optIdOriginal === gestorId
         })
       } else {
@@ -232,7 +230,7 @@ export function useHierarchyFilters(estruturaData: Ref<InitData | null>) {
 
       // O id_gestor do gerente é o ID numérico do gerente de gestão
       // Compara com o id_original (numérico) do gerente de gestão
-      const ggestaoIdOriginal = normalizeId(ggestaoMeta.id_original || '')
+      const ggestaoIdOriginal = normalizeId(ggestaoMeta.id_gestor || '')
 
       filtered = filtered.filter(opt => {
         if (!opt.id_gestor) return false
@@ -272,7 +270,7 @@ export function useHierarchyFilters(estruturaData: Ref<InitData | null>) {
         if (diretoriaMeta?.id_segmento) {
           // Encontra o segmento pelo ID numérico
           const segmentoMatch = allSegmentos.value.find(s => 
-            normalizeId(s.id_original || s.id) === normalizeId(diretoriaMeta.id_segmento)
+            normalizeId(s.id_segmento || s.id) === normalizeId(diretoriaMeta.id_segmento)
           )
           if (segmentoMatch) {
             segmento.value = normalizeId(segmentoMatch.id)
@@ -289,14 +287,14 @@ export function useHierarchyFilters(estruturaData: Ref<InitData | null>) {
         if (gerenciaMeta?.id_diretoria) {
           // Encontra a diretoria pelo ID numérico
           const diretoriaMatch = allDiretorias.value.find(d => 
-            normalizeId(d.id_original || d.id) === normalizeId(gerenciaMeta.id_diretoria)
+            normalizeId(d.id_diretoria || d.id) === normalizeId(gerenciaMeta.id_diretoria)
           )
           if (diretoriaMatch) {
             diretoria.value = normalizeId(diretoriaMatch.id)
             // Encontra o segmento pelo ID numérico
             if (diretoriaMatch.id_segmento) {
               const segmentoMatch = allSegmentos.value.find(s => 
-                normalizeId(s.id_original || s.id) === normalizeId(diretoriaMatch.id_segmento)
+                normalizeId(s.id_segmento || s.id) === normalizeId(diretoriaMatch.id_segmento)
               )
               if (segmentoMatch) {
                 segmento.value = normalizeId(segmentoMatch.id)
@@ -315,21 +313,21 @@ export function useHierarchyFilters(estruturaData: Ref<InitData | null>) {
           if (agenciaMeta.id_regional) {
             // Encontra a regional pelo ID numérico
             const gerenciaMatch = allRegionais.value.find(r => 
-              normalizeId(r.id_original || r.id) === normalizeId(agenciaMeta.id_regional)
+              normalizeId(r.id_regional || r.id) === normalizeId(agenciaMeta.id_regional)
             )
             if (gerenciaMatch) {
               gerencia.value = normalizeId(gerenciaMatch.id)
               // Encontra a diretoria pelo ID numérico
               if (gerenciaMatch.id_diretoria) {
                 const diretoriaMatch = allDiretorias.value.find(d => 
-                  normalizeId(d.id_original || d.id) === normalizeId(gerenciaMatch.id_diretoria)
+                  normalizeId(d.id_diretoria || d.id) === normalizeId(gerenciaMatch.id_diretoria)
                 )
                 if (diretoriaMatch) {
                   diretoria.value = normalizeId(diretoriaMatch.id)
                   // Encontra o segmento pelo ID numérico
                   if (diretoriaMatch.id_segmento) {
                     const segmentoMatch = allSegmentos.value.find(s => 
-                      normalizeId(s.id_original || s.id) === normalizeId(diretoriaMatch.id_segmento)
+                      normalizeId(s.id_segmento || s.id) === normalizeId(diretoriaMatch.id_segmento)
                     )
                     if (segmentoMatch) {
                       segmento.value = normalizeId(segmentoMatch.id)
@@ -349,28 +347,28 @@ export function useHierarchyFilters(estruturaData: Ref<InitData | null>) {
         if (ggestaoMeta?.id_agencia) {
           // Encontra a agência pelo ID numérico
           const agenciaMatch = allAgencias.value.find(a => 
-            normalizeId(a.id_original || a.id) === normalizeId(ggestaoMeta.id_agencia)
+            normalizeId(a.id_agencia || a.id) === normalizeId(ggestaoMeta.id_agencia)
           )
           if (agenciaMatch) {
             agencia.value = normalizeId(agenciaMatch.id)
             // Encontra a regional pelo ID numérico
             if (agenciaMatch.id_regional) {
               const gerenciaMatch = allRegionais.value.find(r => 
-                normalizeId(r.id_original || r.id) === normalizeId(agenciaMatch.id_regional)
+                normalizeId(r.id_regional || r.id) === normalizeId(agenciaMatch.id_regional)
               )
               if (gerenciaMatch) {
                 gerencia.value = normalizeId(gerenciaMatch.id)
                 // Encontra a diretoria pelo ID numérico
                 if (gerenciaMatch.id_diretoria) {
                   const diretoriaMatch = allDiretorias.value.find(d => 
-                    normalizeId(d.id_original || d.id) === normalizeId(gerenciaMatch.id_diretoria)
+                    normalizeId(d.id_diretoria || d.id) === normalizeId(gerenciaMatch.id_diretoria)
                   )
                   if (diretoriaMatch) {
                     diretoria.value = normalizeId(diretoriaMatch.id)
                     // Encontra o segmento pelo ID numérico
                     if (diretoriaMatch.id_segmento) {
                       const segmentoMatch = allSegmentos.value.find(s => 
-                        normalizeId(s.id_original || s.id) === normalizeId(diretoriaMatch.id_segmento)
+                        normalizeId(s.id_segmento || s.id) === normalizeId(diretoriaMatch.id_segmento)
                       )
                       if (segmentoMatch) {
                         segmento.value = normalizeId(segmentoMatch.id)
@@ -393,7 +391,7 @@ export function useHierarchyFilters(estruturaData: Ref<InitData | null>) {
           // O id_gestor do gerente é o ID numérico do gerente de gestão
           // Compara com o id_original (numérico) do gerente de gestão
           const ggestaoMatch = allGerentesGestao.value.find(gg => {
-            const ggIdOriginal = gg.id_original || gg.id
+            const ggIdOriginal = gg.id_gestor || gg.id
             const ggIdOriginalNormalized = normalizeId(ggIdOriginal)
             return ggIdOriginalNormalized === gestorId
           })
@@ -408,28 +406,28 @@ export function useHierarchyFilters(estruturaData: Ref<InitData | null>) {
             if (ggestaoMeta?.id_agencia) {
               // Encontra a agência pelo ID numérico
               const agenciaMatch = allAgencias.value.find(a => 
-                normalizeId(a.id_original || a.id) === normalizeId(ggestaoMeta.id_agencia)
+                normalizeId(a.id_agencia || a.id) === normalizeId(ggestaoMeta.id_agencia)
               )
               if (agenciaMatch) {
                 agencia.value = normalizeId(agenciaMatch.id)
                 // Encontra a regional pelo ID numérico
                 if (agenciaMatch.id_regional) {
                   const gerenciaMatch = allRegionais.value.find(r => 
-                    normalizeId(r.id_original || r.id) === normalizeId(agenciaMatch.id_regional)
+                    normalizeId(r.id_regional || r.id) === normalizeId(agenciaMatch.id_regional)
                   )
                   if (gerenciaMatch) {
                     gerencia.value = normalizeId(gerenciaMatch.id)
                     // Encontra a diretoria pelo ID numérico
                     if (gerenciaMatch.id_diretoria) {
                       const diretoriaMatch = allDiretorias.value.find(d => 
-                        normalizeId(d.id_original || d.id) === normalizeId(gerenciaMatch.id_diretoria)
+                        normalizeId(d.id_diretoria || d.id) === normalizeId(gerenciaMatch.id_diretoria)
                       )
                       if (diretoriaMatch) {
                         diretoria.value = normalizeId(diretoriaMatch.id)
                         // Encontra o segmento pelo ID numérico
                         if (diretoriaMatch.id_segmento) {
                           const segmentoMatch = allSegmentos.value.find(s => 
-                            normalizeId(s.id_original || s.id) === normalizeId(diretoriaMatch.id_segmento)
+                            normalizeId(s.id_segmento || s.id) === normalizeId(diretoriaMatch.id_segmento)
                           )
                           if (segmentoMatch) {
                             segmento.value = normalizeId(segmentoMatch.id)

@@ -8,7 +8,7 @@ import { useAccumulatedView, syncPeriodFromAccumulatedView } from '../composable
 import { useGlobalFilters } from '../composables/useGlobalFilters'
 import Button from './Button.vue'
 import SelectSearch from './SelectSearch.vue'
-import Select from './Select.vue'
+import SelectInput from './SelectInput.vue'
 import type { FilterOption } from '../types'
  
 
@@ -444,7 +444,7 @@ watch(() => period.value, (newPeriod) => {
         </div>
         <div class="filters__group">
           <label>Status dos indicadores</label>
-          <Select
+          <SelectInput
             id="f-status-kpi"
             :model-value="selectedStatusKpi"
             :options="statusKpiOptions"
@@ -456,7 +456,7 @@ watch(() => period.value, (newPeriod) => {
         </div>
         <div class="filters__group">
           <label>Visão acumulada</label>
-          <Select
+          <SelectInput
             id="f-visao"
             :model-value="accumulatedView"
             :options="visaoAcumuladaOptions"

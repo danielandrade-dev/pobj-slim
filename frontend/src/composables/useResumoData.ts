@@ -79,7 +79,7 @@ function filtersEqual(f1: ResumoFilters, f2: ResumoFilters): boolean {
   }
   
   for (const key of keys1) {
-    if (f1[key] !== f2[key]) {
+    if (f1[key as keyof ResumoFilters] !== f2[key as keyof ResumoFilters]) {
       return false
     }
   }
