@@ -32,6 +32,7 @@ const render = useOmegaRender(omega, filters, bulk)
 const isOpen = ref(false)
 const modalRoot = ref<HTMLElement | null>(null)
 const omegaTemplateHtml = omegaTemplate
+const sidebarCollapsed = ref(false)
 
 const addedBodyClasses = ['omega-standalone', 'has-omega-open']
 
@@ -255,6 +256,43 @@ function showErrorState(root: HTMLElement | null) {
 
 function renderOmegaData() {
   render.renderOmegaData()
+  applySidebarState()
+}
+
+function setSidebarCollapsed(collapsed: boolean) {
+  sidebarCollapsed.value = !!collapsed
+  applySidebarState()
+}
+
+function applySidebarState() {
+  const root = document.getElementById('omega-modal')
+  if (!root) return
+  
+  const collapsed = sidebarCollapsed.value
+  const body = root.querySelector('.omega-body')
+  const sidebar = root.querySelector('#omega-sidebar')
+  const toggle = root.querySelector('#omega-sidebar-toggle')
+  
+  if (body) {
+    body.setAttribute('data-sidebar-collapsed', collapsed ? 'true' : 'false')
+  }
+  
+  if (sidebar) {
+    sidebar.setAttribute('data-collapsed', collapsed ? 'true' : 'false')
+  }
+  
+  if (toggle) {
+    toggle.setAttribute('data-collapsed', collapsed ? 'true' : 'false')
+    toggle.setAttribute('aria-pressed', collapsed ? 'true' : 'false')
+    toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true')
+    const label = collapsed ? 'Expandir menu' : 'Recolher menu'
+    toggle.setAttribute('aria-label', label)
+    toggle.setAttribute('title', label)
+    const icon = toggle.querySelector('i')
+    if (icon) {
+      icon.className = collapsed ? 'ti ti-chevron-right' : 'ti ti-chevron-left'
+    }
+  }
 }
 
 // Funções de renderização movidas para useOmegaRender composable
@@ -309,7 +347,11 @@ function setupFilterControls(root: HTMLElement) {
     filters.toggleFilterPanel()
     const modalElement = document.getElementById('omega-modal')
     if (modalElement) {
-      const panel = modalElement.querySelector('#omega-filter-panel') as HTMLElement
+      let panel = modalElement.querySelector('#omega-filter-panel') as HTMLElement
+      // Se o painel não está no body, move para o body para garantir z-index correto acima do header da tabela
+      if (panel && panel.parentElement !== document.body) {
+        document.body.appendChild(panel)
+      }
       const toggle = modalElement.querySelector('#omega-filters-toggle')
       if (panel) panel.hidden = !filters.filterPanelOpen.value
       if (toggle) toggle.setAttribute('aria-expanded', filters.filterPanelOpen.value ? 'true' : 'false')
@@ -366,6 +408,11 @@ function openModal() {
   // Força a atualização da visibilidade primeiro
   nextTick(() => {
     updateModalVisibility(true)
+    
+    // Aplica estado inicial da sidebar
+    nextTick(() => {
+      applySidebarState()
+    })
     
     // Se os dados já estão carregados, renderiza imediatamente
     if (omega.initData.value && omega.tickets.value.length > 0) {
@@ -499,6 +546,16 @@ onMounted(() => {
         
         // Adiciona listeners para bulk status
         bulk.setupBulkControls(modalElement, renderOmegaData)
+        
+        // Adiciona listener para toggle da sidebar
+        const sidebarToggle = modalElement.querySelector('#omega-sidebar-toggle')
+        if (sidebarToggle) {
+          sidebarToggle.addEventListener('click', () => {
+            setSidebarCollapsed(!sidebarCollapsed.value)
+          })
+          // Aplica estado inicial
+          applySidebarState()
+        }
         
         // Adiciona listener para botão de novo ticket
         const newTicketButton = modalElement.querySelector('#omega-new-ticket')
