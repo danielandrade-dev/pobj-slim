@@ -50,8 +50,7 @@ const openOmegaModal = (): void => {
   const opener =
     globalAny.__openOmegaFromVue ||
     globalAny.openOmegaModule ||
-    globalAny.openOmega ||
-    globalAny.launchOmegaStandalone
+    globalAny.openOmega
 
   if (typeof opener === 'function') {
     opener()

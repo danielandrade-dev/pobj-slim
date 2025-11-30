@@ -3,7 +3,7 @@ import Header from './components/Header.vue'
 import Footer from './components/Footer.vue'
 import Filters from './components/Filters.vue'
 import TabsNavigation from './components/TabsNavigation.vue'
-import OmegaLegacyModal from './components/OmegaLegacyModal.vue'
+import OmegaModal from './components/OmegaModal.vue'
 import { useRoute } from 'vue-router'
 import './assets/bradesco-theme.css'
 import './assets/animations.css'
@@ -38,7 +38,7 @@ const route = useRoute()
       </div>
     </main>
     <Footer />
-    <OmegaLegacyModal />
+    <OmegaModal />
   </div>
 </template>
 
