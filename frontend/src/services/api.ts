@@ -24,14 +24,12 @@ export async function apiGet<T = any>(
       })
     }
 
-    console.log('🌐 Fazendo requisição GET para:', url.toString())
     const response = await fetch(url.toString(), {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
     })
-    console.log('📡 Resposta recebida:', response.status, response.statusText)
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`)

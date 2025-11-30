@@ -93,21 +93,24 @@ export function useOmegaRender(
     const structure = omega.structure.value
     if (!structure || structure.length === 0) return
 
-    // Popula selects de departamento
-    const departmentSelects = root.querySelectorAll('[id*="department"], [id*="filter-department"]')
-    departmentSelects.forEach((select) => {
-      const selectEl = select as HTMLSelectElement
-      const currentValue = selectEl.value
+    // Popula select de departamento (apenas o do filtro)
+    const departmentSelect = root.querySelector('#omega-filter-department') as HTMLSelectElement
+    if (departmentSelect) {
+      const currentValue = departmentSelect.value
 
-      // Agrupa por departamento
+      // Remove listeners antigos para evitar duplicação
+      const newSelect = departmentSelect.cloneNode(true) as HTMLSelectElement
+      departmentSelect.parentNode?.replaceChild(newSelect, departmentSelect)
+
+      // Agrupa por departamento (usando Map para evitar duplicatas)
       const departments = new Map<string, string>()
       structure.forEach((item) => {
-        if (!departments.has(item.departamento)) {
+        if (item.departamento && !departments.has(item.departamento)) {
           departments.set(item.departamento, item.departamento_id || item.departamento)
         }
       })
 
-      selectEl.innerHTML = '<option value="">Selecione...</option>'
+      newSelect.innerHTML = '<option value="">Selecione...</option>'
       departments.forEach((id, name) => {
         const option = document.createElement('option')
         option.value = id
@@ -115,8 +118,122 @@ export function useOmegaRender(
         if (id === currentValue) {
           option.selected = true
         }
-        selectEl.appendChild(option)
+        newSelect.appendChild(option)
       })
+
+      // Adiciona listener para atualizar tipos quando departamento mudar
+      newSelect.addEventListener('change', () => {
+        renderTypeSelect(root, newSelect.value)
+      })
+    }
+
+    // Popula select de tipo de chamado
+    const deptSelect = root.querySelector('#omega-filter-department') as HTMLSelectElement
+    renderTypeSelect(root, deptSelect?.value || '')
+
+    // Renderiza status como checkboxes
+    renderStatusOptions(root)
+
+    // Popula select de prioridade
+    renderPrioritySelect(root)
+  }
+
+  function renderTypeSelect(root: HTMLElement, departmentId: string = '') {
+    const structure = omega.structure.value
+    if (!structure || structure.length === 0) return
+
+    const typeSelect = root.querySelector('#omega-filter-type') as HTMLSelectElement
+    if (!typeSelect) return
+
+    const currentValue = typeSelect.value
+
+    // Filtra tipos baseado no departamento selecionado
+    const types = new Set<string>()
+    structure.forEach((item) => {
+      if (item.tipo) {
+        // Se há departamento selecionado, filtra por ele
+        if (departmentId) {
+          const itemDeptId = item.departamento_id || item.departamento
+          if (itemDeptId === departmentId) {
+            types.add(item.tipo)
+          }
+        } else {
+          // Se não há departamento selecionado, mostra todos os tipos
+          types.add(item.tipo)
+        }
+      }
+    })
+
+    typeSelect.innerHTML = '<option value="">Todos os tipos</option>'
+    Array.from(types).sort().forEach((tipo) => {
+      const option = document.createElement('option')
+      option.value = tipo
+      option.textContent = tipo
+      if (tipo === currentValue) {
+        option.selected = true
+      }
+      typeSelect.appendChild(option)
+    })
+  }
+
+  function renderStatusOptions(root: HTMLElement) {
+    const statuses = omega.statuses.value
+    if (!statuses || statuses.length === 0) return
+
+    const statusHost = root.querySelector('#omega-filter-status')
+    if (!statusHost) return
+
+    const selectedStatuses = filters.filters.value.statuses || []
+
+    statusHost.innerHTML = ''
+    statuses.forEach((status) => {
+      const option = document.createElement('label')
+      option.className = 'omega-filter-status__option'
+      const isChecked = selectedStatuses.includes(status.id)
+      option.setAttribute('data-checked', isChecked ? 'true' : 'false')
+
+      const checkbox = document.createElement('input')
+      checkbox.type = 'checkbox'
+      checkbox.value = status.id
+      checkbox.checked = isChecked
+
+      const span = document.createElement('span')
+      span.textContent = status.label
+
+      option.appendChild(checkbox)
+      option.appendChild(span)
+
+      // Adiciona listener para atualizar estado visual
+      checkbox.addEventListener('change', () => {
+        option.setAttribute('data-checked', checkbox.checked ? 'true' : 'false')
+      })
+
+      statusHost.appendChild(option)
+    })
+  }
+
+  function renderPrioritySelect(root: HTMLElement) {
+    const prioritySelect = root.querySelector('#omega-filter-priority') as HTMLSelectElement
+    if (!prioritySelect) return
+
+    const currentValue = prioritySelect.value
+    const priorities = [
+      { value: '', label: 'Todas' },
+      { value: 'baixa', label: 'Baixa' },
+      { value: 'media', label: 'Média' },
+      { value: 'alta', label: 'Alta' },
+      { value: 'critica', label: 'Crítica' }
+    ]
+
+    prioritySelect.innerHTML = ''
+    priorities.forEach((priority) => {
+      const option = document.createElement('option')
+      option.value = priority.value
+      option.textContent = priority.label
+      if (priority.value === currentValue) {
+        option.selected = true
+      }
+      prioritySelect.appendChild(option)
     })
   }
 
@@ -312,11 +429,17 @@ export function useOmegaRender(
 
     console.log('🎨 Renderizando dados do Omega no template...')
 
-    // Renderiza usuários no select
+    // Verifica se estamos usando componentes Vue (OmegaTable)
+    const omegaTableComponent = modalElement.querySelector('.omega-table-container')
+    const isUsingVueComponents = !!omegaTableComponent
+
+    // Renderiza usuários no select (ainda necessário para o header)
     renderUsers(modalElement)
 
-    // Renderiza tickets na tabela
-    renderTickets(modalElement)
+    // Renderiza tickets na tabela APENAS se não estiver usando componentes Vue
+    if (!isUsingVueComponents) {
+      renderTickets(modalElement)
+    }
 
     // Renderiza perfil do usuário atual
     renderProfile(modalElement)
@@ -327,16 +450,21 @@ export function useOmegaRender(
     // Renderiza estrutura (departamentos e tipos) nos selects
     renderStructure(modalElement)
 
-    // Renderiza painel bulk
-    bulk.renderBulkPanel(modalElement)
+    // Renderiza select de prioridade
+    renderPrioritySelect(modalElement)
 
-    // Atualiza estado do botão de filtros
+    // Renderiza painel bulk APENAS se não estiver usando componentes Vue
+    if (!isUsingVueComponents) {
+      bulk.renderBulkPanel(modalElement)
+    }
+
+    // Atualiza estado do botão de filtros (se existir no DOM)
     const filterToggle = modalElement.querySelector('#omega-filters-toggle')
     if (filterToggle) {
       filterToggle.setAttribute('data-active', filters.hasActiveFilters() ? 'true' : 'false')
     }
 
-    console.log('✅ Renderização concluída')
+    console.log('✅ Renderização concluída', { isUsingVueComponents })
   }
 
   return {
@@ -346,6 +474,9 @@ export function useOmegaRender(
     renderStructure,
     renderTickets,
     renderOmegaData,
+    renderTypeSelect,
+    renderStatusOptions,
+    renderPrioritySelect,
     openTicketDetails
   }
 }

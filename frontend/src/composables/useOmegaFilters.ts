@@ -147,6 +147,11 @@ export function useOmegaFilters() {
     filterPanelOpen.value = false
   }
 
+  function applyFiltersFromFormValues(formValues: OmegaFilters) {
+    filters.value = { ...formValues }
+    filterPanelOpen.value = false
+  }
+
   function syncFilterFormState(root: HTMLElement) {
     const form = root.querySelector('#omega-filter-form')
     if (!form) return
@@ -198,6 +203,7 @@ export function useOmegaFilters() {
     hasActiveFilters,
     applyFilters,
     applyFiltersFromForm,
+    applyFiltersFromFormValues,
     syncFilterFormState,
     toggleFilterPanel
   }

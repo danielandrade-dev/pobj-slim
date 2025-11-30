@@ -1,8 +1,9 @@
-import { onBeforeUnmount } from 'vue'
+import { ref, computed, onBeforeUnmount } from 'vue'
 
 let fullscreenKeydownHandler: ((e: KeyboardEvent) => void) | null = null
 
 export function useOmegaFullscreen() {
+  const isFullscreen = ref(false)
   function setOmegaFullscreen(on?: boolean) {
     const root = document.getElementById('omega-modal')
     if (!root) {
@@ -26,6 +27,7 @@ export function useOmegaFullscreen() {
     console.log('📋 Classes antes:', root.className)
 
     root.classList.toggle('omega-modal--fullscreen', next)
+    isFullscreen.value = next
 
     console.log('📋 Classes depois:', root.className)
     console.log('📋 Tem classe fullscreen?', root.classList.contains('omega-modal--fullscreen'))
@@ -108,6 +110,7 @@ export function useOmegaFullscreen() {
   })
 
   return {
+    isFullscreen: computed(() => isFullscreen.value),
     setOmegaFullscreen,
     bindOmegaFullscreenControls,
     cleanup

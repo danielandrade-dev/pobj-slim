@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import type { FilterOption } from '../types'
 
 interface Props {
-  modelValue: string
+  modelValue: string | null
   options: FilterOption[]
   placeholder?: string
   label?: string

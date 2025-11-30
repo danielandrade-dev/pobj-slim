@@ -1,11 +1,16 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { useOmega } from '../composables/useOmega'
 import { useOmegaFilters } from '../composables/useOmegaFilters'
 import { useOmegaBulk } from '../composables/useOmegaBulk'
 import { useOmegaFullscreen } from '../composables/useOmegaFullscreen'
 import { useOmegaRender } from '../composables/useOmegaRender'
-import omegaTemplate from '../legacy/omega-template.html?raw'
+import OmegaFilterPanel from './OmegaFilterPanel.vue'
+import OmegaHeader from './omega/OmegaHeader.vue'
+import OmegaSidebar from './omega/OmegaSidebar.vue'
+import OmegaToolbar from './omega/OmegaToolbar.vue'
+import OmegaTable from './omega/OmegaTable.vue'
+import OmegaBulkPanel from './omega/OmegaBulkPanel.vue'
 import '../assets/omega.css'
 
 interface Props {
@@ -27,14 +32,19 @@ const omega = useOmega()
 const filters = useOmegaFilters()
 const bulk = useOmegaBulk(omega)
 const fullscreen = useOmegaFullscreen()
+const isFullscreen = computed(() => {
+  const modal = modalRoot.value
+  return modal ? modal.classList.contains('omega-modal--fullscreen') : false
+})
 const render = useOmegaRender(omega, filters, bulk)
 
 const isOpen = ref(false)
 const modalRoot = ref<HTMLElement | null>(null)
-const omegaTemplateHtml = omegaTemplate
+const mainContentRef = ref<HTMLElement | null>(null)
 const sidebarCollapsed = ref(false)
+const searchQuery = ref('')
 
-const addedBodyClasses = ['omega-standalone', 'has-omega-open']
+const addedBodyClasses = ['has-omega-open']
 
 // Estado compartilhado globalmente para permitir acesso externo
 if (typeof window !== 'undefined') {
@@ -47,35 +57,6 @@ if (typeof window !== 'undefined') {
 
 function updateModalVisibility(open: boolean) {
   isOpen.value = open
-  
-  function tryUpdateVisibility() {
-    const modalElement = document.getElementById('omega-modal')
-    if (modalElement) {
-      if (open) {
-        modalElement.removeAttribute('hidden')
-        modalElement.hidden = false
-        return true
-      } else {
-        modalElement.setAttribute('hidden', '')
-        modalElement.hidden = true
-        return true
-      }
-    }
-    return false
-  }
-  
-  // Tenta atualizar imediatamente
-  if (!tryUpdateVisibility()) {
-    // Se não encontrou, tenta novamente no próximo tick
-    nextTick(() => {
-      if (!tryUpdateVisibility()) {
-        // Se ainda não encontrou, tenta após um pequeno delay
-        setTimeout(() => {
-          tryUpdateVisibility()
-        }, 100)
-      }
-    })
-  }
 }
 
 watch(() => props.modelValue, (newValue) => {
@@ -92,15 +73,22 @@ watch(() => props.modelValue, (newValue) => {
     console.log('✅ Modal aberto, carregando dados...')
     ensureBodyState()
     loadOmegaData()
+    nextTick(() => {
+      if (isOpen.value) {
+        renderMainContent()
+      }
+    })
   } else {
     resetBodyState()
   }
 }, { immediate: true })
 
 // Observa mudanças nos dados e re-renderiza
+// Nota: Não precisa re-renderizar tickets/users quando usando componentes Vue (eles são reativos)
 watch(() => omega.tickets.value, () => {
   if (isOpen.value) {
     nextTick(() => {
+      // Apenas renderiza partes que não são componentes Vue
       renderOmegaData()
     })
   }
@@ -109,6 +97,7 @@ watch(() => omega.tickets.value, () => {
 watch(() => omega.users.value, () => {
   if (isOpen.value) {
     nextTick(() => {
+      // Apenas renderiza partes que não são componentes Vue
       renderOmegaData()
     })
   }
@@ -117,6 +106,7 @@ watch(() => omega.users.value, () => {
 watch(() => omega.currentUserId.value, () => {
   if (isOpen.value) {
     nextTick(() => {
+      // Apenas renderiza partes que não são componentes Vue
       renderOmegaData()
     })
   }
@@ -124,6 +114,8 @@ watch(() => omega.currentUserId.value, () => {
 
 watch(() => omega.currentView.value, () => {
   if (isOpen.value) {
+    // Não precisa chamar renderOmegaData() aqui porque OmegaTable é reativo
+    // Apenas renderiza partes que não são componentes Vue
     nextTick(() => {
       renderOmegaData()
     })
@@ -164,7 +156,7 @@ async function loadOmegaData() {
   console.log('🔄 Carregando dados do Omega...')
   
   // Mostra loading state
-  const modalElement = document.getElementById('omega-modal')
+  const modalElement = modalRoot.value
   if (modalElement) {
     showLoadingState(modalElement)
   }
@@ -178,7 +170,7 @@ async function loadOmegaData() {
       return
     }
     
-    // Aguarda o template HTML ser renderizado
+    // Aguarda o conteúdo ser renderizado
     nextTick(() => {
       setTimeout(() => {
         hideLoadingState(modalElement)
@@ -225,7 +217,7 @@ function showLoadingState(root: HTMLElement | null) {
 function hideLoadingState(root: HTMLElement | null) {
   if (!root) return
   
-  const mainContent = root.querySelector('.omega-main__content')
+  const mainContent = root.querySelector('.omega-main__content') || mainContentRef.value?.querySelector('.omega-main__content')
   if (mainContent) {
     mainContent.classList.remove('omega-loading')
   }
@@ -234,7 +226,7 @@ function hideLoadingState(root: HTMLElement | null) {
 function showErrorState(root: HTMLElement | null) {
   if (!root) return
   
-  const tbody = root.querySelector('#omega-ticket-rows')
+  const tbody = root.querySelector('#omega-ticket-rows') || mainContentRef.value?.querySelector('#omega-ticket-rows')
   if (tbody) {
     tbody.innerHTML = `
       <tr>
@@ -265,34 +257,76 @@ function setSidebarCollapsed(collapsed: boolean) {
 }
 
 function applySidebarState() {
-  const root = document.getElementById('omega-modal')
-  if (!root) return
-  
-  const collapsed = sidebarCollapsed.value
-  const body = root.querySelector('.omega-body')
-  const sidebar = root.querySelector('#omega-sidebar')
-  const toggle = root.querySelector('#omega-sidebar-toggle')
-  
-  if (body) {
-    body.setAttribute('data-sidebar-collapsed', collapsed ? 'true' : 'false')
+  // Sidebar state is now handled by the component itself
+}
+
+function handleNavClick(viewId: string) {
+  omega.setCurrentView(viewId as any)
+  // Não precisa chamar renderOmegaData() porque OmegaTable é reativo
+  // Apenas renderiza partes que não são componentes Vue (sidebar, etc)
+  nextTick(() => {
+    renderOmegaData()
+  })
+}
+
+function handleSearch(value: string) {
+  searchQuery.value = value
+  renderOmegaData()
+}
+
+function handleFilterToggle() {
+  filters.toggleFilterPanel()
+}
+
+function handleClearFilters() {
+  filters.resetFilters()
+  renderOmegaData()
+}
+
+function handleRefresh() {
+  omega.clearCache()
+  omega.loadInit().then(() => {
+    renderOmegaData()
+  })
+}
+
+function handleNewTicket() {
+  const drawer = modalRoot.value?.querySelector('#omega-drawer') as HTMLElement
+  if (drawer) {
+    drawer.removeAttribute('hidden')
+    drawer.hidden = false
+    populateFormOptions(modalRoot.value!)
   }
-  
-  if (sidebar) {
-    sidebar.setAttribute('data-collapsed', collapsed ? 'true' : 'false')
+}
+
+function handleBulkStatus() {
+  bulk.bulkPanelOpen.value = !bulk.bulkPanelOpen.value
+}
+
+function handleTicketClick(ticketId: string) {
+  // TODO: Implementar abertura do modal de detalhes do ticket
+  console.log('Ticket clicado:', ticketId)
+}
+
+function handleSelectAll(checked: boolean) {
+  if (checked) {
+    // Seleciona todos os tickets da página atual
+    const tickets = omega.tickets.value
+    tickets.forEach((ticket) => {
+      bulk.selectedTicketIds.value.add(ticket.id)
+    })
+  } else {
+    bulk.selectedTicketIds.value.clear()
   }
-  
-  if (toggle) {
-    toggle.setAttribute('data-collapsed', collapsed ? 'true' : 'false')
-    toggle.setAttribute('aria-pressed', collapsed ? 'true' : 'false')
-    toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true')
-    const label = collapsed ? 'Expandir menu' : 'Recolher menu'
-    toggle.setAttribute('aria-label', label)
-    toggle.setAttribute('title', label)
-    const icon = toggle.querySelector('i')
-    if (icon) {
-      icon.className = collapsed ? 'ti ti-chevron-right' : 'ti ti-chevron-left'
-    }
-  }
+}
+
+function handleBulkApply(status: string) {
+  bulk.handleBulkStatusSubmit(status)
+  renderOmegaData()
+}
+
+function handleFullscreenToggle() {
+  // Fullscreen is handled by the header component
 }
 
 // Funções de renderização movidas para useOmegaRender composable
@@ -356,6 +390,8 @@ function setupFilterControls(root: HTMLElement) {
       if (panel) panel.hidden = !filters.filterPanelOpen.value
       if (toggle) toggle.setAttribute('aria-expanded', filters.filterPanelOpen.value ? 'true' : 'false')
       if (filters.filterPanelOpen.value) {
+        // Re-renderiza estrutura para garantir que os selects estejam populados ANTES de sincronizar
+        render.renderStructure(modalElement)
         filters.syncFilterFormState(modalElement)
       }
       if (toggle) {
@@ -388,6 +424,147 @@ function setupFilterControls(root: HTMLElement) {
   }
 }
 
+function handleFilterApply() {
+  renderOmegaData() // Re-renderiza após aplicar filtros
+}
+
+function handleFilterClear() {
+  renderOmegaData() // Re-renderiza após limpar filtros
+}
+
+// Função para obter departamentos disponíveis para o usuário
+function getAvailableDepartmentsForUser(user: any): string[] {
+  if (!user) return []
+  
+  // Obtém departamentos únicos da estrutura
+  const departments = new Map<string, string>()
+  omega.structure.value.forEach((item) => {
+    if (item.departamento && !departments.has(item.departamento)) {
+      departments.set(item.departamento, item.departamento_id || item.departamento)
+    }
+  })
+  
+  const allDepartments = Array.from(departments.keys())
+  
+  // Se for admin, retorna todos
+  if (user.role === 'admin') return allDepartments
+  
+  // Se for usuário comum, filtra Matriz se não tiver acesso
+  if (user.role === 'usuario') {
+    return user.matrixAccess ? allDepartments : allDepartments.filter((d) => d !== 'Matriz')
+  }
+  
+  // Para outros roles, retorna todos por enquanto
+  return allDepartments
+}
+
+// Função para obter tipos de chamado por departamento
+function getTicketTypesForDepartment(department: string): string[] {
+  if (!department) return []
+  
+  const types = new Set<string>()
+  omega.structure.value.forEach((item) => {
+    if (item.departamento === department && item.tipo) {
+      types.add(item.tipo)
+    }
+  })
+  
+  return Array.from(types).sort()
+}
+
+// Função para sincronizar opções de tipo baseado no departamento
+function syncTicketTypeOptions(container: HTMLElement, department: string, options: { preserveSelection?: boolean; selectedType?: string } = {}) {
+  const typeSelect = container.querySelector('#omega-form-type') as HTMLSelectElement
+  if (!typeSelect) return
+  
+  const types = getTicketTypesForDepartment(department)
+  const previousValue = options.preserveSelection ? (options.selectedType || typeSelect.value || '') : (options.selectedType || '')
+  
+  if (types.length) {
+    const placeholder = '<option value="">Selecione o tipo de chamado</option>'
+    typeSelect.innerHTML = [
+      placeholder,
+      ...types.map((type) => `<option value="${escapeHTML(type)}">${escapeHTML(type)}</option>`)
+    ].join('')
+    
+    const nextValue = previousValue && types.includes(previousValue) ? previousValue : ''
+    if (nextValue) {
+      typeSelect.value = nextValue
+    } else {
+      typeSelect.value = ''
+      typeSelect.selectedIndex = 0
+    }
+  } else {
+    typeSelect.innerHTML = '<option value="" disabled>Selecione um departamento primeiro</option>'
+    typeSelect.value = ''
+  }
+  
+  typeSelect.disabled = !types.length
+}
+
+// Função para escapar HTML
+function escapeHTML(value: string): string {
+  if (!value) return ''
+  const div = document.createElement('div')
+  div.textContent = value
+  return div.innerHTML
+}
+
+// Função para popular opções do formulário de novo ticket
+function populateFormOptions(root: HTMLElement) {
+  const form = root.querySelector('#omega-form')
+  if (!form) return
+  
+  const user = omega.currentUser.value
+  if (!user) return
+  
+  const departmentSelect = form.querySelector('#omega-form-department') as HTMLSelectElement
+  const requesterDisplay = form.querySelector('#omega-form-requester')
+  
+  // Atualiza nome do solicitante
+  if (requesterDisplay) {
+    requesterDisplay.textContent = user.name || '—'
+  }
+  
+  // Popula departamentos
+  if (departmentSelect) {
+    const departments = getAvailableDepartmentsForUser(user)
+    const previous = departmentSelect.value
+    
+    if (departments.length) {
+      const placeholder = '<option value="">Selecione um departamento</option>'
+      departmentSelect.innerHTML = [
+        placeholder,
+        ...departments.map((dept) => `<option value="${escapeHTML(dept)}">${escapeHTML(dept)}</option>`)
+      ].join('')
+      
+      const nextValue = previous && departments.includes(previous) ? previous : ''
+      if (nextValue) {
+        departmentSelect.value = nextValue
+      } else {
+        departmentSelect.value = ''
+        departmentSelect.selectedIndex = 0
+      }
+    } else {
+      departmentSelect.innerHTML = '<option value="" disabled>Nenhum departamento disponível</option>'
+      departmentSelect.value = ''
+    }
+    
+    departmentSelect.disabled = !departments.length
+    
+    // Remove listeners antigos e adiciona novo listener para mudança de departamento
+    const newDeptSelect = departmentSelect.cloneNode(true) as HTMLSelectElement
+    departmentSelect.parentNode?.replaceChild(newDeptSelect, departmentSelect)
+    
+    newDeptSelect.addEventListener('change', () => {
+      syncTicketTypeOptions(form as HTMLElement, newDeptSelect.value, { preserveSelection: false })
+    })
+    
+    // Sincroniza tipos iniciais
+    syncTicketTypeOptions(form as HTMLElement, newDeptSelect.value, { preserveSelection: true })
+  }
+}
+
 // Funções de bulk movidas para useOmegaBulk composable
 
 // Funções de fullscreen movidas para useOmegaFullscreen composable
@@ -409,20 +586,23 @@ function openModal() {
   nextTick(() => {
     updateModalVisibility(true)
     
+    // Renderiza o conteúdo principal primeiro
+    renderMainContent()
+    
     // Aplica estado inicial da sidebar
     nextTick(() => {
       applySidebarState()
+      
+      // Se os dados já estão carregados, renderiza imediatamente
+      if (omega.initData.value && omega.tickets.value.length > 0) {
+        setTimeout(() => {
+          renderOmegaData()
+        }, 100)
+      } else {
+        // Caso contrário, carrega os dados
+        loadOmegaData()
+      }
     })
-    
-    // Se os dados já estão carregados, renderiza imediatamente
-    if (omega.initData.value && omega.tickets.value.length > 0) {
-      setTimeout(() => {
-        renderOmegaData()
-      }, 100)
-    } else {
-      // Caso contrário, carrega os dados
-      loadOmegaData()
-    }
   })
 }
 
@@ -507,109 +687,157 @@ function unregisterGlobalOpener() {
   }
 }
 
-onMounted(() => {
-  registerGlobalOpener()
+function renderMainContent() {
+  // Aguarda o ref estar disponível
+  if (!mainContentRef.value) {
+    console.warn('⚠️ mainContentRef não está disponível ainda, tentando novamente...')
+    nextTick(() => {
+      setTimeout(() => {
+        renderMainContent()
+      }, 50)
+    })
+    return
+  }
   
-  // Aguarda a renderização do template HTML
+  console.log('✅ Renderizando drawer do Omega')
+  
+  // Renderiza apenas o drawer (toolbar, tabela e bulk panel agora são componentes Vue)
+  const contentHtml = `
+    <div id="omega-drawer" class="omega-drawer" hidden>
+      <div class="omega-drawer__overlay" data-omega-drawer-close></div>
+      <section class="omega-drawer__panel" role="dialog" aria-modal="true" aria-labelledby="omega-drawer-title">
+        <header class="omega-drawer__header">
+          <div>
+            <h3 id="omega-drawer-title">Novo chamado</h3>
+            <p id="omega-drawer-desc">Preencha os campos abaixo para registrar o chamado com agilidade.</p>
+          </div>
+          <button class="omega-icon-btn" type="button" data-omega-drawer-close aria-label="Fechar formulário">
+            <i class="ti ti-x"></i>
+          </button>
+        </header>
+        <div id="omega-form-feedback" class="omega-feedback" role="alert" hidden></div>
+        <form id="omega-form" class="omega-form">
+          <div class="omega-field omega-field--static" aria-live="polite">
+            <span class="omega-field__label">Solicitante</span>
+            <div id="omega-form-requester" class="omega-field__static">—</div>
+          </div>
+          <div class="omega-form__grid">
+            <label class="omega-field" for="omega-form-department">
+              <span class="omega-field__label">Departamento</span>
+              <select id="omega-form-department" class="omega-select" required></select>
+            </label>
+            <label class="omega-field" for="omega-form-type">
+              <span class="omega-field__label">Tipo de chamado</span>
+              <select id="omega-form-type" class="omega-select" required></select>
+            </label>
+          </div>
+          <label class="omega-field" for="omega-form-observation">
+            <span class="omega-field__label">Observação</span>
+            <textarea id="omega-form-observation" class="omega-textarea" rows="6" placeholder="Descreva a demanda" required></textarea>
+          </label>
+          <section id="omega-form-flow" class="omega-form-flow" hidden aria-hidden="true" data-omega-flow>
+            <header class="omega-form-flow__header">
+              <h4>Fluxo de aprovações</h4>
+              <p>Esta transferência exige os de acordo dos gerentes listados abaixo.</p>
+            </header>
+            <div class="omega-form-flow__approvals">
+              <article class="omega-flow-approval">
+                <div class="omega-flow-approval__icon" aria-hidden="true"><i class="ti ti-user-check"></i></div>
+                <div class="omega-flow-approval__body">
+                  <span class="omega-flow-approval__label">Gerente da agência solicitante</span>
+                  <label class="omega-field" for="omega-flow-requester-name">
+                    <span class="omega-field__label">Nome completo</span>
+                    <input id="omega-flow-requester-name" class="omega-input" type="text" placeholder="Informe o gerente responsável"/>
+                  </label>
+                  <label class="omega-field" for="omega-flow-requester-email">
+                    <span class="omega-field__label">E-mail corporativo</span>
+                    <input id="omega-flow-requester-email" class="omega-input" type="email" placeholder="nome.sobrenome@empresa.com"/>
+                  </label>
+                </div>
+              </article>
+              <article class="omega-flow-approval">
+                <div class="omega-flow-approval__icon" aria-hidden="true"><i class="ti ti-building-bank"></i></div>
+                <div class="omega-flow-approval__body">
+                  <span class="omega-flow-approval__label">Gerente da agência cedente</span>
+                  <label class="omega-field" for="omega-flow-target-name">
+                    <span class="omega-field__label">Nome completo</span>
+                    <input id="omega-flow-target-name" class="omega-input" type="text" placeholder="Informe o gerente responsável"/>
+                  </label>
+                  <label class="omega-field" for="omega-flow-target-email">
+                    <span class="omega-field__label">E-mail corporativo</span>
+                    <input id="omega-flow-target-email" class="omega-input" type="email" placeholder="nome.sobrenome@empresa.com"/>
+                  </label>
+                </div>
+              </article>
+            </div>
+            <p class="omega-form-flow__hint">Após os dois de acordo, o chamado entra automaticamente na fila de Encarteiramento.</p>
+          </section>
+          <div class="omega-field omega-field--attachments">
+            <span class="omega-field__label" id="omega-form-file-label">Arquivos</span>
+            <input id="omega-form-file" class="sr-only" type="file" multiple aria-labelledby="omega-form-file-label"/>
+            <div class="omega-attachments">
+              <div class="omega-attachments__actions">
+                <button class="omega-btn" type="button" data-omega-add-file>
+                  <i class="ti ti-paperclip"></i>
+                  <span>Adicionar arquivo</span>
+                </button>
+              </div>
+              <ul id="omega-form-attachments" class="omega-attachments__list" aria-live="polite"></ul>
+            </div>
+          </div>
+          <input id="omega-form-product" type="hidden"/>
+          <input id="omega-form-subject" type="hidden"/>
+          <footer class="omega-form__actions">
+            <button class="omega-btn" type="button" data-omega-drawer-close>Cancelar</button>
+            <button class="omega-btn omega-btn--primary" type="submit">
+              <i class="ti ti-device-floppy"></i>
+              <span>Salvar</span>
+            </button>
+          </footer>
+        </form>
+      </section>
+    </div>
+  `
+  
+  mainContentRef.value.innerHTML = contentHtml
+  
+  // Setup dos listeners do drawer após renderizar
   nextTick(() => {
-    // Aguarda um pouco mais para garantir que o v-html foi processado
-    setTimeout(() => {
-      const modalElement = document.getElementById('omega-modal')
-      if (modalElement) {
-        // Remove o atributo hidden inicial se o modal deve estar aberto
-        if (props.modelValue || isOpen.value) {
-          modalElement.removeAttribute('hidden')
-          modalElement.hidden = false
-        }
-        
-        // Adiciona listeners para fechar o modal
-        const closeButtons = modalElement.querySelectorAll('[data-omega-close]')
-        closeButtons.forEach((btn) => {
-          btn.addEventListener('click', closeModal)
-        })
-        
-        const overlay = modalElement.querySelector('.omega-modal__overlay')
-        if (overlay) {
-          overlay.addEventListener('click', closeModal)
-        }
-        
-        // Adiciona listener para botão de refresh (igual ao código antigo)
-        const refreshButton = modalElement.querySelector('#omega-refresh')
-        if (refreshButton) {
-          refreshButton.addEventListener('click', () => {
-            refreshTicketList(refreshButton as HTMLElement)
-          })
-        }
-        
-        // Adiciona listeners para filtros
-        setupFilterControls(modalElement)
-        
-        // Adiciona listeners para bulk status
-        bulk.setupBulkControls(modalElement, renderOmegaData)
-        
-        // Adiciona listener para toggle da sidebar
-        const sidebarToggle = modalElement.querySelector('#omega-sidebar-toggle')
-        if (sidebarToggle) {
-          sidebarToggle.addEventListener('click', () => {
-            setSidebarCollapsed(!sidebarCollapsed.value)
-          })
-          // Aplica estado inicial
-          applySidebarState()
-        }
-        
-        // Adiciona listener para botão de novo ticket
-        const newTicketButton = modalElement.querySelector('#omega-new-ticket')
-        if (newTicketButton) {
-          newTicketButton.addEventListener('click', () => {
-            console.log('➕ Abrindo formulário de novo ticket...')
-            const drawer = modalElement.querySelector('#omega-drawer')
-            if (drawer) {
-              drawer.removeAttribute('hidden')
-            }
-          })
-        }
-        
-        // Bind dos controles de tela cheia
-        const setupFullscreenControls = () => {
-          const fsBtn = modalElement.querySelector('[data-omega-fullscreen-toggle]') as HTMLElement || 
-                        modalElement.querySelector('#omega-fullscreen') as HTMLElement
-          
-          if (fsBtn) {
-            console.log('✅ Botão encontrado, configurando fullscreen controls...')
-            fullscreen.bindOmegaFullscreenControls(modalElement)
-            return true
-          }
-          return false
-        }
-        
-        // Tenta configurar imediatamente
-        if (!setupFullscreenControls()) {
-          console.log('⏳ Botão não encontrado, aguardando...')
-          
-          // Usa MutationObserver para detectar quando o botão é adicionado
-          const observer = new MutationObserver((mutations, obs) => {
-            if (setupFullscreenControls()) {
-              obs.disconnect()
-              console.log('✅ Fullscreen controls configurados via MutationObserver')
-            }
-          })
-          
-          observer.observe(modalElement, {
-            childList: true,
-            subtree: true
-          })
-          
-          // Timeout de segurança
-          setTimeout(() => {
-            observer.disconnect()
-            if (!setupFullscreenControls()) {
-              console.warn('⚠️ Não foi possível configurar fullscreen controls após timeout')
-            }
-          }, 2000)
+    const modalElement = modalRoot.value
+    if (!modalElement) return
+    
+    // Adiciona listeners para fechar o drawer
+    const drawerCloseButtons = modalElement.querySelectorAll('[data-omega-drawer-close]')
+    drawerCloseButtons.forEach((btn) => {
+      const closeHandler = () => {
+        const drawer = modalElement.querySelector('#omega-drawer') as HTMLElement
+        if (drawer) {
+          drawer.hidden = true
+          drawer.setAttribute('hidden', '')
         }
       }
-    }, 50)
+      btn.removeEventListener('click', closeHandler)
+      btn.addEventListener('click', closeHandler)
+    })
+    
+    // Listener para overlay do drawer
+    const drawerOverlay = modalElement.querySelector('.omega-drawer__overlay')
+    if (drawerOverlay) {
+      const overlayHandler = () => {
+        const drawer = modalElement.querySelector('#omega-drawer') as HTMLElement
+        if (drawer) {
+          drawer.hidden = true
+          drawer.setAttribute('hidden', '')
+        }
+      }
+      drawerOverlay.removeEventListener('click', overlayHandler)
+      drawerOverlay.addEventListener('click', overlayHandler)
+    }
   })
+}
+
+onMounted(() => {
+  registerGlobalOpener()
   
   if (props.modelValue) {
     openModal()
@@ -626,35 +854,116 @@ onBeforeUnmount(() => {
 <template>
   <Teleport to="body">
     <div
+      v-if="isOpen"
+      id="omega-modal"
       ref="modalRoot"
-      class="omega-modal-wrapper"
-      v-html="omegaTemplateHtml"
-    ></div>
+      class="omega-modal"
+      :class="{ 'omega-modal--fullscreen': isFullscreen }"
+      data-omega-standalone
+    >
+      <div class="omega-modal__overlay" @click="closeModal"></div>
+      <section class="omega-modal__panel" role="dialog" aria-modal="true" aria-labelledby="omega-title">
+        <div id="omega-toast-stack" class="omega-toast-stack" aria-live="polite" aria-atomic="true"></div>
+        
+        <OmegaHeader
+          :omega="omega"
+          :fullscreen="fullscreen"
+          @close="closeModal"
+          @fullscreen-toggle="handleFullscreenToggle"
+        />
+
+        <div class="omega-body" :data-sidebar-collapsed="sidebarCollapsed ? 'true' : 'false'">
+          <OmegaSidebar
+            :omega="omega"
+            :collapsed="sidebarCollapsed"
+            @update:collapsed="sidebarCollapsed = $event"
+            @nav-click="handleNavClick"
+          />
+
+          <section class="omega-main">
+            <div id="omega-breadcrumb" class="omega-breadcrumb"></div>
+            <div id="omega-context" class="omega-context" hidden></div>
+
+            <OmegaToolbar
+              :omega="omega"
+              :filters="filters"
+              :bulk="bulk"
+              @search="handleSearch"
+              @filter-toggle="handleFilterToggle"
+              @clear-filters="handleClearFilters"
+              @refresh="handleRefresh"
+              @new-ticket="handleNewTicket"
+              @bulk-status="handleBulkStatus"
+            />
+
+            <div id="omega-summary" class="omega-summary" aria-live="polite"></div>
+
+            <div class="omega-main__content">
+              <div id="omega-dashboard" class="omega-dashboard" hidden aria-live="polite"></div>
+              <OmegaTable
+                :omega="omega"
+                :filters="filters"
+                :bulk="bulk"
+                :search-query="searchQuery"
+                @ticket-click="handleTicketClick"
+                @select-all="handleSelectAll"
+                @new-ticket="handleNewTicket"
+              />
+            </div>
+
+            <!-- Drawer ainda renderizado via DOM por enquanto -->
+            <div ref="mainContentRef" class="omega-main__content-wrapper" style="display: none;"></div>
+          </section>
+        </div>
+      </section>
+    </div>
+    
+    <OmegaFilterPanel
+      :omega="omega"
+      :filters="filters"
+      :open="filters.filterPanelOpen.value"
+      @update:open="filters.toggleFilterPanel($event)"
+      @apply="handleFilterApply"
+      @clear="handleFilterClear"
+    />
+  </Teleport>
+
+  <Teleport to="body">
+    <OmegaBulkPanel
+      :omega="omega"
+      :bulk="bulk"
+      @close="bulk.bulkPanelOpen.value = false"
+      @cancel="handleSelectAll(false)"
+      @apply="handleBulkApply"
+    />
   </Teleport>
 </template>
 
 <style scoped>
-.omega-modal-wrapper {
-  position: fixed;
-  inset: 0;
-  z-index: 2200;
-  pointer-events: none;
+/* Garante que o modal sempre seja um overlay fixo, mesmo com omega-standalone */
+:deep(#omega-modal) {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 2200 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 24px !important;
+  pointer-events: auto !important;
 }
 
-.omega-modal-wrapper :deep(#omega-modal) {
-  position: fixed;
-  inset: 0;
-  z-index: 2200;
-  pointer-events: auto;
-}
-
-.omega-modal-wrapper :deep(#omega-modal[hidden]) {
+:deep(#omega-modal[hidden]) {
   display: none !important;
-  pointer-events: none;
+  pointer-events: none !important;
+}
+
+/* Garante que o overlay seja visível */
+:deep(#omega-modal .omega-modal__overlay) {
+  display: block !important;
 }
 
 /* Estilos para o modo tela cheia */
-.omega-modal-wrapper :deep(#omega-modal.omega-modal--fullscreen) {
+:deep(#omega-modal.omega-modal--fullscreen) {
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
@@ -668,7 +977,7 @@ onBeforeUnmount(() => {
   box-shadow: none !important;
 }
 
-.omega-modal-wrapper :deep(#omega-modal.omega-modal--fullscreen .omega-modal__panel) {
+:deep(#omega-modal.omega-modal--fullscreen .omega-modal__panel) {
   position: fixed !important;
   top: 0 !important;
   left: 0 !important;
