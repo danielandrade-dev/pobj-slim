@@ -31,7 +31,6 @@ export function formatPeso(value: number | string | null | undefined): string {
   }).format(num)
 }
 
-// Regras de sufixo para formatação abreviada
 const SUFFIX_RULES = [
   { value: 1_000_000_000_000, singular: 'trilhão', plural: 'trilhões' },
   { value: 1_000_000_000, singular: 'bilhão', plural: 'bilhões' },
@@ -48,7 +47,6 @@ function toNumber(value: number | string | null | undefined): number {
   return Number.isFinite(n) ? n : 0
 }
 
-// Formata número com sufixo (mil, milhões, etc.)
 export function formatNumberWithSuffix(value: number | string | null | undefined, options: { currency?: boolean } = {}): string {
   const n = toNumber(value)
   if (!Number.isFinite(n)) {
@@ -57,12 +55,10 @@ export function formatNumberWithSuffix(value: number | string | null | undefined
   
   const abs = Math.abs(n)
   
-  // Se for menor que 1000, formata normalmente
   if (abs < 1000) {
     return options.currency ? formatBRL(n) : new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 }).format(Math.round(n))
   }
   
-  // Encontra a regra de sufixo apropriada
   const rule = SUFFIX_RULES.find(r => abs >= r.value)
   if (!rule) {
     return options.currency ? formatBRL(n) : new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 }).format(Math.round(n))
@@ -71,7 +67,6 @@ export function formatNumberWithSuffix(value: number | string | null | undefined
   const absScaled = abs / rule.value
   const nearInteger = Math.abs(absScaled - Math.round(absScaled)) < 0.05
   
-  // Define número de casas decimais
   let digits: number
   if (absScaled >= 100) {
     digits = 0
@@ -152,17 +147,14 @@ export function formatMetricFull(metric: string, value: number | string | null |
   }
 }
 
-// Formata BRL de forma legível (abreviado)
 export function formatBRLReadable(value: number | string | null | undefined): string {
   return formatNumberWithSuffix(value, { currency: true })
 }
 
-// Formata inteiro de forma legível (abreviado)
 export function formatIntReadable(value: number | string | null | undefined): string {
   return formatNumberWithSuffix(value, { currency: false })
 }
 
-// Formata número inteiro simples (sem abreviação)
 export function formatINT(value: number | string | null | undefined): string {
   if (value === null || value === undefined || value === '') return '0'
   const num = typeof value === 'string' ? parseFloat(value) : value
@@ -173,12 +165,10 @@ export function formatINT(value: number | string | null | undefined): string {
   }).format(Math.round(num))
 }
 
-// Formata moeda (alias para formatBRL)
 export function formatCurrency(value: number | string | null | undefined): string {
   return formatBRL(value)
 }
 
-// Formata data ISO para formato brasileiro
 export function formatDate(isoDate: string | null | undefined): string {
   if (!isoDate) return '—'
   try {

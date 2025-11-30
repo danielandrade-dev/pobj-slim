@@ -45,7 +45,6 @@ export function useProdutos(filters?: Ref<ProdutoFilters | null>) {
     }
   }
 
-  // Observa mudanças nos filtros e recarrega produtos
   if (filters) {
     watch(filters, (newFilters) => {
       if (newFilters) {
@@ -55,15 +54,12 @@ export function useProdutos(filters?: Ref<ProdutoFilters | null>) {
       }
     }, { immediate: true, deep: true })
   } else {
-    // Se não houver filtros, carrega uma vez ao montar
     onMounted(() => {
       loadProdutos()
     })
   }
 
-  // Agrupa produtos por família e indicador (subindicadores são somados no indicador)
   const produtosPorFamilia = computed(() => {
-    // Primeiro, agrupa por família e depois por indicador
     const familiasMap = new Map<string, Map<string, ProdutoCard>>()
     
     produtos.value.forEach(produto => {
@@ -71,30 +67,24 @@ export function useProdutos(filters?: Ref<ProdutoFilters | null>) {
       const familiaNome = produto.familia || 'Sem Família'
       const indicadorId = produto.id_indicador || produto.id
       
-      // Ignora produtos que são apenas subindicadores (sem indicador pai)
       if (!indicadorId) {
         return
       }
       
-      // Cria o mapa de família se não existir
       if (!familiasMap.has(familiaId)) {
         familiasMap.set(familiaId, new Map())
       }
       
       const indicadoresMap = familiasMap.get(familiaId)!
       
-      // Se o indicador já existe, soma os valores dos subindicadores
       if (indicadoresMap.has(indicadorId)) {
         const cardExistente = indicadoresMap.get(indicadorId)!
         
-        // Soma os valores dos subindicadores
         cardExistente.meta = (cardExistente.meta || 0) + (produto.meta || 0)
         cardExistente.realizado = (cardExistente.realizado || 0) + (produto.realizado || 0)
         cardExistente.pontos = (cardExistente.pontos || 0) + (produto.pontos || 0)
-        // Para pontosMeta, soma os valores dos subindicadores (cada subindicador tem seu peso)
         cardExistente.pontosMeta = (cardExistente.pontosMeta || 0) + (produto.pontos_meta || produto.peso || 0)
         
-        // Atualiza a última atualização se for mais recente
         if (produto.ultima_atualizacao && (
           !cardExistente.ultimaAtualizacao || 
           produto.ultima_atualizacao > cardExistente.ultimaAtualizacao
@@ -102,13 +92,11 @@ export function useProdutos(filters?: Ref<ProdutoFilters | null>) {
           cardExistente.ultimaAtualizacao = produto.ultima_atualizacao
         }
         
-        // Recalcula o atingimento após somar os valores
         const metaVal = cardExistente.meta || 0
         const realizadoVal = cardExistente.realizado || 0
         cardExistente.ating = metaVal > 0 ? (realizadoVal / metaVal) : 0
         cardExistente.atingido = metaVal > 0 ? (realizadoVal / metaVal) >= 1 : false
       } else {
-        // Cria novo card para o indicador
         const metaVal = produto.meta || 0
         const realizadoVal = produto.realizado || 0
         const card: ProdutoCard = {
@@ -118,7 +106,6 @@ export function useProdutos(filters?: Ref<ProdutoFilters | null>) {
           familiaNome,
           indicadorId,
           indicadorNome: produto.indicador || 'Indicador',
-          // Não armazena subindicador no card principal, apenas os valores somados
           metrica: produto.metrica || 'valor',
           peso: produto.peso || 0,
           pontosMeta: produto.pontos_meta || produto.peso || 0,
@@ -134,11 +121,9 @@ export function useProdutos(filters?: Ref<ProdutoFilters | null>) {
       }
     })
     
-    // Converte o mapa em array de seções
     return Array.from(familiasMap.entries()).map(([familiaId, indicadoresMap]) => {
       const items = Array.from(indicadoresMap.values())
       
-      // Calcula totais da seção
       const pontosTotal = items.reduce((acc, item) => acc + (item.pontosMeta || 0), 0)
       const pontosHit = items.reduce((acc, item) => acc + Math.max(0, item.pontos || 0), 0)
       const metaTotal = items.reduce((acc, item) => acc + (item.meta || 0), 0)

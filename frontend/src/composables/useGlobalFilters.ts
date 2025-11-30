@@ -15,15 +15,9 @@ export interface FilterState {
   status?: string
 }
 
-// Estado global dos filtros
 const filterState = ref<FilterState>({})
-// Inicializa período com o período padrão
 const period = ref<Period>(getDefaultPeriod())
 
-/**
- * Composable global para gerenciar filtros e período
- * Permite que múltiplos componentes compartilhem o mesmo estado de filtros
- */
 export function useGlobalFilters() {
   const updateFilter = (key: keyof FilterState, value: string | undefined): void => {
     if (value === '' || value === 'Todos' || value === 'Todas') {

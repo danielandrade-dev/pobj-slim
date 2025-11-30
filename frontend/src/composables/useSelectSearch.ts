@@ -1,8 +1,3 @@
-/**
- * Composable para implementar busca em selects
- * Transforma selects normais em selects com busca quando têm data-search="true"
- */
-
 import { onMounted, onUnmounted, nextTick } from 'vue'
 
 interface SelectSearchData {
@@ -18,9 +13,6 @@ interface SelectSearchData {
 
 const selectSearchDataMap = new WeakMap<HTMLSelectElement, SelectSearchData>()
 
-/**
- * Simplifica texto para busca (remove acentos, converte para minúsculas)
- */
 const simplificarTexto = (text: string): string => {
   if (!text) return ''
   return text
@@ -30,18 +22,12 @@ const simplificarTexto = (text: string): string => {
     .trim()
 }
 
-/**
- * Escapa HTML para prevenir XSS
- */
 const escapeHTML = (text: string): string => {
   const div = document.createElement('div')
   div.textContent = text
   return div.innerHTML
 }
 
-/**
- * Inicializa busca em um select
- */
 export function initSelectSearch(select: HTMLSelectElement): void {
   if (!select || select.dataset.searchBound === '1' || select.dataset.search !== 'true') {
     return
@@ -52,13 +38,11 @@ export function initSelectSearch(select: HTMLSelectElement): void {
 
   const labelText = group.querySelector('label')?.textContent?.trim() || 'opção'
   
-  // Cria wrapper
   const wrapper = document.createElement('div')
   wrapper.className = 'select-search'
   select.parentNode?.insertBefore(wrapper, select)
   wrapper.appendChild(select)
 
-  // Cria painel de busca
   const panel = document.createElement('div')
   panel.className = 'select-search__panel'
   panel.setAttribute('role', 'listbox')
@@ -100,7 +84,6 @@ export function initSelectSearch(select: HTMLSelectElement): void {
 
   selectSearchDataMap.set(select, data)
 
-  // Event listeners
   input.addEventListener('input', () => updateSelectSearchResults(select))
   input.addEventListener('focus', () => updateSelectSearchResults(select))
   input.addEventListener('keydown', (ev) => {
@@ -153,13 +136,9 @@ export function initSelectSearch(select: HTMLSelectElement): void {
 
   select.dataset.searchBound = '1'
   
-  // Armazena opções iniciais
   storeSelectSearchOptions(select)
 }
 
-/**
- * Armazena opções do select para busca
- */
 function storeSelectSearchOptions(select: HTMLSelectElement): void {
   const data = selectSearchDataMap.get(select)
   if (!data) return
@@ -177,9 +156,6 @@ function storeSelectSearchOptions(select: HTMLSelectElement): void {
   data.options = options
 }
 
-/**
- * Atualiza resultados da busca
- */
 function updateSelectSearchResults(select: HTMLSelectElement, opts: { limit?: number; forceAll?: boolean } = {}): void {
   const data = selectSearchDataMap.get(select)
   if (!data) return
@@ -222,9 +198,6 @@ function updateSelectSearchResults(select: HTMLSelectElement, opts: { limit?: nu
   panel.hidden = false
 }
 
-/**
- * Aplica seleção da busca
- */
 function aplicarSelecaoBusca(select: HTMLSelectElement, rawValue: string): void {
   const data = selectSearchDataMap.get(select)
   if (!data) return
@@ -237,9 +210,6 @@ function aplicarSelecaoBusca(select: HTMLSelectElement, rawValue: string): void 
   select.dispatchEvent(new Event('change', { bubbles: true }))
 }
 
-/**
- * Sincroniza opções do select quando mudam
- */
 export function syncSelectSearchOptions(select: HTMLSelectElement): void {
   const data = selectSearchDataMap.get(select)
   if (!data) return
@@ -248,9 +218,6 @@ export function syncSelectSearchOptions(select: HTMLSelectElement): void {
   updateSelectSearchResults(select)
 }
 
-/**
- * Inicializa todos os selects com busca
- */
 export function initAllSelectSearch(): void {
   nextTick(() => {
     const selects = document.querySelectorAll<HTMLSelectElement>('select[data-search="true"]')
@@ -262,14 +229,10 @@ export function initAllSelectSearch(): void {
   })
 }
 
-/**
- * Composable para usar busca em selects
- */
 export function useSelectSearch() {
   onMounted(() => {
     initAllSelectSearch()
     
-    // Observa mudanças no DOM para inicializar novos selects
     const observer = new MutationObserver(() => {
       initAllSelectSearch()
     })

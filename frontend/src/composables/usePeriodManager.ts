@@ -32,7 +32,6 @@ export function usePeriodManager() {
       </div>
     `
 
-    // Re-bind do evento do botão apenas se não estiver desabilitado
     const btn = document.getElementById('btn-alterar-data') as HTMLButtonElement
     if (btn) {
       btn.disabled = isDisabled
@@ -81,8 +80,6 @@ export function usePeriodManager() {
 
     document.body.appendChild(popover)
 
-    // Posiciona relativo à viewport (o popover é FIXO)
-    // Usa requestAnimationFrame para garantir que o elemento seja renderizado
     requestAnimationFrame(() => {
       const r = anchor.getBoundingClientRect()
       const w = popover.offsetWidth || 340
@@ -94,12 +91,10 @@ export function usePeriodManager() {
       let top = r.bottom + 8
       let left = r.right - w
       
-      // Se não cabe embaixo, coloca em cima
       if (top + h + pad > vh) {
         top = Math.max(pad, r.top - h - 8)
       }
       
-      // Ajusta horizontalmente se necessário
       if (left < pad) left = pad
       if (left + w + pad > vw) {
         left = Math.max(pad, vw - w - pad)
@@ -109,7 +104,6 @@ export function usePeriodManager() {
       popover.style.left = `${left}px`
     })
 
-    // Event listeners
     const startInput = popover.querySelector('#inp-start') as HTMLInputElement
     const endInput = popover.querySelector('#inp-end') as HTMLInputElement
     const cancelBtn = popover.querySelector('#btn-cancel-period')
@@ -155,7 +149,6 @@ export function usePeriodManager() {
     updatePeriodLabels()
   })
 
-  // Observa mudanças na rota para atualizar o estado do botão
   watch(() => route.name, () => {
     updatePeriodLabels()
   })

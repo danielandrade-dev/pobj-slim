@@ -1,7 +1,6 @@
 import { ref, computed, watch, type Ref } from 'vue'
 import { getVariavel, type Variavel, type VariavelFilters } from '../services/variavelService'
 
-// Re-exporta VariavelFilters para uso em outros composables
 export type { VariavelFilters } from '../services/variavelService'
 
 export interface VariavelSummary {
@@ -10,9 +9,6 @@ export interface VariavelSummary {
   hasData: boolean
 }
 
-/**
- * Composable para calcular totais de variável agregados
- */
 export function useVariavel(filters?: Ref<VariavelFilters | null>) {
   const variavel = ref<Variavel[]>([])
   const loading = ref(false)
@@ -28,7 +24,6 @@ export function useVariavel(filters?: Ref<VariavelFilters | null>) {
         console.log('Variável carregada:', data.length, 'registros')
       } else {
         variavel.value = []
-        // Não define erro se não houver dados, apenas array vazio
       }
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Erro desconhecido'
@@ -39,7 +34,6 @@ export function useVariavel(filters?: Ref<VariavelFilters | null>) {
     }
   }
 
-  // Observa mudanças nos filtros e recarrega variável
   if (filters) {
     watch(filters, (newFilters) => {
       if (newFilters) {
@@ -50,9 +44,7 @@ export function useVariavel(filters?: Ref<VariavelFilters | null>) {
     }, { immediate: true, deep: true })
   }
 
-  // Calcula totais agregados de variável
   const summary = computed<VariavelSummary>(() => {
-    // Se ainda está carregando, retorna null
     if (loading.value) {
       return {
         varPossivel: null,
@@ -61,7 +53,6 @@ export function useVariavel(filters?: Ref<VariavelFilters | null>) {
       }
     }
 
-    // Se não há dados e já terminou de carregar, retorna null (não mostra o card)
     if (variavel.value.length === 0) {
       return {
         varPossivel: null,
@@ -75,7 +66,6 @@ export function useVariavel(filters?: Ref<VariavelFilters | null>) {
 
     variavel.value.forEach(v => {
       if (!v) return
-      // O backend retorna variavel_meta e variavel_real no DTO
       const meta = Number(v.variavel_meta) || 0
       const real = Number(v.variavel_real) || 0
       totalMeta += meta
@@ -84,7 +74,6 @@ export function useVariavel(filters?: Ref<VariavelFilters | null>) {
 
     console.log('Summary variável:', { totalMeta, totalRealizado, registros: variavel.value.length })
 
-    // Retorna os valores agregados
     return {
       varPossivel: totalMeta,
       varAtingido: totalRealizado,

@@ -53,7 +53,6 @@ function buildFiltersFromState(state?: FilterState, period?: Period): DetalhesFi
   return filters
 }
 
-// Função para comparar dois objetos de filtros
 function filtersEqual(f1: DetalhesFilters, f2: DetalhesFilters): boolean {
   const keys1 = Object.keys(f1).sort()
   const keys2 = Object.keys(f2).sort()
@@ -72,12 +71,10 @@ function filtersEqual(f1: DetalhesFilters, f2: DetalhesFilters): boolean {
 }
 
 async function fetchDetalhes(filters: DetalhesFilters): Promise<void> {
-  // Evita chamadas duplicadas com os mesmos filtros
   if (lastFilters.value && filtersEqual(lastFilters.value, filters)) {
     return
   }
   
-  // Evita múltiplas chamadas simultâneas
   if (detalhesLoading.value) {
     return
   }
@@ -109,13 +106,11 @@ export function useDetalhesData(
   if (!watcherRegistered) {
     watcherRegistered = true
     
-    // Usa um timeout para evitar múltiplas chamadas no carregamento inicial
     let timeoutId: ReturnType<typeof setTimeout> | null = null
     
     watch(
       [filterState, period],
       ([currentFilters, currentPeriod]) => {
-        // Debounce para evitar múltiplas chamadas rápidas
         if (timeoutId) {
           clearTimeout(timeoutId)
         }
@@ -124,7 +119,7 @@ export function useDetalhesData(
           const filters = buildFiltersFromState(currentFilters, currentPeriod)
           fetchDetalhes(filters)
           timeoutId = null
-        }, 100) // 100ms de debounce
+        }, 100)
       },
       { deep: true, immediate: true }
     )

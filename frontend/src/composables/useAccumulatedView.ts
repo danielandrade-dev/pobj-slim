@@ -1,8 +1,3 @@
-/**
- * Composable para gerenciar a visão acumulada
- * Sincroniza o período quando a visão acumulada é alterada
- */
-
 import { ref } from 'vue'
 import type { Period } from '../types'
 
@@ -18,9 +13,6 @@ export const ACCUMULATED_VIEW_OPTIONS: AccumulatedViewOption[] = [
   { value: 'anual', label: 'Anual', monthsBack: 11 }
 ]
 
-/**
- * Calcula o período acumulado baseado na visão
- */
 export function computeAccumulatedPeriod(
   view: 'mensal' | 'semestral' | 'anual',
   referenceEndISO?: string
@@ -43,13 +35,10 @@ export function computeAccumulatedPeriod(
   let startDate: Date
   
   if (view === 'anual') {
-    // Ano completo: 1º de janeiro até a data final
     startDate = new Date(Date.UTC(endDate.getUTCFullYear(), 0, 1))
   } else if (view === 'mensal') {
-    // Mês atual: primeiro dia do mês até a data final
     startDate = new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), 1))
   } else {
-    // Semestral: 6 meses atrás (monthsBack: 5)
     const monthsBack = ACCUMULATED_VIEW_OPTIONS.find(opt => opt.value === view)?.monthsBack || 5
     startDate = new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth() - monthsBack, 1))
   }
@@ -63,9 +52,6 @@ export function computeAccumulatedPeriod(
   }
 }
 
-/**
- * Sincroniza o período baseado na visão acumulada
- */
 export function syncPeriodFromAccumulatedView(
   view: 'mensal' | 'semestral' | 'anual',
   currentPeriod: Period,
@@ -88,9 +74,6 @@ export function syncPeriodFromAccumulatedView(
   return computeAccumulatedPeriod(view, referenceEndISO || currentPeriod.end)
 }
 
-/**
- * Composable para usar visão acumulada
- */
 export function useAccumulatedView(period: { value: Period }, updatePeriod: (period: Period) => void) {
   const accumulatedView = ref<'mensal' | 'semestral' | 'anual'>('mensal')
   
