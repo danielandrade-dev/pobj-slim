@@ -1,31 +1,39 @@
 export function getApiBaseUrl(): string {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // 1. Prioridade máxima: variável global injetada pelo backend (SSR, Nginx, index.html)
   if (typeof window !== 'undefined' && (window as any).API_HTTP_BASE) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const base = String((window as any).API_HTTP_BASE).trim()
-    if (base) {
-      return base.endsWith('/') ? base.slice(0, -1) : base
-    }
+    if (base) return base.replace(/\/$/, '')
   }
 
+  // 2. Prioridade do frontend (sempre funciona)
   const envUrl = import.meta.env.VITE_API_URL
-  if (envUrl) {
-    return envUrl.endsWith('/') ? envUrl.slice(0, -1) : envUrl
+  if (envUrl) return envUrl.replace(/\/$/, '')
+
+  // 3. Ambiente de desenvolvimento (vite)
+  if (import.meta.env.DEV && typeof window !== 'undefined') {
+    const host = window.location.hostname
+    const protocol = window.location.protocol
+    const port = import.meta.env.VITE_API_PORT
+
+    // Acesso por IP diretamente no browser
+    const isIp = /^\d+\.\d+\.\d+\.\d+$/.test(host)
+
+    if (isIp) {
+      if (port) return `${protocol}//${host}:${port}`.replace(/\/$/, '')
+      return window.location.origin.replace(/\/$/, '')
+    }
+
+    // localhost → usar origin (proxy do Vite resolve)
+    return window.location.origin.replace(/\/$/, '')
   }
 
-  if (import.meta.env.DEV) {
-    return window.location.origin
-  }
-
+  // 4. Produção
   if (typeof window !== 'undefined') {
-    const basePath = import.meta.env.BASE_URL || '/'
-    const origin = window.location.origin
-    const base = basePath === '/' ? origin : `${origin}${basePath.replace(/\/$/, '')}`
-    return base
+    return window.location.origin.replace(/\/$/, '')
   }
 
+  // 5. SSR/fallback
   return 'http://localhost:8081'
 }
 
 export const API_BASE_URL = getApiBaseUrl()
-
