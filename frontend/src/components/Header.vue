@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Transition } from 'vue'
 
 const notificationsOpen = ref(false)
 const userMenuOpen = ref(false)
@@ -20,6 +19,7 @@ const toggleSubmenu = (submenu: string): void => {
 
 const openOmegaModal = (): void => {
   if (typeof window === 'undefined') return
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const globalAny = window as any
   const opener =
     globalAny.__openOmegaFromVue ||

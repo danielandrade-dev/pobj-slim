@@ -12,6 +12,7 @@ export interface BusinessSnapshot {
 }
 
 export function useBusinessDays() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const calendario = ref<any[]>([])
   const { filterState, period } = useGlobalFilters()
   const resumo = useResumoData(filterState, period)

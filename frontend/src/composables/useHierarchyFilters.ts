@@ -3,10 +3,11 @@
  * Implementa a lógica de dependência entre os campos hierárquicos
  */
 
-import { ref, computed, watch, type Ref } from 'vue'
+import { ref, computed, type Ref } from 'vue'
 import type { InitData } from '../services/initService'
 import type { FilterOption, HierarchySelection } from '../types'
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const normalizeId = (val: any): string => {
   if (val == null || val === '') return ''
   return String(val).trim()
@@ -32,6 +33,7 @@ const formatFuncionalNomeLabel = (funcional: string, nome: string): string => {
   return `${funcional} - ${nome}`
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const normalizeOption = (item: any, fieldType?: 'segmento' | 'diretoria' | 'regional' | 'agencia' | 'ggestao' | 'gerente'): FilterOption => {
   // Para gerente de gestão e gerente, o ID deve ser o funcional para exibição
   // Mas preservamos o id original para comparações hierárquicas

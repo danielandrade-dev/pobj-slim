@@ -1,5 +1,5 @@
 import { ref, computed, watch, type Ref, type ComputedRef } from 'vue'
-import type { Period, ProdutoFilters, BusinessSnapshot, ResumoPayload } from '../types'
+import type { Period, BusinessSnapshot, ResumoPayload } from '../types'
 import type { FilterState } from './useGlobalFilters'
 import { getResumo, type ResumoFilters } from '../services/resumoService'
 

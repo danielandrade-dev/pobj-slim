@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Transition } from 'vue'
 import Header from './components/Header.vue'
 import Footer from './components/Footer.vue'
 import OmegaLegacyModal from './components/OmegaLegacyModal.vue'

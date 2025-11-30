@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { formatINT, formatCurrency, formatDate, formatBRL, formatBRLReadable, formatIntReadable } from '../utils/formatUtils'
+import { formatINT, formatDate, formatBRL, formatBRLReadable, formatIntReadable } from '../utils/formatUtils'
 
 export interface TreeNode {
   id: string
   label: string
   level: 'segmento' | 'diretoria' | 'regional' | 'agencia' | 'gGestao' | 'gerente' | 'familia' | 'indicador' | 'subindicador' | 'contrato'
   children: TreeNode[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any[]
   summary: {
     valor_realizado: number
@@ -123,17 +124,17 @@ function getColumnTooltip(columnId: string) {
   }
 }
 
-const hasDetail = computed(() => {
-  return props.node.level === 'contrato'
-})
+// const hasDetail = computed(() => {
+//   return props.node.level === 'contrato'
+// })
 
-const showDetail = computed(() => {
-  // Para contratos, mostra o card quando está expandido (mesmo sem filhos)
-  if (props.node.level === 'contrato') {
-    return props.expanded || props.detailOpen
-  }
-  return props.detailOpen && hasDetail.value
-})
+// const showDetail = computed(() => {
+//   // Para contratos, mostra o card quando está expandido (mesmo sem filhos)
+//   if (props.node.level === 'contrato') {
+//     return props.expanded || props.detailOpen
+//   }
+//   return props.detailOpen && hasDetail.value
+// })
 
 const isCanceled = computed(() => {
   return !!props.node.detail?.dt_cancelamento

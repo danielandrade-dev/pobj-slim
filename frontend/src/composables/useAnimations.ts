@@ -1,4 +1,3 @@
-import { useMotion } from '@vueuse/motion'
 import { onMounted, ref } from 'vue'
 
 /**

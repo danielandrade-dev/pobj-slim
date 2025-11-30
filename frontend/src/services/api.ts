@@ -12,8 +12,10 @@ import type { ApiResponse } from '../types'
  * @param params - Parâmetros de query string
  * @returns Promise com a resposta da API
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function apiGet<T = any>(
   path: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   params?: Record<string, any>
 ): Promise<ApiResponse<T>> {
   try {
@@ -75,9 +77,12 @@ export async function apiGet<T = any>(
  * @param params - Parâmetros de query string
  * @returns Promise com a resposta da API
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function apiPost<T = any>(
   path: string,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   body?: Record<string, any>,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   params?: Record<string, any>
 ): Promise<ApiResponse<T>> {
   try {

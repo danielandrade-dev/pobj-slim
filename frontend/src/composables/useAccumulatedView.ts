@@ -3,7 +3,7 @@
  * Sincroniza o período quando a visão acumulada é alterada
  */
 
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import type { Period } from '../types'
 
 export interface AccumulatedViewOption {

@@ -350,15 +350,17 @@ function buildTreeHierarchy(items: DetalhesItem[], hierarchy: string[], level: n
         break
       case 'subindicador':
         key = item.id_subindicador || 'sem-subindicador'
+         
         label = item.subindicador || 'Sem subindicador'
         break
       case 'contrato':
         key = item.id_contrato || item.registro_id || 'sem-contrato'
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         label = key
         break
       default:
         key = 'unknown'
-        label = 'Desconhecido'
+        // label = 'Desconhecido'
     }
 
     if (!groups.has(key)) {

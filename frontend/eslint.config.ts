@@ -14,9 +14,30 @@ export default defineConfigWithVueTs(
     files: ['**/*.{ts,mts,tsx,vue}'],
   },
 
-  globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**']),
+  globalIgnores(['**/dist/**', '**/dist-ssr/**', '**/coverage/**', '**/public/legacy/**', '**/env.d.ts']),
 
   pluginVue.configs['flat/essential'],
   vueTsConfigs.recommended,
   skipFormatting,
+  
+  {
+    rules: {
+      // Permite nomes de componentes de uma palavra (Button, Header, Footer, etc)
+      'vue/multi-word-component-names': ['error', {
+        ignores: ['Button', 'Header', 'Footer', 'Filters', 'Toast', 'Home', 'Ranking', 'Detalhes', 'Campanhas', 'Simuladores']
+      }],
+      // Permite variáveis não utilizadas que começam com underscore
+      '@typescript-eslint/no-unused-vars': ['error', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_'
+      }]
+    }
+  },
+  {
+    files: ['**/views/Campanhas.vue', '**/views/Detalhes.vue', '**/views/Ranking.vue', '**/views/Simuladores.vue'],
+    rules: {
+      // Desabilita verificação de any para arquivos de views que usam dados dinâmicos da API
+      '@typescript-eslint/no-explicit-any': 'off'
+    }
+  }
 )

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { getSimuladorProducts, type SimuladorProduct } from '../services/simuladorService'
-import { formatINT, formatPoints, formatByMetric, formatBRLReadable } from '../utils/formatUtils'
+import { formatPoints, formatByMetric, formatBRLReadable } from '../utils/formatUtils'
 import Filters from '../components/Filters.vue'
 import TabsNavigation from '../components/TabsNavigation.vue'
 

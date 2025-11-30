@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useFilteredProdutos } from '../composables/useFilteredProdutos'
 import { useGlobalFilters } from '../composables/useGlobalFilters'
 import { useBusinessDays } from '../composables/useBusinessDays'
@@ -63,7 +63,7 @@ const getTooltipData = (item: ProdutoCard) => {
   const { total: diasTotais, elapsed: diasDecorridos, remaining: diasRestantes } = snapshot
 
   let meta = item.meta || 0
-  let realizado = item.realizado || 0
+  const realizado = item.realizado || 0
   if (item.metrica?.toLowerCase() === 'perc') meta = 100
 
   const faltaTotal = Math.max(0, meta - realizado)

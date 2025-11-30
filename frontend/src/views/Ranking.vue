@@ -208,7 +208,7 @@ const groupedRanking = computed(() => {
   if (hasSelectionForLevel && selectionForLevel) {
     filteredData = rankingData.value.filter(item => {
       // Verifica se o item corresponde à seleção do nível atual
-      const itemKey = (item as any)[keyField]
+      const itemKey = (item as unknown as Record<string, string>)[keyField]
       const itemLabel = (item as any)[labelField]
       return matchesSelection(selectionForLevel, itemKey, itemLabel)
     })

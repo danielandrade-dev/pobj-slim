@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import { Transition } from 'vue'
 
 interface Props {
   type?: 'success' | 'error' | 'info'

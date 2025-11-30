@@ -387,7 +387,7 @@ onMounted(() => {
                 <h4>Top 5</h4>
                 <div id="exec-rank-top" class="rank-mini">
                   <div 
-                    v-for="(item, idx) in topRanking" 
+                    v-for="item in topRanking" 
                     :key="item.key"
                     class="rank-mini__row"
                   >
@@ -411,7 +411,7 @@ onMounted(() => {
                 <h4>Bottom 5</h4>
                 <div id="exec-rank-bottom" class="rank-mini">
                   <div 
-                    v-for="(item, idx) in bottomRanking" 
+                    v-for="item in bottomRanking" 
                     :key="item.key"
                     class="rank-mini__row"
                   >

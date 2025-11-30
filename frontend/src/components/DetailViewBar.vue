@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
 
 export interface DetailView {
   id: string

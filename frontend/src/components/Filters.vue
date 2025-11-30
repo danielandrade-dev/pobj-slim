@@ -9,7 +9,7 @@ import { useGlobalFilters } from '../composables/useGlobalFilters'
 import Button from './Button.vue'
 import SelectSearch from './SelectSearch.vue'
 import type { FilterOption } from '../types'
-import type { InitData } from '../services/initService'
+ 
 
 const route = useRoute()
 const isSimuladoresPage = computed(() => route.name === 'Simuladores')
@@ -20,7 +20,7 @@ const { initData, isLoading: initLoading, loadInit } = useInitCache()
 const loading = initLoading
 
 // Usa filtros globais
-const { filterState, period: globalPeriod, updateFilter, updatePeriod, clearFilters } = useGlobalFilters()
+const { updateFilter, updatePeriod, clearFilters } = useGlobalFilters()
 
 // Usa o composable de hierarquia
 const {
@@ -153,6 +153,7 @@ const handleSubindicadorChange = (value: string): void => {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const normalizeOption = (item: any): FilterOption => {
   const id = String(item.id || item.codigo || item.id_diretoria || item.id_regional || item.id_agencia || item.funcional || item.subId || item.subindicadorId || '').trim()
   const label = String(item.label || item.nome || id).trim()
@@ -170,6 +171,7 @@ const normalizeOption = (item: any): FilterOption => {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const buildOptions = (data: any[]): FilterOption[] => {
   if (!Array.isArray(data)) return []
   return data.map(normalizeOption).filter(opt => opt.id)

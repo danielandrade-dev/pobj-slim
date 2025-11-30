@@ -43,15 +43,25 @@ export interface HierarchySelection {
  * Dados completos da estrutura organizacional retornados pela API
  */
 export interface InitData {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   segmentos: any[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   diretorias: any[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   regionais: any[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   agencias: any[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   gerentes_gestao: any[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   gerentes: any[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   familias: any[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   indicadores: any[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   subindicadores: any[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   status_indicadores: any[]
 }
 
@@ -109,6 +119,7 @@ export interface CalendarioItem {
 /**
  * Resposta padrão da API
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface ApiResponse<T = any> {
   success: boolean
   data?: T

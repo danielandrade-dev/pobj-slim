@@ -1,4 +1,4 @@
-import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { getDefaultPeriod, formatBRDate } from '../services/calendarioService'
 import { useCalendarioCache } from './useCalendarioCache'
@@ -8,7 +8,7 @@ export function usePeriodManager() {
   const route = useRoute()
   const isSimuladoresPage = computed(() => route.name === 'Simuladores')
   const period = ref<Period>(getDefaultPeriod())
-  const { calendarioData, loadCalendario } = useCalendarioCache()
+  const { loadCalendario } = useCalendarioCache()
 
   const updatePeriodLabels = (): void => {
     const labelElement = document.getElementById('lbl-atualizacao')

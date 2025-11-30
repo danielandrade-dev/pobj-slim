@@ -19,7 +19,7 @@ const DETAIL_COLUMNS: ColumnMeta[] = [
   { id: 'data', label: 'Data' }
 ]
 
-const DEFAULT_COLUMNS = ['realizado', 'meta', 'atingimento_p', 'pontos', 'peso', 'data']
+// const DEFAULT_COLUMNS = ['realizado', 'meta', 'atingimento_p', 'pontos', 'peso', 'data']
 
 interface DetailView {
   id: string

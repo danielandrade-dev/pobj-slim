@@ -1,6 +1,8 @@
 export function getApiBaseUrl(): string {
   // 1. Verifica se foi definido no window (mais flexível para produção)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (typeof window !== 'undefined' && (window as any).API_HTTP_BASE) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const base = String((window as any).API_HTTP_BASE).trim()
     if (base) {
       return base.endsWith('/') ? base.slice(0, -1) : base

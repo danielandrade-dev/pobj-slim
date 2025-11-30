@@ -5,6 +5,7 @@ import '../assets/omega.css'
 import { API_BASE_URL } from '../config/api'
 import { apiGet, apiPost } from '../services/api'
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type LegacyApiParams = Record<string, any> | undefined
 
 const omegaTemplateHtml = omegaTemplate
@@ -18,8 +19,11 @@ const LEGACY_SCRIPT_SRC = `${legacyBaseUrl}legacy/omega.js`
 const addedBodyClasses = ['omega-standalone', 'has-omega-open']
 
 let scriptPromise: Promise<void> | null = null
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const previousGlobals: Record<string, any> = {}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let originalCloseOmega: ((...args: any[]) => any) | undefined
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let originalCloseOmegaModule: ((...args: any[]) => any) | undefined
 function normalizeLegacyPath(path: string): string {
   if (!path) return '/api'
@@ -37,6 +41,7 @@ async function legacyGet(path: string, params?: LegacyApiParams) {
   return response.data ?? null
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function legacyPost(path: string, body?: Record<string, any>, params?: LegacyApiParams) {
   const response = await apiPost(normalizeLegacyPath(path), body, params)
   if (!response.success) {
@@ -47,6 +52,7 @@ async function legacyPost(path: string, body?: Record<string, any>, params?: Leg
 
 function setupLegacyGlobals() {
   if (typeof window === 'undefined') return
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const globalAny = window as any
 
   if (previousGlobals.apiGet === undefined) previousGlobals.apiGet = globalAny.apiGet
@@ -62,6 +68,7 @@ function setupLegacyGlobals() {
 
 function restoreLegacyGlobals() {
   if (typeof window === 'undefined') return
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const globalAny = window as any
 
   if (previousGlobals.apiGet !== undefined) {
@@ -104,6 +111,7 @@ function loadLegacyScript(): Promise<void> {
     return Promise.resolve()
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (typeof (window as any).openOmegaModule === 'function') {
     return Promise.resolve()
   }
@@ -146,24 +154,31 @@ function loadLegacyScript(): Promise<void> {
 
 function hookLegacyClosers() {
   if (typeof window === 'undefined') return
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const globalAny = window as any
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (typeof globalAny.closeOmega === 'function' && !(globalAny.closeOmega as any).__omegaVueHooked) {
     originalCloseOmega = globalAny.closeOmega
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const wrapped = function (this: unknown, ...args: any[]) {
       resetBodyState()
       return originalCloseOmega?.apply(this, args)
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(wrapped as any).__omegaVueHooked = true
     globalAny.closeOmega = wrapped
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (typeof globalAny.closeOmegaModule === 'function' && !(globalAny.closeOmegaModule as any).__omegaVueHooked) {
     originalCloseOmegaModule = globalAny.closeOmegaModule
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const wrappedModule = function (this: unknown, ...args: any[]) {
       resetBodyState()
       return originalCloseOmegaModule?.apply(this, args)
     }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     ;(wrappedModule as any).__omegaVueHooked = true
     globalAny.closeOmegaModule = wrappedModule
   }
@@ -171,6 +186,7 @@ function hookLegacyClosers() {
 
 function restoreLegacyClosers() {
   if (typeof window === 'undefined') return
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const globalAny = window as any
 
   if (originalCloseOmega) {
@@ -184,6 +200,7 @@ function restoreLegacyClosers() {
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function openLegacyOmega(detail: any = null) {
   if (typeof window === 'undefined') return
   ensureBodyState()
@@ -193,6 +210,7 @@ function openLegacyOmega(detail: any = null) {
     root.hidden = false
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const globalAny = window as any
   const opener = globalAny.openOmegaModule || globalAny.openOmega
 
@@ -207,7 +225,9 @@ function openLegacyOmega(detail: any = null) {
 
 function registerGlobalOpener() {
   if (typeof window === 'undefined') return
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const globalAny = window as any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   globalAny.__openOmegaFromVue = (detail?: any) => {
     if (!isReady.value) {
       console.warn('Omega ainda está carregando.')
@@ -223,6 +243,7 @@ function registerGlobalOpener() {
 
 function unregisterGlobalOpener() {
   if (typeof window === 'undefined') return
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const globalAny = window as any
   if (globalAny.__openOmegaFromVue) {
     delete globalAny.__openOmegaFromVue

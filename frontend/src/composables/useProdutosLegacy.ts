@@ -1,5 +1,5 @@
-import { computed, type Ref } from 'vue'
-import type { ProdutoMensal, ProdutoFilters } from '../types'
+import { computed } from 'vue'
+import type { ProdutoMensal } from '../types'
 import { useGlobalFilters } from './useGlobalFilters'
 import { useResumoData } from './useResumoData'
 
@@ -43,7 +43,7 @@ export interface LegacyItem {
   children?: LegacyItem[]
 }
 
-export function useProdutosLegacy(_filters?: Ref<ProdutoFilters | null>) {
+export function useProdutosLegacy() {
   const { filterState, period } = useGlobalFilters()
   const resumo = useResumoData(filterState, period)
   const produtos = resumo.produtosMensais
@@ -57,7 +57,6 @@ export function useProdutosLegacy(_filters?: Ref<ProdutoFilters | null>) {
     
     produtos.value.forEach((produto: ProdutoMensal) => {
       const familiaId = produto.id_familia || 'sem-familia'
-      const familiaNome = produto.familia || 'Sem Família'
       const indicadorId = produto.id_indicador || produto.id
       
       if (!indicadorId) {

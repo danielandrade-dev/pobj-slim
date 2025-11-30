@@ -16,7 +16,7 @@ const emit = defineEmits<{
 }>()
 
 const period = ref<{ start: string; end: string }>(props.modelValue || getDefaultPeriod())
-const { calendarioData, loadCalendario } = useCalendarioCache()
+const { loadCalendario } = useCalendarioCache()
 const buttonRef = ref<HTMLElement | null>(null)
 const datePopover = ref<HTMLElement | null>(null)
 
