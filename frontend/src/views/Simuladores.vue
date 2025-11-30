@@ -2,6 +2,8 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { getSimuladorProducts, type SimuladorProduct } from '../services/simuladorService'
 import { formatPoints, formatByMetric, formatBRLReadable } from '../utils/formatUtils'
+import Select from '../components/Select.vue'
+import type { FilterOption } from '../types'
 
 // Estado do simulador
 const selectedIndicatorId = ref<string>('')
@@ -64,6 +66,21 @@ const groupedCatalog = computed(() => {
     items: items.sort((a, b) => a.label.localeCompare(b.label, 'pt-BR'))
   }))
 })
+
+// Converte catálogo para opções do Select (com nome da seção no label)
+const selectOptions = computed<FilterOption[]>(() => {
+  return catalog.value
+    .map(item => ({
+      id: item.id,
+      nome: `${item.sectionLabel} - ${item.label}`
+    }))
+    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+})
+
+// Handler para mudança de indicador
+const handleIndicatorChange = (value: string): void => {
+  selectedIndicatorId.value = value
+}
 
 // Função auxiliar para converter para número
 const toNumber = (value: any): number => {
@@ -157,10 +174,74 @@ const applyShortcut = (value: number) => {
   delta.value = nextValue
 }
 
+// Handlers para o input de delta
+const handleDeltaBlur = (): void => {
+  // Garante que o valor está formatado corretamente ao sair do campo
+  if (delta.value > 0 && selectedProduct.value) {
+    const step = selectedProduct.value.metric === 'valor' ? 1000 : 1
+    delta.value = Math.round(delta.value / step) * step
+  }
+}
+
+const handleDeltaFocus = (event: FocusEvent): void => {
+  // Seleciona todo o texto ao focar para facilitar edição
+  const target = event.target as HTMLInputElement
+  target.select()
+}
+
 // Reseta delta quando muda o indicador
 watch(selectedIndicatorId, () => {
   delta.value = 0
 })
+
+// Valor formatado para exibição no input
+const deltaDisplay = computed({
+  get: () => {
+    if (!delta.value || delta.value === 0) return ''
+    // Formata como número com separadores de milhar (pt-BR)
+    return new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(delta.value)
+  },
+  set: (value: string) => {
+    // Remove todos os caracteres não numéricos exceto vírgula e ponto
+    // Aceita tanto formato pt-BR (vírgula) quanto en-US (ponto)
+    let cleaned = value.replace(/[^\d,.]/g, '')
+    
+    // Se tiver vírgula, assume formato pt-BR e remove
+    if (cleaned.includes(',')) {
+      cleaned = cleaned.replace(/\./g, '').replace(',', '')
+    } else if (cleaned.includes('.')) {
+      // Se tiver ponto, pode ser separador de milhar ou decimal
+      // Para valores grandes, assume separador de milhar
+      const parts = cleaned.split('.')
+      if (parts.length === 2 && parts[1].length <= 2) {
+        // Decimal (ex: 123.45)
+        cleaned = cleaned.replace('.', '')
+      } else {
+        // Separador de milhar (ex: 1.234)
+        cleaned = cleaned.replace(/\./g, '')
+      }
+    }
+    
+    const num = cleaned ? parseFloat(cleaned) : 0
+    delta.value = isNaN(num) ? 0 : Math.max(0, Math.round(num))
+  }
+})
+
+// Formata o valor para exibição no hint
+const formatDeltaDisplay = (value: number): string => {
+  if (!value || value === 0) return '0'
+  if (selectedProduct.value?.metric === 'valor') {
+    return formatBRLReadable(value)
+  } else {
+    return new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(value) + ' un'
+  }
+}
 </script>
 
 <template>
@@ -208,58 +289,58 @@ watch(selectedIndicatorId, () => {
               <form id="sim-whatif-form" class="sim-whatif__form" @submit.prevent>
                 <div class="sim-whatif__field">
                   <label for="sim-whatif-indicador" class="muted">INDICADOR</label>
-                  <select 
-                    id="sim-whatif-indicador" 
-                    v-model="selectedIndicatorId"
-                    class="input"
-                    :disabled="catalog.length === 0"
-                  >
-                    <option value="" disabled>Selecione um indicador</option>
-                    <optgroup 
-                      v-for="group in groupedCatalog" 
-                      :key="group.sectionId"
-                      :label="group.sectionLabel"
-                    >
-                      <option 
-                        v-for="item in group.items" 
-                        :key="item.id"
-                        :value="item.id"
-                      >
-                        {{ item.label }}
-                      </option>
-                    </optgroup>
-                  </select>
+                  <Select
+                    id="sim-whatif-indicador"
+                    :model-value="selectedIndicatorId"
+                    :options="selectOptions"
+                    placeholder="Selecione um indicador"
+                    label="Indicador"
+                    :disabled="catalog.length === 0 || loading"
+                    @update:model-value="handleIndicatorChange"
+                  />
                 </div>
 
                 <div class="sim-whatif__field">
                   <label for="sim-whatif-extra" class="muted">INCREMENTO</label>
-                  <div class="sim-whatif__input-group">
+                  <div class="sim-whatif__input-group" :class="{ 'has-value': delta > 0 }">
                     <span id="sim-whatif-prefix" class="sim-whatif__prefix">
                       {{ selectedProduct?.metric === 'valor' ? 'R$' : '+' }}
                     </span>
                     <input 
                       id="sim-whatif-extra"
-                      type="number"
-                      v-model.number="delta"
-                      :min="0"
-                      :step="selectedProduct?.metric === 'valor' ? 1000 : 1"
-                      class="input"
-                      placeholder="0"
+                      type="text"
+                      v-model="deltaDisplay"
+                      inputmode="numeric"
+                      class="input sim-whatif__input"
+                      :placeholder="selectedProduct?.metric === 'valor' ? '0,00' : '0'"
                       :disabled="!selectedProduct"
+                      @blur="handleDeltaBlur"
+                      @focus="handleDeltaFocus"
                     />
                   </div>
-                  <p id="sim-whatif-unit" class="sim-whatif__hint">
-                    <template v-if="selectedProduct">
-                      Meta {{ formatByMetric(selectedProduct.metric, selectedProduct.meta) }} · 
-                      Realizado {{ formatByMetric(selectedProduct.metric, selectedProduct.realizado) }}
-                      <template v-if="selectedProduct.meta > selectedProduct.realizado">
-                        · Falta {{ formatByMetric(selectedProduct.metric, selectedProduct.meta - selectedProduct.realizado) }}
+                  <div class="sim-whatif__hint-group">
+                    <p id="sim-whatif-unit" class="sim-whatif__hint">
+                      <template v-if="selectedProduct">
+                        <span class="sim-whatif__hint-item">
+                          <strong>Meta:</strong> {{ formatByMetric(selectedProduct.metric, selectedProduct.meta) }}
+                        </span>
+                        <span class="sim-whatif__hint-item">
+                          <strong>Realizado:</strong> {{ formatByMetric(selectedProduct.metric, selectedProduct.realizado) }}
+                        </span>
+                        <template v-if="selectedProduct.meta > selectedProduct.realizado">
+                          <span class="sim-whatif__hint-item sim-whatif__hint-item--gap">
+                            <strong>Falta:</strong> {{ formatByMetric(selectedProduct.metric, selectedProduct.meta - selectedProduct.realizado) }}
+                          </span>
+                        </template>
                       </template>
-                    </template>
-                    <template v-else>
-                      Selecione um indicador elegível.
-                    </template>
-                  </p>
+                      <template v-else>
+                        Selecione um indicador elegível.
+                      </template>
+                    </p>
+                    <p v-if="delta > 0 && selectedProduct" class="sim-whatif__hint sim-whatif__hint--delta">
+                      Incremento: <strong>{{ formatDeltaDisplay(delta) }}</strong>
+                    </p>
+                  </div>
                 </div>
               </form>
 
@@ -544,29 +625,105 @@ watch(selectedIndicatorId, () => {
   display: flex;
   align-items: center;
   gap: 0;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.sim-whatif__input-group.has-value {
+  box-shadow: 0 0 0 3px rgba(179, 0, 0, 0.08);
 }
 
 .sim-whatif__prefix {
-  padding: 10px 8px 10px 12px;
+  padding: 10px 10px 10px 14px;
   background: var(--bg);
   border: 1px solid var(--stroke);
   border-right: none;
-  border-radius: 8px 0 0 8px;
+  border-radius: 10px 0 0 10px;
   color: var(--muted);
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.sim-whatif__input-group .input {
-  border-radius: 0 8px 8px 0;
+.sim-whatif__input-group.has-value .sim-whatif__prefix {
+  background: var(--brand-xlight, rgba(179, 0, 0, 0.05));
+  color: var(--brand, #b30000);
+  border-color: var(--brand, #b30000);
+}
+
+.sim-whatif__input {
+  flex: 1;
+  border-radius: 0 10px 10px 0;
   border-left: none;
+  text-align: right;
+  font-weight: 600;
+  font-size: 16px;
+  padding: 10px 14px;
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+}
+
+.sim-whatif__input-group.has-value .sim-whatif__input {
+  border-color: var(--brand, #b30000);
+  color: var(--text, #0f1424);
+}
+
+.sim-whatif__input:focus {
+  outline: none;
+  border-color: var(--brand, #b30000);
+  box-shadow: 0 0 0 3px rgba(179, 0, 0, 0.12);
+}
+
+
+.sim-whatif__hint-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
 }
 
 .sim-whatif__hint {
   margin: 0;
   font-size: 12px;
   color: var(--muted);
-  line-height: 1.4;
+  line-height: 1.5;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.sim-whatif__hint-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sim-whatif__hint-item strong {
+  font-weight: 600;
+  color: var(--text, #0f1424);
+}
+
+.sim-whatif__hint-item--gap {
+  color: var(--brand, #b30000);
+}
+
+.sim-whatif__hint-item--gap strong {
+  color: var(--brand, #b30000);
+}
+
+.sim-whatif__hint--delta {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid var(--stroke, #e7eaf2);
+  color: var(--text, #0f1424);
+  font-weight: 500;
+}
+
+.sim-whatif__hint--delta strong {
+  color: var(--brand, #b30000);
+  font-size: 13px;
 }
 
 .sim-quick {

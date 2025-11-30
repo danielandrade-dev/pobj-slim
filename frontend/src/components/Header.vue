@@ -1,16 +1,49 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 
 const userMenuOpen = ref(false)
 const submenuOpen = ref<string | null>(null)
+const userboxRef = ref<HTMLElement | null>(null)
 
 const toggleUserMenu = (): void => {
   userMenuOpen.value = !userMenuOpen.value
+  if (!userMenuOpen.value) {
+    submenuOpen.value = null
+  }
+}
+
+const closeUserMenu = (): void => {
+  userMenuOpen.value = false
+  submenuOpen.value = null
 }
 
 const toggleSubmenu = (submenu: string): void => {
   submenuOpen.value = submenuOpen.value === submenu ? null : submenu
 }
+
+// Fecha o menu ao clicar fora
+const handleClickOutside = (event: MouseEvent): void => {
+  if (userboxRef.value && !userboxRef.value.contains(event.target as Node)) {
+    closeUserMenu()
+  }
+}
+
+// Fecha o menu ao pressionar Escape
+const handleEscape = (event: KeyboardEvent): void => {
+  if (event.key === 'Escape' && userMenuOpen.value) {
+    closeUserMenu()
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+  document.addEventListener('keydown', handleEscape)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('keydown', handleEscape)
+})
 
 const openOmegaModal = (): void => {
   if (typeof window === 'undefined') return
@@ -55,7 +88,7 @@ const handleMenuAction = async (action: string): Promise<void> => {
     </nav>
 
     <nav class="topbar__right" role="navigation" aria-label="Menu do usuário">
-      <div class="userbox">
+      <div ref="userboxRef" class="userbox">
         <button
           class="userbox__trigger"
           id="btn-user-menu"
@@ -73,7 +106,11 @@ const handleMenuAction = async (action: string): Promise<void> => {
             alt="Foto do usuário João da Silva"
           />
           <span class="userbox__name">João da Silva</span>
-          <i class="ti ti-chevron-down" aria-hidden="true" :aria-label="userMenuOpen ? 'Fechar menu' : 'Abrir menu'"></i>
+          <i 
+            class="ti ti-chevron-down userbox__chevron" 
+            :class="{ 'is-open': userMenuOpen }"
+            aria-hidden="true"
+          ></i>
         </button>
         <Transition name="dropdown">
           <div
@@ -85,7 +122,9 @@ const handleMenuAction = async (action: string): Promise<void> => {
             aria-label="Menu do usuário"
             @keydown.escape="toggleUserMenu()"
           >
-          <span class="userbox__menu-title" role="heading" aria-level="2">Links úteis</span>
+          <div class="userbox__menu-header">
+            <span class="userbox__menu-title" role="heading" aria-level="2">Links úteis</span>
+          </div>
           <button
             class="userbox__menu-item"
             type="button"
@@ -182,13 +221,15 @@ const handleMenuAction = async (action: string): Promise<void> => {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 8px 12px;
+  padding: 10px 16px;
   background: var(--brad-color-primary-gradient);
   color: var(--brad-color-on-bg-primary);
-  box-shadow: 0 6px 16px rgba(204, 9, 47, 0.25);
+  box-shadow: 0 4px 20px rgba(204, 9, 47, 0.2), 0 2px 8px rgba(204, 9, 47, 0.15);
   margin: 0;
   border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
   animation: slideInDown 0.4s cubic-bezier(0.25, 0.1, 0.25, 1);
+  backdrop-filter: blur(10px);
 }
 
 @keyframes slideInDown {
@@ -212,7 +253,7 @@ const handleMenuAction = async (action: string): Promise<void> => {
 
 /* Transições para dropdown */
 .dropdown-enter-active {
-  transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  transition: all 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 .dropdown-leave-active {
@@ -221,12 +262,26 @@ const handleMenuAction = async (action: string): Promise<void> => {
 
 .dropdown-enter-from {
   opacity: 0;
-  transform: translateY(-10px) scale(0.95);
+  transform: translateY(-8px) scale(0.96);
+  filter: blur(4px);
+}
+
+.dropdown-enter-to {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
+}
+
+.dropdown-leave-from {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  filter: blur(0);
 }
 
 .dropdown-leave-to {
   opacity: 0;
-  transform: translateY(-10px) scale(0.95);
+  transform: translateY(-8px) scale(0.96);
+  filter: blur(4px);
 }
 
 .logo {
@@ -234,18 +289,31 @@ const handleMenuAction = async (action: string): Promise<void> => {
   align-items: center;
   gap: 10px;
   min-width: 0;
+  transition: transform 0.2s ease;
+  text-decoration: none;
+}
+
+.logo:hover {
+  transform: scale(1.02);
 }
 
 .logo__mark {
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: #fff;
   background-image: url('/img/bra-logo.png');
   background-size: 70%;
   background-position: center;
   background-repeat: no-repeat;
-  flex: 0 0 28px;
+  flex: 0 0 32px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.logo:hover .logo__mark {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: scale(1.05);
 }
 
 .logo__text {
@@ -255,6 +323,9 @@ const handleMenuAction = async (action: string): Promise<void> => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .userbox {
@@ -268,25 +339,32 @@ const handleMenuAction = async (action: string): Promise<void> => {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: transparent;
-  border: 1.5px solid rgba(255, 255, 255, 1);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1.5px solid rgba(255, 255, 255, 0.3);
   border-radius: 999px;
-  padding: 6px 12px;
+  padding: 6px 14px 6px 6px;
   color: #fff;
   font-weight: 700;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  transition: all 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
   transform: scale(1);
+  backdrop-filter: blur(10px);
 }
 
 .userbox__trigger:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 1);
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.5);
   transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .userbox__trigger:active {
   transform: scale(0.98);
+}
+
+.userbox__trigger[aria-expanded='true'] {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.6);
 }
 
 .userbox__trigger:focus-visible {
@@ -294,19 +372,32 @@ const handleMenuAction = async (action: string): Promise<void> => {
   outline-offset: 2px;
 }
 
-.userbox__trigger i {
+.userbox__chevron {
   font-size: 16px;
   stroke-width: 1.5;
   color: #fff;
+  transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  flex-shrink: 0;
+}
+
+.userbox__chevron.is-open {
+  transform: rotate(180deg);
 }
 
 .userbox__avatar {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 1);
+  border: 2px solid rgba(255, 255, 255, 0.9);
   object-fit: cover;
   flex: 0 0 36px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+}
+
+.userbox__trigger:hover .userbox__avatar {
+  border-color: rgba(255, 255, 255, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .userbox__name {
@@ -327,23 +418,30 @@ const handleMenuAction = async (action: string): Promise<void> => {
   background: #fff;
   color: #0f1724;
   border-radius: 14px;
-  box-shadow: 0 18px 38px rgba(15, 20, 36, 0.18);
-  padding: 12px;
-  min-width: 220px;
+  box-shadow: 0 18px 38px rgba(15, 20, 36, 0.18), 0 4px 12px rgba(15, 20, 36, 0.08);
+  padding: 8px;
+  min-width: 240px;
+  max-width: 320px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
   z-index: 1400;
   border: 1px solid rgba(15, 23, 42, 0.08);
   transform-origin: top right;
+  backdrop-filter: blur(10px);
+}
+
+.userbox__menu-header {
+  padding: 8px 10px 4px;
+  margin-bottom: 4px;
 }
 
 .userbox__menu-title {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 800;
   color: #64748b;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
 }
 
 .userbox__menu-item {
@@ -352,7 +450,7 @@ const handleMenuAction = async (action: string): Promise<void> => {
   color: #0f1724;
   font-size: 13px;
   font-weight: 600;
-  padding: 8px 10px;
+  padding: 10px 12px;
   border-radius: 10px;
   display: flex;
   align-items: center;
@@ -361,18 +459,47 @@ const handleMenuAction = async (action: string): Promise<void> => {
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
   transform: translateX(0);
+  text-align: left;
+  width: 100%;
+  position: relative;
+}
+
+.userbox__menu-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%) scaleX(0);
+  width: 3px;
+  height: 0;
+  background: var(--brand, #cc092f);
+  border-radius: 0 2px 2px 0;
+  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 .userbox__menu-item:hover,
 .userbox__menu-item:focus-visible {
-  background: rgba(204, 9, 47, 0.12);
-  color: var(--brand);
+  background: rgba(204, 9, 47, 0.08);
+  color: var(--brand, #cc092f);
   outline: none;
-  transform: translateX(4px);
+  transform: translateX(2px);
+}
+
+.userbox__menu-item:hover::before,
+.userbox__menu-item:focus-visible::before {
+  transform: translateY(-50%) scaleX(1);
+  height: 60%;
 }
 
 .userbox__menu-item--logout {
   color: #b30000;
+  margin-top: 4px;
+}
+
+.userbox__menu-item--logout:hover,
+.userbox__menu-item--logout:focus-visible {
+  background: rgba(179, 0, 0, 0.1);
+  color: #8f0000;
 }
 
 .userbox__menu-item--logout i {
@@ -380,11 +507,11 @@ const handleMenuAction = async (action: string): Promise<void> => {
 }
 
 .userbox__divider {
-  width: 100%;
+  width: calc(100% - 16px);
   height: 1px;
   border: none;
-  background: #e5e7eb;
-  margin: 6px 0;
+  background: linear-gradient(to right, transparent, #e5e7eb 20%, #e5e7eb 80%, transparent);
+  margin: 8px auto;
 }
 
 .userbox__submenu {
@@ -398,24 +525,36 @@ const handleMenuAction = async (action: string): Promise<void> => {
 }
 
 .userbox__menu-item--has-sub i {
-  transition: transform 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  transition: transform 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
+  font-size: 14px;
+  color: #64748b;
+}
+
+.userbox__menu-item--has-sub[aria-expanded='true'] {
+  background: rgba(204, 9, 47, 0.05);
 }
 
 .userbox__menu-item--has-sub[aria-expanded='true'] i {
   transform: rotate(90deg);
+  color: var(--brand, #cc092f);
 }
 
 .userbox__submenu-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  padding-left: 12px;
+  gap: 2px;
+  padding-left: 16px;
+  margin-top: 4px;
+  margin-bottom: 4px;
   overflow: hidden;
+  border-left: 2px solid rgba(204, 9, 47, 0.1);
+  padding-top: 4px;
+  padding-bottom: 4px;
 }
 
 /* Transições para submenu */
 .submenu-enter-active {
-  transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
+  transition: all 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 .submenu-leave-active {
@@ -425,7 +564,11 @@ const handleMenuAction = async (action: string): Promise<void> => {
 .submenu-enter-from {
   opacity: 0;
   max-height: 0;
-  transform: translateX(-10px);
+  transform: translateX(-8px);
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .submenu-enter-to {
@@ -443,11 +586,40 @@ const handleMenuAction = async (action: string): Promise<void> => {
 .submenu-leave-to {
   opacity: 0;
   max-height: 0;
-  transform: translateX(-10px);
+  transform: translateX(-8px);
+  margin-top: 0;
+  margin-bottom: 0;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .userbox__menu button {
   font-family: inherit;
+}
+
+/* Responsividade */
+@media (max-width: 640px) {
+  .topbar {
+    padding: 8px 12px;
+  }
+
+  .logo__text {
+    display: none;
+  }
+
+  .userbox__name {
+    display: none;
+  }
+
+  .userbox__trigger {
+    padding: 6px;
+  }
+
+  .userbox__menu {
+    right: -8px;
+    min-width: 200px;
+    max-width: calc(100vw - 32px);
+  }
 }
 
 .sr-only {

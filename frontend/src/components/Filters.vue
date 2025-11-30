@@ -8,6 +8,7 @@ import { useAccumulatedView, syncPeriodFromAccumulatedView } from '../composable
 import { useGlobalFilters } from '../composables/useGlobalFilters'
 import Button from './Button.vue'
 import SelectSearch from './SelectSearch.vue'
+import Select from './Select.vue'
 import type { FilterOption } from '../types'
  
 
@@ -200,6 +201,31 @@ const { accumulatedView, handleViewChange, options: accumulatedViewOptions } = u
   period,
   updatePeriodLocal
 )
+
+// Opções para o select de status dos indicadores
+const statusKpiOptions = computed<FilterOption[]>(() => [
+  { id: 'todos', nome: 'Todos' },
+  { id: 'atingidos', nome: 'Atingidos' },
+  { id: 'nao', nome: 'Não atingidos' }
+])
+
+// Opções para o select de visão acumulada
+const visaoAcumuladaOptions = computed<FilterOption[]>(() => {
+  return accumulatedViewOptions.map(opt => ({
+    id: opt.value,
+    nome: opt.label
+  }))
+})
+
+// Handler para mudança de status KPI
+const handleStatusKpiChange = (value: string): void => {
+  selectedStatusKpi.value = value
+}
+
+// Handler para mudança de visão acumulada
+const handleVisaoAcumuladaChange = (value: string): void => {
+  handleViewChange(value as 'mensal' | 'semestral' | 'anual')
+}
 
 onMounted(() => {
   loadEstrutura()
@@ -418,25 +444,27 @@ watch(() => period.value, (newPeriod) => {
         </div>
         <div class="filters__group">
           <label>Status dos indicadores</label>
-          <select id="f-status-kpi" v-model="selectedStatusKpi" class="input" :disabled="loading">
-            <option value="todos">Todos</option>
-            <option value="atingidos">Atingidos</option>
-            <option value="nao">Não atingidos</option>
-          </select>
+          <Select
+            id="f-status-kpi"
+            :model-value="selectedStatusKpi"
+            :options="statusKpiOptions"
+            placeholder="Todos"
+            label="Status dos indicadores"
+            :disabled="loading"
+            @update:model-value="handleStatusKpiChange"
+          />
         </div>
         <div class="filters__group">
           <label>Visão acumulada</label>
-          <select
+          <Select
             id="f-visao"
-            :value="accumulatedView"
-            @change="handleViewChange(($event.target as HTMLSelectElement).value as 'mensal' | 'semestral' | 'anual')"
-            class="input"
+            :model-value="accumulatedView"
+            :options="visaoAcumuladaOptions"
+            placeholder="Mensal"
+            label="Visão acumulada"
             :disabled="loading"
-          >
-            <option v-for="option in accumulatedViewOptions" :key="option.value" :value="option.value">
-              {{ option.label }}
-            </option>
-          </select>
+            @update:model-value="handleVisaoAcumuladaChange"
+          />
         </div>
       </div>
     </section>
