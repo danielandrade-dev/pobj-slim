@@ -479,6 +479,7 @@ watch(() => period.value, (newPeriod) => {
 .card--filters {
   position: relative;
   overflow: visible;
+  z-index: 10;
 }
 
 .card__header {

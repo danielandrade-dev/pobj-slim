@@ -62,6 +62,7 @@ const handleTabClick = (viewId: ViewType): void => {
   padding: 0 4px;
   border-bottom: 2px solid var(--stroke, #e7eaf2);
   position: relative;
+  z-index: 1;
   font-family: var(--brad-font-family, inherit);
 }
 
@@ -79,6 +80,7 @@ const handleTabClick = (viewId: ViewType): void => {
   gap: 10px;
   transition: all 0.25s cubic-bezier(0.25, 0.1, 0.25, 1);
   position: relative;
+  z-index: 1;
   font-family: var(--brad-font-family, inherit);
   font-size: 14px;
   line-height: 1.4;
