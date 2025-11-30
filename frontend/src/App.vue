@@ -19,13 +19,15 @@ const route = useRoute()
     
     <Header />
     <main id="main-content" class="main-content" role="main" aria-label="Conteúdo principal">
-      <Transition
-        name="page"
-        mode="out-in"
-        appear
-      >
-        <router-view :key="route.path" />
-      </Transition>
+      <router-view v-slot="{ Component }">
+        <Transition
+          name="page"
+          mode="out-in"
+          appear
+        >
+          <component :is="Component" :key="route.path" />
+        </Transition>
+      </router-view>
     </main>
     <Footer />
     <OmegaLegacyModal />
@@ -55,6 +57,18 @@ body {
   margin: 0;
   padding: 0;
   font-family: "Bradesco", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+/* Garante que os ícones Tabler Icons sejam renderizados corretamente */
+.ti {
+  font-family: 'tabler-icons' !important;
+  font-style: normal;
+  font-weight: normal;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Marca d'água global aplicada em todas as páginas */

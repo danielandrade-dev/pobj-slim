@@ -191,7 +191,7 @@ watch(() => props.disabled, (disabled) => {
       tabindex="0"
       role="combobox"
       :aria-expanded="isOpen"
-      :aria-haspopup="listbox"
+      aria-haspopup="listbox"
       :aria-controls="`${id}-listbox`"
       :aria-label="label || 'Selecione uma opção'"
     >

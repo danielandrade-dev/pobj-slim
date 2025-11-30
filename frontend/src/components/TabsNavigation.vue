@@ -93,6 +93,12 @@ const handleTabClick = (viewId: ViewType): void => {
 .tab .tab-icon i {
   font-size: 14px;
   line-height: 1;
+  display: inline-block !important;
+  font-style: normal;
+  font-variant: normal;
+  text-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+  visibility: visible !important;
 }
 
 .tab .tab-label {
@@ -147,6 +153,11 @@ const handleTabClick = (viewId: ViewType): void => {
 
   .tab .tab-icon i {
     font-size: 24px;
+    display: inline-block;
+    font-style: normal;
+    font-variant: normal;
+    text-rendering: auto;
+    -webkit-font-smoothing: antialiased;
   }
 
   .tab .tab-label {

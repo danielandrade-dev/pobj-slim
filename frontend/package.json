@@ -16,6 +16,8 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@tabler/icons-vue": "^3.35.0",
+    "@tabler/icons-webfont": "^3.35.0",
     "@vueuse/core": "^14.1.0",
     "@vueuse/motion": "^3.0.3",
     "motion": "^12.23.24",

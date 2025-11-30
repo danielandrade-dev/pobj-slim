@@ -106,6 +106,21 @@ aside[role="complementary"]::before {
   display: none !important;
 }
 
+/* Exceção: ícones decorativos devem ser visíveis visualmente mesmo com aria-hidden */
+.tab-icon i[aria-hidden="true"],
+.ti[aria-hidden="true"],
+i.ti[aria-hidden="true"] {
+  display: inline-block !important;
+  visibility: visible !important;
+}
+
+/* Exceção: logos decorativos devem ser visíveis visualmente mesmo com aria-hidden */
+.logo__mark[aria-hidden="true"],
+.footer__logo-mark[aria-hidden="true"] {
+  display: block !important;
+  visibility: visible !important;
+}
+
 /* Indicadores de erro acessíveis */
 [aria-invalid="true"] {
   border-color: #ef4444;

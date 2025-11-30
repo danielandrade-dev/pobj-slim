@@ -24,6 +24,16 @@ export default defineConfig(({ mode }) => {
       }
     },
 
+    resolve: {
+      // Garante que arquivos CSS sejam resolvidos corretamente
+      extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json', '.css']
+    },
+
+    optimizeDeps: {
+      // Exclui pacotes que só contêm CSS da otimização de dependências
+      exclude: ['@tabler/icons-webfont']
+    },
+
     define: {
       __API__: JSON.stringify(env.VITE_API_URL)
     },
