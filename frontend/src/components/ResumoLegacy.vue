@@ -226,7 +226,7 @@ const sectionHasExpandableRows = (section: LegacySection): boolean => {
                       </div>
                     </td>
                     <td class="resumo-legacy__col--peso">
-                      {{ formatINT(child.pontosMeta || child.peso || 0) }}
+                      —
                     </td>
                     <td>
                       <span
@@ -239,8 +239,8 @@ const sectionHasExpandableRows = (section: LegacySection): boolean => {
                         {{ child.metrica === 'valor' ? 'Valor' : child.metrica === 'qtd' ? 'Quantidade' : child.metrica === 'perc' ? 'Percentual' : child.metrica }}
                       </span>
                     </td>
-                    <td class="resumo-legacy__col--meta" :title="formatMetricFull(child.metrica, child.meta)">
-                      {{ formatByMetric(child.metrica, child.meta) }}
+                    <td class="resumo-legacy__col--meta">
+                      —
                     </td>
                     <td class="resumo-legacy__col--real" :title="formatMetricFull(child.metrica, child.realizado)">
                       {{ formatByMetric(child.metrica, child.realizado) }}

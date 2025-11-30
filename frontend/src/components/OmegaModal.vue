@@ -12,6 +12,8 @@ import OmegaToolbar from './omega/OmegaToolbar.vue'
 import OmegaTable from './omega/OmegaTable.vue'
 import OmegaBulkPanel from './omega/OmegaBulkPanel.vue'
 import OmegaDrawer from './omega/OmegaDrawer.vue'
+import OmegaTicketModal from './omega/OmegaTicketModal.vue'
+import OmegaTeamManager from './omega/OmegaTeamManager.vue'
 import '../assets/omega.css'
 
 interface Props {
@@ -265,6 +267,12 @@ function applySidebarState() {
 }
 
 function handleNavClick(viewId: string) {
+  // Se for o gerenciador de analistas, abre o modal
+  if (viewId === 'team-edit-analyst') {
+    teamManagerOpen.value = true
+    return
+  }
+  
   omega.setCurrentView(viewId as any)
   // Não precisa chamar renderOmegaData() porque OmegaTable é reativo
   // Apenas renderiza partes que não são componentes Vue (sidebar, etc)
@@ -296,6 +304,9 @@ function handleRefresh() {
 
 const drawerOpen = ref(false)
 const drawerInitialData = ref<{ department?: string; type?: string; observation?: string } | undefined>(undefined)
+const ticketModalOpen = ref(false)
+const selectedTicketId = ref<string | null>(null)
+const teamManagerOpen = ref(false)
 
 function handleNewTicket(initialData?: { department?: string; type?: string; observation?: string }) {
   drawerInitialData.value = initialData
@@ -529,7 +540,8 @@ function handleBulkStatus() {
 }
 
 function handleTicketClick(ticketId: string) {
-  // TODO: Implementar abertura do modal de detalhes do ticket
+  selectedTicketId.value = ticketId
+  ticketModalOpen.value = true
 }
 
 function handleSelectAll(checked: boolean) {
@@ -1012,6 +1024,19 @@ onBeforeUnmount(() => {
       @update:open="filters.toggleFilterPanel($event)"
       @apply="handleFilterApply"
       @clear="handleFilterClear"
+    />
+    
+    <OmegaTicketModal
+      :omega="omega"
+      :open="ticketModalOpen"
+      :ticket-id="selectedTicketId"
+      @update:open="ticketModalOpen = $event"
+    />
+    
+    <OmegaTeamManager
+      :omega="omega"
+      :open="teamManagerOpen"
+      @update:open="teamManagerOpen = $event"
     />
   </Teleport>
 

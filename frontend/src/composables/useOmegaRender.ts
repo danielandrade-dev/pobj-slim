@@ -283,17 +283,28 @@ export function useOmegaRender(
     }
 
     // Filtra tickets baseado na view atual (ANTES de aplicar filtros)
+    // Cada usuário vê apenas sua própria fila
     let filteredTickets = tickets
     const currentView = omega.currentView.value
 
     if (currentView === 'my' && currentUser) {
+      // Usuário vê apenas seus próprios chamados
       filteredTickets = tickets.filter((t: any) => t.requesterId === currentUser.id)
     } else if (currentView === 'assigned' && currentUser) {
+      // Analista/supervisor vê apenas chamados atribuídos a ele
       filteredTickets = tickets.filter((t: any) => t.ownerId === currentUser.id)
     } else if (currentView === 'queue' && currentUser) {
-      filteredTickets = tickets.filter((t: any) =>
-        currentUser.queues.includes(t.queue)
-      )
+      // Filtra por filas do usuário - cada um vê apenas suas próprias filas
+      if (currentUser.queues && currentUser.queues.length > 0) {
+        filteredTickets = tickets.filter((t: any) =>
+          currentUser.queues.includes(t.queue)
+        )
+      } else {
+        // Se não tem filas definidas, não mostra nada (exceto admin)
+        if (currentUser.role !== 'admin') {
+          filteredTickets = []
+        }
+      }
     }
 
     // Aplica filtros avançados (DEPOIS de filtrar por view)
@@ -311,16 +322,42 @@ export function useOmegaRender(
 
       const status = statuses.find((s: any) => s.id === ticket.status) || statuses[0] || { id: 'unknown', label: 'Desconhecido', tone: 'neutral' as const }
       const priorityMeta = omega.getPriorityMeta(ticket.priority)
+      
+      // Determina se deve mostrar prioridade e atendente baseado no role
+      const canSelect = currentUser && ['analista', 'supervisor', 'admin'].includes(currentUser.role)
+      const showPriority = currentUser && ['analista', 'supervisor', 'admin'].includes(currentUser.role)
+      const showOwner = currentUser && ['analista', 'supervisor', 'admin'].includes(currentUser.role)
+      const ownerName = ticket.ownerId 
+        ? (omega.users.value.find((u: any) => u.id === ticket.ownerId)?.name || '—')
+        : 'Sem responsável'
 
       const openedDate = new Date(ticket.opened)
       const updatedDate = new Date(ticket.updated)
 
       const isSelected = bulk.selectedTicketIds.value.has(ticket.id)
 
-      row.innerHTML = `
+      // Monta HTML da linha baseado nas permissões
+      const selectCell = canSelect ? `
         <td class="col-select">
           <input type="checkbox" data-omega-select value="${ticket.id}" ${isSelected ? 'checked' : ''} aria-label="Selecionar chamado ${ticket.id}"/>
         </td>
+      ` : ''
+      
+      const priorityCell = showPriority ? `
+        <td data-priority="${ticket.priority}">
+          <span class="omega-badge omega-badge--${priorityMeta.tone}">
+            <i class="${priorityMeta.icon}"></i>
+            ${priorityMeta.label}
+          </span>
+        </td>
+      ` : ''
+      
+      const ownerCell = showOwner ? `
+        <td>${ownerName}</td>
+      ` : ''
+
+      row.innerHTML = `
+        ${selectCell}
         <td>${ticket.id}</td>
         <td>
           <div class="omega-table__preview">
@@ -331,12 +368,8 @@ export function useOmegaRender(
         <td>${ticket.queue || '—'}</td>
         <td>${ticket.category || '—'}</td>
         <td>${ticket.requesterName || '—'}</td>
-        <td data-priority="${ticket.priority}">
-          <span class="omega-badge omega-badge--${priorityMeta.tone}">
-            <i class="${priorityMeta.icon}"></i>
-            ${priorityMeta.label}
-          </span>
-        </td>
+        ${priorityCell}
+        ${ownerCell}
         <td>${ticket.product || '—'}</td>
         <td>${ticket.queue || '—'}</td>
         <td>${openedDate.toLocaleDateString('pt-BR')}</td>

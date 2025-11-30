@@ -35,13 +35,23 @@ const filteredTickets = computed(() => {
     return []
   }
 
-  // Filtra por view
+  // Filtra por view - cada usuário vê apenas sua própria fila
   if (currentView === 'my' && currentUser) {
+    // Usuário vê apenas seus próprios chamados
     tickets = tickets.filter((t) => t.requesterId === currentUser.id)
   } else if (currentView === 'assigned' && currentUser) {
+    // Analista/supervisor vê apenas chamados atribuídos a ele
     tickets = tickets.filter((t) => t.ownerId === currentUser.id)
   } else if (currentView === 'queue' && currentUser) {
-    tickets = tickets.filter((t) => currentUser.queues?.includes(t.queue || ''))
+    // Filtra por filas do usuário - cada um vê apenas suas próprias filas
+    if (currentUser.queues && currentUser.queues.length > 0) {
+      tickets = tickets.filter((t) => currentUser.queues?.includes(t.queue || ''))
+    } else {
+      // Se não tem filas definidas, não mostra nada (exceto admin)
+      if (currentUser.role !== 'admin') {
+        tickets = []
+      }
+    }
   }
 
   // Aplica filtros
@@ -88,13 +98,22 @@ const canSelect = computed(() => {
 const showPriority = computed(() => {
   const user = props.omega.currentUser.value
   if (!user) return false
-  return user.role === 'analista' || user.role === 'admin'
+  // Usuário não vê coluna de prioridade, apenas analista, supervisor e admin
+  return ['analista', 'supervisor', 'admin'].includes(user.role)
+})
+
+const showOwner = computed(() => {
+  const user = props.omega.currentUser.value
+  if (!user) return false
+  // Usuário não vê coluna de atendente, apenas analista, supervisor e admin
+  return ['analista', 'supervisor', 'admin'].includes(user.role)
 })
 
 const totalColumns = computed(() => {
   let count = 10 // ID, Prévia, Departamento, Tipo, Usuário, Produto, Fila, Abertura, Atualização, Status
   if (canSelect.value) count++
   if (showPriority.value) count++
+  if (showOwner.value) count++ // Coluna de atendente
   return count
 })
 
@@ -189,6 +208,7 @@ watch(() => props.omega.currentView.value, () => {
             <th scope="col">Tipo</th>
             <th scope="col">Usuário</th>
             <th v-if="showPriority" scope="col" data-priority-column>Prioridade</th>
+            <th v-if="showOwner" scope="col">Atendente</th>
             <th scope="col">Produto</th>
             <th scope="col">Fila</th>
             <th scope="col">Abertura</th>
@@ -254,6 +274,9 @@ watch(() => props.omega.currentView.value, () => {
                 <i :class="props.omega.getPriorityMeta(ticket.priority).icon"></i>
                 {{ props.omega.getPriorityMeta(ticket.priority).label }}
               </span>
+            </td>
+            <td v-if="showOwner">
+              {{ ticket.ownerId ? (props.omega.users.value.find(u => u.id === ticket.ownerId)?.name || '—') : 'Sem responsável' }}
             </td>
             <td>{{ ticket.product || '—' }}</td>
             <td>{{ ticket.queue || '—' }}</td>

@@ -9,6 +9,7 @@ import {
   createOmegaTicket,
   updateOmegaTicket
 } from '../services/omegaService'
+import type { OmegaUser } from '../types/omega'
 import type {
   OmegaInitData,
   OmegaUser,
@@ -27,21 +28,29 @@ const OMEGA_ROLE_LABELS = {
   admin: 'Administrador'
 } as const
 
+// Menus diferentes para cada role
 const OMEGA_NAV_ITEMS = [
+  // Menu do usuário
   { id: 'my', label: 'Meus chamados', icon: 'ti ti-user', roles: ['usuario', 'analista', 'supervisor', 'admin'] as OmegaRole[] },
+  
+  // Menu do analista
   { id: 'assigned', label: 'Meus atendimentos', icon: 'ti ti-clipboard-check', roles: ['analista', 'supervisor', 'admin'] as OmegaRole[] },
   { id: 'queue', label: 'Fila da equipe', icon: 'ti ti-inbox', roles: ['analista', 'supervisor', 'admin'] as OmegaRole[] },
+  
+  // Menu do supervisor
   {
     id: 'team',
     label: 'Visão da supervisão',
     icon: 'ti ti-users',
     roles: ['supervisor', 'admin'] as OmegaRole[],
     children: [
-      { id: 'team-edit-analyst', label: 'Editar analista', icon: 'ti ti-user-cog', roles: [] as OmegaRole[] },
+      { id: 'team-edit-analyst', label: 'Gerenciar analistas', icon: 'ti ti-user-cog', roles: [] as OmegaRole[] },
       { id: 'team-edit-status', label: 'Editar status', icon: 'ti ti-adjustments-alt', roles: [] as OmegaRole[] },
       { id: 'team-graphs', label: 'Gráficos', icon: 'ti ti-chart-arcs', roles: [] as OmegaRole[] }
     ]
   },
+  
+  // Menu do admin
   { id: 'admin', label: 'Administração', icon: 'ti ti-shield-lock', roles: ['admin'] as OmegaRole[] }
 ] as const
 
@@ -59,6 +68,13 @@ const OMEGA_DEFAULT_STATUSES: OmegaStatus[] = [
   { id: 'resolvido', label: 'Resolvido', tone: 'success', order: 4, departmentId: '0' },
   { id: 'cancelado', label: 'Cancelado', tone: 'danger', order: 5, departmentId: '0' }
 ]
+
+// Status finais que não permitem réplica do usuário
+const OMEGA_FINAL_STATUSES = ['resolvido', 'cancelado', 'finalizado']
+
+function isFinalStatus(statusId: string): boolean {
+  return OMEGA_FINAL_STATUSES.includes(statusId.toLowerCase())
+}
 
 const initData = ref<OmegaInitData | null>(null)
 const users = ref<OmegaUser[]>([])
@@ -284,11 +300,12 @@ export function useOmega() {
     try {
       const response = await updateOmegaTicket(ticketId, updates)
       if (response.success && response.data) {
-        const index = tickets.value.findIndex((t) => t.id === ticketId)
-        if (index >= 0) {
-          tickets.value[index] = response.data
-        }
-        return response.data
+        // Recarrega os tickets para garantir que temos a versão mais atualizada
+        await loadTickets()
+        
+        // Retorna o ticket atualizado da lista
+        const updatedTicket = tickets.value.find((t) => t.id === ticketId)
+        return updatedTicket || null
       }
       throw new Error(response.error || 'Erro ao atualizar ticket')
     } catch (err) {
@@ -338,6 +355,11 @@ export function useOmega() {
     currentView.value = 'my'
   }
 
+  const canUserReply = (ticket: OmegaTicket): boolean => {
+    // Status finais não permitem réplica do usuário
+    return !isFinalStatus(ticket.status)
+  }
+
   return {
     initData: computed(() => initData.value),
     users: computed(() => users.value),
@@ -364,11 +386,14 @@ export function useOmega() {
     setCurrentUserId,
     setCurrentView,
     clearCache,
+    canUserReply,
+    isFinalStatus,
     constants: {
       ROLE_LABELS: OMEGA_ROLE_LABELS,
       NAV_ITEMS: OMEGA_NAV_ITEMS,
       PRIORITY_META: OMEGA_PRIORITY_META,
-      DEFAULT_STATUSES: OMEGA_DEFAULT_STATUSES
+      DEFAULT_STATUSES: OMEGA_DEFAULT_STATUSES,
+      FINAL_STATUSES: OMEGA_FINAL_STATUSES
     }
   }
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import type { DetalhesItem } from '../services/detalhesService'
 import { useGlobalFilters } from '../composables/useGlobalFilters'
 import { usePeriodManager } from '../composables/usePeriodManager'
@@ -10,6 +10,7 @@ import TableViewChips from '../components/TableViewChips.vue'
 import DetailViewBar, { type DetailView } from '../components/DetailViewBar.vue'
 import AppliedFiltersBar from '../components/AppliedFiltersBar.vue'
 import DetailColumnDesigner from '../components/DetailColumnDesigner.vue'
+import OmegaModal from '../components/OmegaModal.vue'
 
 const { filterState } = useGlobalFilters()
 const { period } = usePeriodManager()
@@ -281,6 +282,21 @@ const treeData = computed(() => {
 
 const showCards = computed(() => searchTerm.value.trim().length > 0)
 
+function recalculateSummaryFromChildren(node: TreeNode): void {
+  // Primeiro, recalcula recursivamente todos os filhos
+  node.children.forEach(child => recalculateSummaryFromChildren(child))
+
+  // Se o nó tem filhos, recalcula pontos e peso somando dos filhos
+  if (node.children.length > 0) {
+    const pontosFromChildren = node.children.reduce((sum, child) => sum + (child.summary.pontos || 0), 0)
+    const pesoFromChildren = node.children.reduce((sum, child) => sum + (child.summary.peso || 0), 0)
+
+    // Atualiza pontos e peso no summary do nó pai
+    node.summary.pontos = pontosFromChildren
+    node.summary.peso = pesoFromChildren
+  }
+}
+
 function buildTreeHierarchy(items: DetalhesItem[], hierarchy: string[], level: number): TreeNode[] {
   if (level >= hierarchy.length || items.length === 0) return []
 
@@ -404,6 +420,9 @@ function buildTreeHierarchy(items: DetalhesItem[], hierarchy: string[], level: n
     nodes.push(node)
   })
 
+  // Recalcula pontos e peso dos nós pais baseado nos filhos
+  nodes.forEach(node => recalculateSummaryFromChildren(node))
+
   return nodes
 }
 
@@ -445,7 +464,91 @@ function calculateSummary(items: DetalhesItem[]) {
 
 const detailOpenRows = ref<Set<string>>(new Set())
 
+const omegaModalOpen = ref(false)
+
 function handleAction(payload: { type: 'ticket' | 'opportunities', node: TreeNode }) {
+  if (payload.type === 'ticket') {
+    // Abre o modal Omega com dados pré-preenchidos
+    omegaModalOpen.value = true
+    
+    // Aguarda o modal estar montado e então abre o drawer com dados iniciais
+    nextTick(() => {
+      // Aguarda um pouco mais para garantir que o modal esteja totalmente montado
+      setTimeout(() => {
+        if (typeof window !== 'undefined') {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const globalAny = window as any
+          if (globalAny.__openOmegaFromVue) {
+            const observation = buildTicketObservation(payload.node)
+            globalAny.__openOmegaFromVue({
+              openDrawer: true,
+              intent: 'new-ticket',
+              preferredQueue: 'POBJ',
+              queue: 'POBJ',
+              observation
+            })
+          } else {
+            // Fallback: tenta novamente após mais um delay
+            setTimeout(() => {
+              if (globalAny.__openOmegaFromVue) {
+                const observation = buildTicketObservation(payload.node)
+                globalAny.__openOmegaFromVue({
+                  openDrawer: true,
+                  intent: 'new-ticket',
+                  preferredQueue: 'POBJ',
+                  queue: 'POBJ',
+                  observation
+                })
+              }
+            }, 500)
+          }
+        }
+      }, 100)
+    })
+  } else if (payload.type === 'opportunities') {
+    // TODO: Implementar abertura de oportunidades
+    console.log('Abrir oportunidades para:', payload.node)
+  }
+}
+
+function buildTicketObservation(node: TreeNode): string {
+  const parts: string[] = []
+  
+  if (node.label) {
+    parts.push(`Item: ${node.label}`)
+  }
+  
+  if (node.level) {
+    parts.push(`Nível: ${node.level}`)
+  }
+  
+  if (node.summary) {
+    const summary = node.summary
+    if (summary.valor_realizado) {
+      parts.push(`Realizado: R$ ${summary.valor_realizado.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+    }
+    if (summary.valor_meta) {
+      parts.push(`Meta: R$ ${summary.valor_meta.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
+    }
+    if (summary.atingimento_p !== undefined) {
+      parts.push(`Atingimento: ${summary.atingimento_p.toFixed(1)}%`)
+    }
+  }
+  
+  if (node.detail) {
+    const detailInfo = node.detail
+    if (detailInfo.gerente) {
+      parts.push(`Gerente: ${detailInfo.gerente}`)
+    }
+    if (detailInfo.canal_venda) {
+      parts.push(`Canal: ${detailInfo.canal_venda}`)
+    }
+    if (detailInfo.tipo_venda) {
+      parts.push(`Tipo de venda: ${detailInfo.tipo_venda}`)
+    }
+  }
+  
+  return parts.join('\n')
 }
 
 function toggleRow(nodeId: string) {

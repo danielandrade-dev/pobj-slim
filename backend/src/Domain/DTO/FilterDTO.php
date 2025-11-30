@@ -159,6 +159,11 @@ class FilterDTO
     {
         return $this->get('dataFim');
     }
+
+    public function getStatus()
+    {
+        return $this->get('status');
+    }
     
     public function toArray(): array
     {

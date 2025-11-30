@@ -171,6 +171,34 @@ class ResumoRepository extends ServiceEntityRepository
                 $produtoFilter .= " AND dp.familia_id = :familiaId";
                 $params['familiaId'] = $familia;
             }
+            
+            // Filtro de status (atingido/não atingido)
+            // Usa a mesma lógica do campo 'atingido' calculado na query (linha 191-199)
+            $status = $filters->getStatus();
+            if ($status !== null && $status !== '' && $status !== '03') {
+                // '01' = Atingido (atingido = 1), '02' = Não Atingido (atingido = 0)
+                if ($status === '01') {
+                    $produtoFilter .= " AND (CASE 
+                        WHEN COALESCE(fm.total_meta, 0) > 0 
+                        THEN CASE 
+                            WHEN COALESCE(fr.total_realizado, 0) / fm.total_meta >= 1 
+                            THEN 1 
+                            ELSE 0 
+                        END
+                        ELSE 0
+                    END) = 1";
+                } elseif ($status === '02') {
+                    $produtoFilter .= " AND (CASE 
+                        WHEN COALESCE(fm.total_meta, 0) > 0 
+                        THEN CASE 
+                            WHEN COALESCE(fr.total_realizado, 0) / fm.total_meta >= 1 
+                            THEN 1 
+                            ELSE 0 
+                        END
+                        ELSE 0
+                    END) = 0";
+                }
+            }
         }
 
         $sql = "SELECT 
@@ -316,6 +344,34 @@ class ResumoRepository extends ServiceEntityRepository
                 // Aplica apenas familia se não houver filtros mais específicos
                 $produtoFilter .= " AND dp.familia_id = :familiaId";
                 $params['familiaId'] = $familia;
+            }
+            
+            // Filtro de status (atingido/não atingido)
+            // Usa a mesma lógica do campo 'atingido' calculado na query (linha 365-373)
+            $status = $filters->getStatus();
+            if ($status !== null && $status !== '' && $status !== '03') {
+                // '01' = Atingido (atingido = 1), '02' = Não Atingido (atingido = 0)
+                if ($status === '01') {
+                    $produtoFilter .= " AND (CASE 
+                        WHEN COALESCE(fm.total_meta, 0) > 0 
+                        THEN CASE 
+                            WHEN COALESCE(fr.total_realizado, 0) / fm.total_meta >= 1 
+                            THEN 1 
+                            ELSE 0 
+                        END
+                        ELSE 0
+                    END) = 1";
+                } elseif ($status === '02') {
+                    $produtoFilter .= " AND (CASE 
+                        WHEN COALESCE(fm.total_meta, 0) > 0 
+                        THEN CASE 
+                            WHEN COALESCE(fr.total_realizado, 0) / fm.total_meta >= 1 
+                            THEN 1 
+                            ELSE 0 
+                        END
+                        ELSE 0
+                    END) = 0";
+                }
             }
         }
 
