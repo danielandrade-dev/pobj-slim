@@ -23,6 +23,7 @@ const omega = useOmega()
 const isOpen = ref(false)
 const modalRoot = ref<HTMLElement | null>(null)
 const omegaTemplateHtml = omegaTemplate
+let fullscreenKeydownHandler: ((e: KeyboardEvent) => void) | null = null
 
 const addedBodyClasses = ['omega-standalone', 'has-omega-open']
 
@@ -166,22 +167,95 @@ function resetBodyState() {
 
 async function loadOmegaData() {
   console.log('🔄 Carregando dados do Omega...')
+  
+  // Mostra loading state
+  const modalElement = document.getElementById('omega-modal')
+  if (modalElement) {
+    showLoadingState(modalElement)
+  }
+  
   try {
     const data = await omega.loadInit()
     console.log('✅ Dados do Omega carregados:', data)
     if (!data) {
       console.warn('⚠️ Nenhum dado retornado do Omega')
+      hideLoadingState(modalElement)
       return
     }
     
     // Aguarda o template HTML ser renderizado
     nextTick(() => {
       setTimeout(() => {
+        hideLoadingState(modalElement)
         renderOmegaData()
       }, 100)
     })
   } catch (err) {
     console.error('❌ Erro ao carregar dados do Omega:', err)
+    hideLoadingState(modalElement)
+    showErrorState(modalElement)
+  }
+}
+
+function showLoadingState(root: HTMLElement | null) {
+  if (!root) return
+  
+  const mainContent = root.querySelector('.omega-main__content')
+  if (mainContent) {
+    mainContent.classList.add('omega-loading')
+    const tbody = root.querySelector('#omega-ticket-rows')
+    if (tbody) {
+      tbody.innerHTML = `
+        ${Array.from({ length: 5 }).map(() => `
+          <tr class="omega-skeleton-row">
+            <td class="col-select"><div class="omega-skeleton omega-skeleton--checkbox"></div></td>
+            <td><div class="omega-skeleton omega-skeleton--text"></div></td>
+            <td><div class="omega-skeleton omega-skeleton--text" style="width: 80%"></div></td>
+            <td><div class="omega-skeleton omega-skeleton--text"></div></td>
+            <td><div class="omega-skeleton omega-skeleton--text"></div></td>
+            <td><div class="omega-skeleton omega-skeleton--text"></div></td>
+            <td><div class="omega-skeleton omega-skeleton--badge"></div></td>
+            <td><div class="omega-skeleton omega-skeleton--text"></div></td>
+            <td><div class="omega-skeleton omega-skeleton--text"></div></td>
+            <td><div class="omega-skeleton omega-skeleton--text"></div></td>
+            <td><div class="omega-skeleton omega-skeleton--text"></div></td>
+            <td><div class="omega-skeleton omega-skeleton--badge"></div></td>
+          </tr>
+        `).join('')}
+      `
+    }
+  }
+}
+
+function hideLoadingState(root: HTMLElement | null) {
+  if (!root) return
+  
+  const mainContent = root.querySelector('.omega-main__content')
+  if (mainContent) {
+    mainContent.classList.remove('omega-loading')
+  }
+}
+
+function showErrorState(root: HTMLElement | null) {
+  if (!root) return
+  
+  const tbody = root.querySelector('#omega-ticket-rows')
+  if (tbody) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="12" class="omega-empty-state">
+          <div class="omega-empty-state__content">
+            <i class="ti ti-alert-circle" style="font-size: 48px; color: var(--brad-color-error); margin-bottom: 16px;"></i>
+            <h3>Erro ao carregar dados</h3>
+            <p>Não foi possível carregar os chamados. Tente novamente.</p>
+            <button class="omega-btn omega-btn--primary" onclick="location.reload()" style="margin-top: 16px;">
+              <i class="ti ti-refresh"></i>
+              <span>Recarregar</span>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `
   }
 }
 
@@ -341,7 +415,33 @@ function renderTickets(root: HTMLElement) {
   const currentUser = omega.currentUser.value
   
   if (!tickets || tickets.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="12" class="omega-table__empty">Nenhum chamado encontrado</td></tr>'
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="12" class="omega-empty-state">
+          <div class="omega-empty-state__content">
+            <i class="ti ti-inbox" style="font-size: 64px; color: var(--brad-color-gray, #c7c7c7); margin-bottom: 20px; opacity: 0.6;"></i>
+            <h3>Nenhum chamado encontrado</h3>
+            <p>Não há chamados para exibir nesta visualização.</p>
+            <button class="omega-btn omega-btn--primary" id="omega-new-ticket-empty" style="margin-top: 20px;">
+              <i class="ti ti-plus"></i>
+              <span>Registrar novo chamado</span>
+            </button>
+          </div>
+        </td>
+      </tr>
+    `
+    
+    // Adiciona listener ao botão de novo ticket no estado vazio
+    const newTicketBtn = tbody.querySelector('#omega-new-ticket-empty')
+    if (newTicketBtn) {
+      newTicketBtn.addEventListener('click', () => {
+        const drawer = root.querySelector('#omega-drawer')
+        if (drawer) {
+          drawer.removeAttribute('hidden')
+        }
+      })
+    }
+    
     return
   }
 
@@ -361,10 +461,13 @@ function renderTickets(root: HTMLElement) {
 
   tbody.innerHTML = ''
   
-  filteredTickets.forEach((ticket) => {
+  filteredTickets.forEach((ticket, index) => {
     const row = document.createElement('tr')
     row.className = 'omega-table__row'
     row.setAttribute('data-ticket-id', ticket.id)
+    row.style.opacity = '0'
+    row.style.transform = 'translateY(10px)'
+    row.style.transition = `opacity 0.3s ease ${index * 0.03}s, transform 0.3s ease ${index * 0.03}s`
     
     const status = statuses.find((s) => s.id === ticket.status) || statuses[0] || { id: 'unknown', label: 'Desconhecido', tone: 'neutral' as const }
     const priorityMeta = omega.getPriorityMeta(ticket.priority)
@@ -406,11 +509,38 @@ function renderTickets(root: HTMLElement) {
     // Adiciona listener para abrir detalhes do ticket
     row.addEventListener('click', (e) => {
       if ((e.target as HTMLElement).tagName !== 'INPUT') {
-        openTicketDetails(ticket.id)
+        // Adiciona efeito de ripple
+        const ripple = document.createElement('span')
+        const rect = row.getBoundingClientRect()
+        const x = (e as MouseEvent).clientX - rect.left
+        const y = (e as MouseEvent).clientY - rect.top
+        ripple.style.left = `${x}px`
+        ripple.style.top = `${y}px`
+        ripple.className = 'omega-ripple'
+        row.appendChild(ripple)
+        
+        setTimeout(() => {
+          ripple.remove()
+          openTicketDetails(ticket.id)
+        }, 300)
       }
     })
     
+    // Adiciona hover effect
+    row.addEventListener('mouseenter', () => {
+      row.style.transform = 'translateX(4px)'
+    })
+    row.addEventListener('mouseleave', () => {
+      row.style.transform = 'translateX(0)'
+    })
+    
     tbody.appendChild(row)
+    
+    // Anima entrada
+    setTimeout(() => {
+      row.style.opacity = '1'
+      row.style.transform = 'translateY(0)'
+    }, 10)
   })
   
   // Atualiza resumo
@@ -436,23 +566,98 @@ function openTicketDetails(ticketId: string) {
   // TODO: Implementar abertura do modal de detalhes
 }
 
-function toggleFullscreen(modalElement: HTMLElement, button: HTMLElement) {
-  const isFullscreen = modalElement.classList.contains('omega-modal--fullscreen')
-  const nextState = !isFullscreen
+// Bind do botão, duplo clique no header e tecla "F" (igual ao código antigo)
+function bindOmegaFullscreenControls(root: HTMLElement) {
+  console.log('🔧 Configurando controles de fullscreen...')
   
-  modalElement.classList.toggle('omega-modal--fullscreen', nextState)
+  // Remove listener anterior se existir
+  if (fullscreenKeydownHandler) {
+    document.removeEventListener('keydown', fullscreenKeydownHandler)
+    fullscreenKeydownHandler = null
+  }
+
+  // Tenta encontrar o botão pelo atributo data ou pelo ID
+  const fsBtn = root.querySelector('[data-omega-fullscreen-toggle]') as HTMLElement || 
+                root.querySelector('#omega-fullscreen') as HTMLElement
   
-  // Atualiza atributos do botão
-  button.setAttribute('aria-pressed', nextState ? 'true' : 'false')
-  button.setAttribute('aria-label', nextState ? 'Sair de tela cheia' : 'Entrar em tela cheia')
-  
-  // Atualiza ícone
-  const icon = button.querySelector('i')
-  if (icon) {
-    icon.className = nextState ? 'ti ti-arrows-minimize' : 'ti ti-arrows-maximize'
+  if (fsBtn) {
+    console.log('✅ Botão de fullscreen encontrado:', fsBtn)
+    fsBtn.addEventListener('click', (e) => {
+      e.preventDefault()
+      e.stopPropagation()
+      console.log('🖱️ Clique no botão de fullscreen detectado')
+      setOmegaFullscreen()
+    })
+  } else {
+    console.warn('⚠️ Botão de fullscreen não encontrado!')
+    console.log('🔍 Procurando por:', {
+      dataAttr: root.querySelector('[data-omega-fullscreen-toggle]'),
+      id: root.querySelector('#omega-fullscreen'),
+      allButtons: root.querySelectorAll('button')
+    })
+  }
+
+  const header = root.querySelector('.omega-header')
+  if (header) {
+    header.addEventListener('dblclick', () => {
+      console.log('🖱️ Duplo clique no header detectado')
+      setOmegaFullscreen()
+    })
+  }
+
+  fullscreenKeydownHandler = (ev: KeyboardEvent) => {
+    // Só reage se o popup estiver visível
+    if (!root || root.hidden) return
+    if ((ev.key || '').toLowerCase() === 'f') {
+      setOmegaFullscreen()
+      ev.preventDefault()
+    }
+    // ESC sai do fullscreen antes de fechar o modal
+    if (ev.key === 'Escape' && root.classList.contains('omega-modal--fullscreen')) {
+      setOmegaFullscreen(false)
+      ev.stopPropagation()
+    }
   }
   
-  console.log(`🖥️ Tela cheia ${nextState ? 'ativada' : 'desativada'}`)
+  document.addEventListener('keydown', fullscreenKeydownHandler, { passive: false })
+}
+
+function setOmegaFullscreen(on?: boolean) {
+  const root = document.getElementById('omega-modal')
+  if (!root) {
+    console.warn('⚠️ Modal não encontrado para fullscreen')
+    return
+  }
+  
+  const btn = root.querySelector('[data-omega-fullscreen-toggle]') as HTMLElement
+  if (!btn) {
+    console.warn('⚠️ Botão de fullscreen não encontrado')
+    // Tenta encontrar pelo ID também
+    const btnById = root.querySelector('#omega-fullscreen') as HTMLElement
+    if (btnById) {
+      console.log('✅ Botão encontrado pelo ID')
+    }
+  }
+  
+  const next = (typeof on === 'boolean') ? on : !root.classList.contains('omega-modal--fullscreen')
+  
+  console.log(`🖥️ Alternando fullscreen: ${next ? 'ativar' : 'desativar'}`)
+  console.log('📋 Classes antes:', root.className)
+  
+  root.classList.toggle('omega-modal--fullscreen', next)
+  
+  console.log('📋 Classes depois:', root.className)
+  console.log('📋 Tem classe fullscreen?', root.classList.contains('omega-modal--fullscreen'))
+
+  if (btn) {
+    btn.setAttribute('aria-pressed', next ? 'true' : 'false')
+    btn.setAttribute('aria-label', next ? 'Sair de tela cheia' : 'Entrar em tela cheia')
+    const icon = btn.querySelector('i')
+    if (icon) icon.className = next ? 'ti ti-arrows-minimize' : 'ti ti-arrows-maximize'
+    console.log('✅ Botão atualizado')
+  }
+  
+  console.log(`🖥️ Tela cheia ${next ? 'ativada' : 'desativada'}`)
 }
 
 function openModal() {
@@ -613,30 +818,45 @@ onMounted(() => {
           })
         }
         
-        // Adiciona listener para botão de tela cheia
-        const fullscreenButton = modalElement.querySelector('#omega-fullscreen') as HTMLElement
-        if (fullscreenButton) {
-          fullscreenButton.addEventListener('click', () => {
-            toggleFullscreen(modalElement, fullscreenButton)
-          })
-        }
-        
-        // Adiciona listener para tecla F (atalho de tela cheia)
-        const handleKeyPress = (e: KeyboardEvent) => {
-          if (e.key === 'f' || e.key === 'F') {
-            const modal = document.getElementById('omega-modal')
-            const btn = modal?.querySelector('#omega-fullscreen')
-            if (modal && btn && !modal.hidden && btn instanceof HTMLElement) {
-              toggleFullscreen(modal, btn)
-            }
+        // Bind dos controles de tela cheia (igual ao código antigo)
+        // Usa MutationObserver para garantir que o botão esteja disponível
+        const setupFullscreenControls = () => {
+          const fsBtn = modalElement.querySelector('[data-omega-fullscreen-toggle]') as HTMLElement || 
+                        modalElement.querySelector('#omega-fullscreen') as HTMLElement
+          
+          if (fsBtn) {
+            console.log('✅ Botão encontrado, configurando fullscreen controls...')
+            bindOmegaFullscreenControls(modalElement)
+            return true
           }
+          return false
         }
-        document.addEventListener('keydown', handleKeyPress)
         
-        // Limpa listener ao desmontar
-        onBeforeUnmount(() => {
-          document.removeEventListener('keydown', handleKeyPress)
-        })
+        // Tenta configurar imediatamente
+        if (!setupFullscreenControls()) {
+          console.log('⏳ Botão não encontrado, aguardando...')
+          
+          // Usa MutationObserver para detectar quando o botão é adicionado
+          const observer = new MutationObserver((mutations, obs) => {
+            if (setupFullscreenControls()) {
+              obs.disconnect()
+              console.log('✅ Fullscreen controls configurados via MutationObserver')
+            }
+          })
+          
+          observer.observe(modalElement, {
+            childList: true,
+            subtree: true
+          })
+          
+          // Timeout de segurança
+          setTimeout(() => {
+            observer.disconnect()
+            if (!setupFullscreenControls()) {
+              console.warn('⚠️ Não foi possível configurar fullscreen controls após timeout')
+            }
+          }, 2000)
+        }
       }
     }, 50)
   })
@@ -649,6 +869,11 @@ onMounted(() => {
 onBeforeUnmount(() => {
   unregisterGlobalOpener()
   resetBodyState()
+  // Remove listener de fullscreen
+  if (fullscreenKeydownHandler) {
+    document.removeEventListener('keydown', fullscreenKeydownHandler)
+    fullscreenKeydownHandler = null
+  }
 })
 </script>
 
@@ -680,6 +905,34 @@ onBeforeUnmount(() => {
 .omega-modal-wrapper :deep(#omega-modal[hidden]) {
   display: none !important;
   pointer-events: none;
+}
+
+/* Estilos para o modo tela cheia */
+.omega-modal-wrapper :deep(#omega-modal.omega-modal--fullscreen) {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.omega-modal-wrapper :deep(#omega-modal.omega-modal--fullscreen .omega-modal__panel) {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 </style>
 
