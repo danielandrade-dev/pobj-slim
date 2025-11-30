@@ -388,10 +388,11 @@ watch(() => props.modelValue, (open) => {
   margin: 0;
   padding: 10px 12px;
   border-radius: 10px;
-  background: #eff6ff;
-  border: 1px solid #bfdbfe;
+  background: var(--brand-xlight, rgba(204, 9, 47, 0.08));
+  border: 1px solid var(--brand-light, rgba(204, 9, 47, 0.25));
   font-size: 12.5px;
-  color: #1d4ed8;
+  color: var(--brand, #cc092f);
+  font-family: var(--brad-font-family, inherit);
 }
 
 .detail-designer__views {
@@ -433,28 +434,29 @@ watch(() => props.modelValue, (open) => {
   gap: 6px;
   padding: 6px 12px;
   border-radius: 999px;
-  border: 1px solid #c7d2fe;
-  background: #fff;
-  color: #1d4ed8;
+  border: 1px solid var(--brand-light, rgba(204, 9, 47, 0.3));
+  background: var(--panel, #fff);
+  color: var(--brand, #cc092f);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--brad-font-weight-bold, 700);
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
+  font-family: var(--brad-font-family, inherit);
 }
 
 .detail-view-chip:hover {
-  background: #eef2ff;
-  border-color: #93c5fd;
+  background: var(--brand-xlight, rgba(204, 9, 47, 0.12));
+  border-color: var(--brand, #cc092f);
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(15, 23, 41, 0.08);
 }
 
 .detail-view-chip.is-active {
-  background: #eef2ff;
-  border-color: #1d4ed8;
-  color: #1d4ed8;
-  box-shadow: 0 2px 8px rgba(29, 78, 216, 0.15);
+  background: var(--brand-xlight, rgba(204, 9, 47, 0.12));
+  border-color: var(--brand, #cc092f);
+  color: var(--brand, #cc092f);
+  box-shadow: 0 2px 8px rgba(204, 9, 47, 0.15);
 }
 
 .detail-view-chip-wrapper {
@@ -573,18 +575,19 @@ watch(() => props.modelValue, (open) => {
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  border: 1px solid #dbeafe;
-  background: #fff;
-  color: #1d4ed8;
+  border: 1px solid var(--brand-light, rgba(204, 9, 47, 0.3));
+  background: var(--panel, #fff);
+  color: var(--brand, #cc092f);
   display: grid;
   place-items: center;
   cursor: pointer;
   transition: all 0.15s ease;
+  font-family: var(--brad-font-family, inherit);
 }
 
 .detail-item__add:hover {
-  background: #eef2ff;
-  border-color: #c7d2fe;
+  background: var(--brand-xlight, rgba(204, 9, 47, 0.12));
+  border-color: var(--brand, #cc092f);
 }
 
 .detail-item__remove {

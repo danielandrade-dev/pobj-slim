@@ -153,13 +153,6 @@ onUnmounted(() => {
 
 <style scoped>
 .period-selector {
-  --brand: #b30000;
-  --brand-dark: #8f0000;
-  --stroke: #e7eaf2;
-  --text: #0f1424;
-  --muted: #6b7280;
-  --shadow: 0 12px 28px rgba(17, 23, 41, 0.08);
-
   position: relative;
 }
 
@@ -172,41 +165,80 @@ onUnmounted(() => {
 
 .period-inline .txt {
   font-size: 13px;
-  color: var(--muted);
+  color: var(--muted, #6b7280);
+  font-family: var(--brad-font-family, inherit);
 }
 
 .period-inline strong {
-  color: var(--text);
-  font-weight: 700;
+  color: var(--text, #0f1424);
+  font-weight: var(--brad-font-weight-bold, 700);
+  font-family: var(--brad-font-family, inherit);
 }
 
 .period-selector .link-action {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: #fff;
-  border: 1px solid var(--stroke);
-  color: var(--brand);
+  background: var(--panel, #fff);
+  border: 1px solid var(--stroke, #e7eaf2);
+  color: var(--brand, #cc092f);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: var(--brad-font-weight-bold, 700);
   cursor: pointer;
   padding: 8px 14px;
   border-radius: 10px;
   transition: all 0.2s ease;
   box-sizing: border-box;
-  font-family: inherit;
+  font-family: var(--brad-font-family, inherit);
   outline: none;
 }
 
-.period-selector .link-action:hover {
-  background: rgba(179, 0, 0, 0.08);
-  border-color: var(--brand);
+.period-selector .link-action:hover:not(:disabled) {
+  background: var(--brand-xlight, rgba(204, 9, 47, 0.08));
+  border-color: var(--brand, #cc092f);
   transform: translateY(-1px);
-  box-shadow: var(--shadow);
+  box-shadow: 0 4px 12px rgba(204, 9, 47, 0.15);
+}
+
+.period-selector .link-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>
 
 <style>
+/* Estilos globais para .link-action (usado em botões criados dinamicamente) */
+.link-action {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  background: var(--panel, #fff) !important;
+  border: 1px solid var(--stroke, #e7eaf2) !important;
+  color: var(--brand, #cc092f) !important;
+  font-size: 13px !important;
+  font-weight: var(--brad-font-weight-bold, 700) !important;
+  cursor: pointer;
+  padding: 8px 14px !important;
+  border-radius: 10px !important;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  font-family: var(--brad-font-family, inherit) !important;
+  outline: none;
+  text-decoration: none;
+}
+
+.link-action:hover:not(:disabled) {
+  background: var(--brand-xlight, rgba(204, 9, 47, 0.08)) !important;
+  border-color: var(--brand, #cc092f) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(204, 9, 47, 0.15);
+}
+
+.link-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .date-popover {
   position: fixed;
   background: #fff;
@@ -222,8 +254,9 @@ onUnmounted(() => {
 .date-popover h4 {
   margin: 0 0 16px;
   font-size: 16px;
-  font-weight: 700;
+  font-weight: var(--brad-font-weight-bold, 700);
   color: var(--text, #0f1424);
+  font-family: var(--brad-font-family, inherit);
 }
 
 .date-popover .row {
@@ -238,14 +271,16 @@ onUnmounted(() => {
   border: 1px solid var(--stroke, #e7eaf2);
   border-radius: 10px;
   font-size: 14px;
-  font-family: inherit;
+  font-family: var(--brad-font-family, inherit);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background: var(--panel, #fff);
+  color: var(--text, #0f1424);
 }
 
 .date-popover input[type="date"]:focus {
   outline: none;
-  border-color: var(--brand, #b30000);
-  box-shadow: 0 0 0 3px rgba(204, 9, 47, 0.12);
+  border-color: var(--brand, #cc092f);
+  box-shadow: 0 0 0 3px var(--brand-xlight, rgba(204, 9, 47, 0.12));
 }
 
 .date-popover .actions {
@@ -259,15 +294,15 @@ onUnmounted(() => {
   padding: 10px 16px;
   border-radius: 10px;
   font-size: 14px;
-  font-weight: 600;
+  font-weight: var(--brad-font-weight-semibold, 600);
   cursor: pointer;
   transition: all 0.2s ease;
-  font-family: inherit;
+  font-family: var(--brad-font-family, inherit);
   border: 1px solid var(--stroke, #e7eaf2);
 }
 
 .date-popover .btn-sec {
-  background: #fff;
+  background: var(--panel, #fff);
   color: var(--text, #0f1424);
 }
 

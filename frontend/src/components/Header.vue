@@ -1,13 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-const notificationsOpen = ref(false)
 const userMenuOpen = ref(false)
 const submenuOpen = ref<string | null>(null)
-
-const toggleNotifications = (): void => {
-  notificationsOpen.value = !notificationsOpen.value
-}
 
 const toggleUserMenu = (): void => {
   userMenuOpen.value = !userMenuOpen.value
@@ -60,42 +55,6 @@ const handleMenuAction = async (action: string): Promise<void> => {
     </nav>
 
     <nav class="topbar__right" role="navigation" aria-label="Menu do usuário">
-      <div class="topbar__notifications">
-        <button
-          id="btn-topbar-notifications"
-          class="topbar__bell"
-          type="button"
-          aria-haspopup="true"
-          :aria-expanded="notificationsOpen"
-          aria-controls="topbar-notification-panel"
-          aria-label="Notificações"
-          @click="toggleNotifications"
-          @keydown.escape="notificationsOpen && toggleNotifications()"
-        >
-          <i class="ti ti-bell" aria-hidden="true"></i>
-          <span 
-            v-if="false" 
-            id="topbar-notification-badge" 
-            class="topbar__badge" 
-            aria-label="Notificações não lidas"
-            role="status"
-          >0</span>
-          <span class="sr-only">Abrir painel de notificações</span>
-        </button>
-        <Transition name="dropdown">
-          <div
-            v-if="notificationsOpen"
-            id="topbar-notification-panel"
-            class="topbar-notification-panel"
-            role="menu"
-            :aria-hidden="!notificationsOpen"
-            aria-label="Painel de notificações"
-            @keydown.escape="toggleNotifications()"
-          >
-            <p class="topbar-notification-panel__empty" role="status">Nenhuma notificação no momento.</p>
-          </div>
-        </Transition>
-      </div>
       <div class="userbox">
         <button
           class="userbox__trigger"
@@ -251,106 +210,6 @@ const handleMenuAction = async (action: string): Promise<void> => {
   min-width: 0;
 }
 
-.topbar__notifications {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.topbar__bell {
-  position: relative;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 1);
-  background: transparent;
-  color: #fff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
-  transform: scale(1);
-}
-
-.topbar__bell:hover,
-.topbar__bell:focus-visible {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 1);
-  outline: none;
-  transform: scale(1.1);
-}
-
-.topbar__bell:active {
-  transform: scale(0.9);
-  transition-duration: 0.1s;
-}
-
-/* Animação do ícone no hover */
-.topbar__bell:hover i {
-  animation: bell-ring 0.5s ease-in-out;
-}
-
-@keyframes bell-ring {
-  0%, 100% {
-    transform: rotate(0deg);
-  }
-  10%, 30% {
-    transform: rotate(-10deg);
-  }
-  20%, 40% {
-    transform: rotate(10deg);
-  }
-}
-
-.topbar__bell i {
-  font-size: 18px;
-  stroke-width: 1.5;
-  color: #fff;
-}
-
-.topbar__badge {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  transform: translate(40%, -40%);
-  min-width: 18px;
-  height: 18px;
-  border-radius: 999px;
-  background: #f87171;
-  color: #fff;
-  font-size: 10px;
-  font-weight: 800;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 5px;
-  box-shadow: 0 0 0 2px rgba(204, 9, 47, 0.35);
-}
-
-.topbar__badge[hidden] {
-  display: none;
-}
-
-.topbar-notification-panel {
-  position: absolute;
-  top: calc(100% + 10px);
-  right: 0;
-  width: 260px;
-  max-height: 320px;
-  background: #fff;
-  color: #1f2937;
-  border-radius: 14px;
-  box-shadow: 0 18px 38px rgba(15, 20, 36, 0.18);
-  border: 1px solid rgba(15, 23, 42, 0.12);
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  z-index: 1500;
-  transform-origin: top right;
-}
-
 /* Transições para dropdown */
 .dropdown-enter-active {
   transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
@@ -368,12 +227,6 @@ const handleMenuAction = async (action: string): Promise<void> => {
 .dropdown-leave-to {
   opacity: 0;
   transform: translateY(-10px) scale(0.95);
-}
-
-.topbar-notification-panel__empty {
-  margin: 0;
-  font-size: 13px;
-  color: #475569;
 }
 
 .logo {

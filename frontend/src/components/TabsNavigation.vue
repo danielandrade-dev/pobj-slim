@@ -211,6 +211,45 @@ const handleTabClick = (viewId: ViewType): void => {
 </style>
 
 <style>
+/* Estilos globais para .link-action (usado em botões criados dinamicamente) */
+.link-action {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  background: var(--panel, #fff) !important;
+  border: 1px solid var(--stroke, #e7eaf2) !important;
+  color: var(--brand, #cc092f) !important;
+  font-size: 13px !important;
+  font-weight: var(--brad-font-weight-bold, 700) !important;
+  cursor: pointer;
+  padding: 8px 14px !important;
+  border-radius: 10px !important;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  font-family: var(--brad-font-family, inherit) !important;
+  outline: none;
+  text-decoration: none;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.link-action:hover:not(:disabled) {
+  background: var(--brand-xlight, rgba(204, 9, 47, 0.08)) !important;
+  border-color: var(--brand, #cc092f) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(204, 9, 47, 0.15);
+}
+
+.link-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.link-action i {
+  font-size: 16px;
+  line-height: 1;
+}
+
 .date-popover {
   position: fixed;
   background: #fff;

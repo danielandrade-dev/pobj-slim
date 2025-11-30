@@ -79,8 +79,8 @@ onMounted(() => {
 }
 
 .resumo-mode__toggle .segmented {
-  background: #eef2ff;
-  border: 1px solid #d7def3;
+  background: var(--brand-xlight, rgba(204, 9, 47, 0.08));
+  border: 1px solid var(--stroke, #e7eaf2);
   display: inline-flex;
   border-radius: 10px;
   padding: 3px;
@@ -94,10 +94,11 @@ onMounted(() => {
   border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
-  font-weight: 700;
-  color: #334155;
+  font-weight: var(--brad-font-weight-bold, 700);
+  color: var(--text, #0f1424);
   transition: all 0.2s ease;
   white-space: nowrap;
+  font-family: var(--brad-font-family, inherit);
 }
 
 .seg-btn:hover {
@@ -105,13 +106,13 @@ onMounted(() => {
 }
 
 .seg-btn.is-active {
-  background: #fff;
-  color: #111827;
+  background: var(--panel, #fff);
+  color: var(--text, #0f1424);
   box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18);
 }
 
 .seg-btn:focus-visible {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid var(--brand, #cc092f);
   outline-offset: 2px;
 }
 </style>

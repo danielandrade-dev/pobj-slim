@@ -566,7 +566,7 @@ onMounted(() => {
   width: 100%;
   padding: 20px 0;
   color: var(--text);
-  font-family: "Plus Jakarta Sans", Inter, system-ui, Segoe UI, Roboto, Arial, sans-serif;
+  font-family: var(--brad-font-family, inherit);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }

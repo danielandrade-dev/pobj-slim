@@ -306,11 +306,11 @@ const contractId = computed(() => {
 }
 
 .tree-row:hover {
-  background: #fcfdff;
+  background: var(--bg, #f6f7fc);
 }
 
 .tree-row--expanded {
-  background: #f9fafb;
+  background: var(--bg, #f6f7fc);
 }
 
 .toggle {
@@ -320,15 +320,16 @@ const contractId = computed(() => {
   min-width: 28px;
   display: grid;
   place-items: center;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--stroke, #e7eaf2);
   border-radius: 8px;
-  background: #fff;
+  background: var(--panel, #fff);
   cursor: pointer;
   margin-right: 4px;
   transition: all 0.15s ease;
-  color: #475569;
+  color: var(--muted, #6b7280);
   box-sizing: border-box;
   flex-shrink: 0;
+  font-family: var(--brad-font-family, inherit);
 }
 
 .toggle--placeholder {
@@ -339,13 +340,13 @@ const contractId = computed(() => {
 .toggle:hover {
   box-shadow: 0 4px 10px rgba(17, 23, 41, 0.08);
   transform: translateY(-1px);
-  border-color: #1d4ed8;
+  border-color: var(--brand, #cc092f);
 }
 
 .toggle.is-expanded {
-  background: rgba(199, 210, 254, 0.35);
-  border-color: #1d4ed8;
-  color: #1d4ed8;
+  background: var(--brand-xlight, rgba(204, 9, 47, 0.12));
+  border-color: var(--brand, #cc092f);
+  color: var(--brand, #cc092f);
 }
 
 .toggle[disabled] {
@@ -359,10 +360,11 @@ const contractId = computed(() => {
 }
 
 .label-strong {
-  font-weight: 800;
-  color: #111827;
+  font-weight: var(--brad-font-weight-bold, 700);
+  color: var(--text, #0f1424);
   line-height: 1.25;
   font-size: 13px;
+  font-family: var(--brad-font-family, inherit);
 }
 
 .text-success {
@@ -382,7 +384,7 @@ const contractId = computed(() => {
 
 .tree-detail-row td {
   padding: 0;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--stroke, #e7eaf2);
   background: transparent;
 }
 
@@ -391,12 +393,13 @@ const contractId = computed(() => {
 }
 
 .contract-detail-card {
-  background: #fff;
+  background: var(--panel, #fff);
   border-radius: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid var(--stroke, #e7eaf2);
   margin: 8px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  font-family: var(--brad-font-family, inherit);
 }
 
 .contract-detail-card__header {
@@ -424,8 +427,9 @@ const contractId = computed(() => {
 
 .contract-detail-card__id-label {
   font-size: 15px;
-  font-weight: 800;
-  color: #dc2626;
+  font-weight: var(--brad-font-weight-bold, 700);
+  color: var(--brand, #cc092f);
+  font-family: var(--brad-font-family, inherit);
 }
 
 .contract-detail-card__badge {
@@ -460,9 +464,10 @@ const contractId = computed(() => {
 
 .contract-detail-card__summary-item {
   font-size: 13px;
-  font-weight: 600;
-  color: #111827;
+  font-weight: var(--brad-font-weight-semibold, 600);
+  color: var(--text, #0f1424);
   white-space: nowrap;
+  font-family: var(--brad-font-family, inherit);
 }
 
 .contract-detail-card__header-right {
@@ -474,13 +479,14 @@ const contractId = computed(() => {
 
 .contract-detail-card__date {
   font-size: 13px;
-  font-weight: 600;
-  color: #111827;
+  font-weight: var(--brad-font-weight-semibold, 600);
+  color: var(--text, #0f1424);
+  font-family: var(--brad-font-family, inherit);
 }
 
 .contract-detail-card__icon {
   font-size: 20px;
-  color: #6b7280;
+  color: var(--muted, #6b7280);
 }
 
 .contract-detail-card__warning {
@@ -532,28 +538,31 @@ const contractId = computed(() => {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
-  background: #fff;
+  background: var(--panel, #fff);
+  font-family: var(--brad-font-family, inherit);
 }
 
 .contract-detail-card__table thead th {
-  background: #f9fafb;
-  color: #374151;
-  font-weight: 800;
+  background: var(--bg, #f6f7fc);
+  color: var(--text, #0f1424);
+  font-weight: var(--brad-font-weight-bold, 700);
   font-size: 12px;
   padding: 12px 16px;
   text-align: left;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--stroke, #e7eaf2);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   white-space: nowrap;
+  font-family: var(--brad-font-family, inherit);
 }
 
 .contract-detail-card__table tbody td {
   padding: 12px 16px;
   font-size: 13px;
-  color: #111827;
-  border-bottom: 1px solid #f3f4f6;
+  color: var(--text, #0f1424);
+  border-bottom: 1px solid var(--stroke, #e7eaf2);
   vertical-align: middle;
+  font-family: var(--brad-font-family, inherit);
 }
 
 .contract-detail-card__table tbody tr:last-child td {
@@ -581,25 +590,25 @@ const contractId = computed(() => {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: 1px solid rgba(148, 163, 184, 0.3);
-  background: #fff;
-  color: #475569;
+  border: 1px solid var(--stroke, #e7eaf2);
+  background: var(--panel, #fff);
+  color: var(--muted, #6b7280);
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   transition: all 0.2s ease;
   box-sizing: border-box;
-  font-family: inherit;
+  font-family: var(--brad-font-family, inherit);
   outline: none;
   padding: 0;
 }
 
 .icon-btn:hover,
 .icon-btn:focus-visible {
-  background: rgba(36, 107, 253, 0.12);
-  color: #2563eb;
-  border-color: rgba(36, 107, 253, 0.35);
+  background: var(--brand-xlight, rgba(204, 9, 47, 0.12));
+  color: var(--brand, #cc092f);
+  border-color: var(--brand-light, rgba(204, 9, 47, 0.35));
   outline: none;
 }
 

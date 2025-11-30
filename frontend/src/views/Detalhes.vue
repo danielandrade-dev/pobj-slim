@@ -995,7 +995,7 @@ onMounted(() => {
   width: 100%;
   padding: 20px 0;
   color: var(--text);
-  font-family: "Plus Jakarta Sans", Inter, system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  font-family: var(--brad-font-family, inherit);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   box-sizing: border-box;
@@ -1235,12 +1235,13 @@ onMounted(() => {
   border: none;
   background: none;
   font: inherit;
-  font-weight: 800;
+  font-weight: var(--brad-font-weight-bold, 700);
   color: inherit;
   cursor: pointer;
   padding: 4px 6px;
   border-radius: 999px;
   transition: color 0.15s ease, background-color 0.15s ease;
+  font-family: var(--brad-font-family, inherit);
 }
 
 :deep(.tree-table thead th:first-child .tree-sort) {
@@ -1256,12 +1257,13 @@ onMounted(() => {
 }
 
 .tree-sort:hover:not([disabled]) {
-  color: #1d4ed8;
-  background: rgba(199, 210, 254, 0.35);
+  color: var(--brand, #cc092f);
+  background: var(--brand-xlight, rgba(204, 9, 47, 0.12));
 }
 
 .tree-sort[aria-pressed="true"] {
-  color: #1d4ed8;
+  color: var(--brand, #cc092f);
+  background: var(--brand-xlight, rgba(204, 9, 47, 0.12));
 }
 
 .tree-sort[disabled] {

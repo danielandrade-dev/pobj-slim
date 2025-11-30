@@ -26,7 +26,7 @@ export function usePeriodManager() {
           até
           <strong><span id="lbl-periodo-fim">${endFormatted}</span></strong>
         </span>
-        <button id="btn-alterar-data" type="button" class="link-action" style="color: #b30000;" ${isDisabled ? 'disabled' : ''}>
+        <button id="btn-alterar-data" type="button" class="link-action" ${isDisabled ? 'disabled' : ''}>
           <i class="ti ti-chevron-down"></i> Alterar data
         </button>
       </div>

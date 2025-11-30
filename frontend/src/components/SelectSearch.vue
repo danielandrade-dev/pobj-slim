@@ -289,8 +289,8 @@ watch(() => props.disabled, (disabled) => {
 }
 
 .select-search.is-open .select-search__trigger {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  border-color: var(--brand, #cc092f);
+  box-shadow: 0 0 0 3px var(--brand-xlight, rgba(204, 9, 47, 0.12));
 }
 
 .select-search__trigger span.is-placeholder {
@@ -312,8 +312,8 @@ watch(() => props.disabled, (disabled) => {
   top: calc(100% + 4px);
   left: 0;
   right: 0;
-  background: #fff;
-  border: 1px solid var(--stroke, #e7aaf2);
+  background: var(--panel, #fff);
+  border: 1px solid var(--stroke, #e7eaf2);
   border-radius: 12px;
   box-shadow: 0 12px 28px rgba(17, 23, 41, 0.12);
   z-index: 2600;
@@ -321,6 +321,7 @@ watch(() => props.disabled, (disabled) => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  font-family: var(--brad-font-family, inherit);
 }
 
 .select-search__box {
@@ -330,25 +331,26 @@ watch(() => props.disabled, (disabled) => {
 .select-search__input {
   padding: 8px 10px;
   border-radius: 10px;
-  border: 1px solid var(--stroke, #e7aaf2);
-  background: #fff;
+  border: 1px solid var(--stroke, #e7eaf2);
+  background: var(--panel, #fff);
   color: var(--text, #0f1424);
   width: 100%;
   font-size: 12px;
+  font-family: var(--brad-font-family, inherit);
 }
 
 .select-search__input:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-  border-color: #cbd5e1;
+  box-shadow: 0 0 0 3px var(--brand-xlight, rgba(204, 9, 47, 0.12));
+  border-color: var(--brand, #cc092f);
 }
 
 .select-search__results {
   max-height: 220px;
   overflow-y: auto;
   border-radius: 10px;
-  border: 1px solid rgba(148, 163, 184, 0.35);
-  background: #fff;
+  border: 1px solid var(--stroke, #e7eaf2);
+  background: var(--panel, #fff);
   padding: 4px 0;
 }
 
@@ -363,17 +365,19 @@ watch(() => props.disabled, (disabled) => {
   cursor: pointer;
   color: var(--text, #0f1424);
   transition: background-color 0.15s ease;
+  font-family: var(--brad-font-family, inherit);
 }
 
 .select-search__item:hover,
 .select-search__item:focus {
-  background: rgba(36, 107, 253, 0.08);
+  background: var(--brand-xlight, rgba(204, 9, 47, 0.08));
   outline: none;
 }
 
 .select-search__item.is-selected {
-  background: rgba(37, 99, 235, 0.12);
-  font-weight: 600;
+  background: var(--brand-xlight, rgba(204, 9, 47, 0.12));
+  font-weight: var(--brad-font-weight-semibold, 600);
+  color: var(--brand, #cc092f);
 }
 
 .select-search__empty {
