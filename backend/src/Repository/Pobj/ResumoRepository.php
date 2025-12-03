@@ -17,15 +17,17 @@ use App\Entity\Pobj\Segmento;
 use App\Entity\Pobj\Diretoria;
 use App\Entity\Pobj\Regional;
 use App\Entity\Pobj\Agencia;
+use App\Repository\Contract\ResumoRepositoryInterface;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
-class ResumoRepository extends ServiceEntityRepository
+class ResumoRepository extends ServiceEntityRepository implements ResumoRepositoryInterface
 {
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, DProduto::class);
     }
+
 
     /**
      * Constrói subconsulta otimizada para metas (sem joins desnecessários)
@@ -245,7 +247,14 @@ class ResumoRepository extends ServiceEntityRepository
         $connection = $this->getEntityManager()->getConnection();
         $result = $connection->executeQuery($sql, $params);
         
-        return $result->fetchAllAssociative();
+        // Processa resultados de forma mais eficiente em memória
+        $rows = [];
+        while ($row = $result->fetchAssociative()) {
+            $rows[] = $row;
+        }
+        $result->free();
+        
+        return $rows;
     }
 
     /**
@@ -418,7 +427,13 @@ class ResumoRepository extends ServiceEntityRepository
 
         $connection = $this->getEntityManager()->getConnection();
         $result = $connection->executeQuery($sql, $params);
-        $produtos = $result->fetchAllAssociative();
+        
+        // Processa resultados de forma mais eficiente em memória
+        $produtos = [];
+        while ($row = $result->fetchAssociative()) {
+            $produtos[] = $row;
+        }
+        $result->free();
 
         if (empty($produtos)) {
             return [];
@@ -529,7 +544,13 @@ class ResumoRepository extends ServiceEntityRepository
 
         $connection = $this->getEntityManager()->getConnection();
         $result = $connection->executeQuery($sql, $params);
-        $rows = $result->fetchAllAssociative();
+        
+        // Processa resultados de forma mais eficiente em memória
+        $rows = [];
+        while ($row = $result->fetchAssociative()) {
+            $rows[] = $row;
+        }
+        $result->free();
 
         // Formata datas - campos relacionados a produtos/indicadores permanecem null
         // pois f_variavel não tem relação direta com essas entidades
@@ -886,7 +907,13 @@ class ResumoRepository extends ServiceEntityRepository
         
         $connection = $this->getEntityManager()->getConnection();
         $result = $connection->executeQuery($sql, $params);
-        $rows = $result->fetchAllAssociative();
+        
+        // Processa resultados de forma mais eficiente em memória
+        $rows = [];
+        while ($row = $result->fetchAssociative()) {
+            $rows[] = $row;
+        }
+        $result->free();
         
         $result = [];
         $ultimaAtualizacaoMap = [];
@@ -974,7 +1001,13 @@ class ResumoRepository extends ServiceEntityRepository
         
         $connection = $this->getEntityManager()->getConnection();
         $result = $connection->executeQuery($sql, $params);
-        $rows = $result->fetchAllAssociative();
+        
+        // Processa resultados de forma mais eficiente em memória
+        $rows = [];
+        while ($row = $result->fetchAssociative()) {
+            $rows[] = $row;
+        }
+        $result->free();
         
         $result = [];
         foreach ($rows as $row) {

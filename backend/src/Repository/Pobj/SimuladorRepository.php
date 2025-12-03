@@ -122,10 +122,10 @@ class SimuladorRepository extends ServiceEntityRepository
 
         $conn = $this->getEntityManager()->getConnection();
         $result = $conn->executeQuery($sql, $params);
-        $rows = $result->fetchAllAssociative();
-
+        
+        // Processa resultados de forma mais eficiente em memória
         $produtos = [];
-        foreach ($rows as $row) {
+        while ($row = $result->fetchAssociative()) {
             $ultimaAtualizacao = $row['ultimaAtualizacao'] ?? null;
             if ($ultimaAtualizacao instanceof \DateTimeInterface) {
                 $ultimaAtualizacao = $ultimaAtualizacao->format('d/m/Y H:i');
@@ -154,6 +154,7 @@ class SimuladorRepository extends ServiceEntityRepository
                 'ultimaAtualizacao' => $ultimaAtualizacao
             ];
         }
+        $result->free();
 
         return $produtos;
     }

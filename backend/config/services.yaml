@@ -39,5 +39,38 @@ services:
         tags:
             - { name: kernel.event_subscriber }
 
+    # CORS Preflight Subscriber - trata requisições OPTIONS antes de tudo
+    App\EventSubscriber\CorsPreflightSubscriber:
+        tags:
+            - { name: kernel.event_subscriber }
+
+    # Rate Limit Subscriber - implementa rate limiting
+    App\EventSubscriber\RateLimitSubscriber:
+        arguments:
+            $rateLimits:
+                default: { limit: 100, window: 60 }
+                auth: { limit: 5, window: 60 }
+                api: { limit: 1000, window: 3600 }
+        tags:
+            - { name: kernel.event_subscriber }
+
+    # CSRF Protection Subscriber - valida tokens CSRF
+    App\EventSubscriber\CsrfProtectionSubscriber:
+        arguments:
+            $enabled: true
+            $excludedPaths:
+                - '/api/auth/login'
+                - '/api/auth/register'
+        tags:
+            - { name: kernel.event_subscriber }
+
+    # API Key User Provider
+    App\Security\ApiKeyUserProvider: ~
+
+    # API Key Authenticator - usa API_KEY do ambiente
+    App\Security\ApiKeyAuthenticator:
+        arguments:
+            $apiKey: '%env(API_KEY)%'
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

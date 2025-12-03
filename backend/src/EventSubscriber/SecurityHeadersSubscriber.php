@@ -45,7 +45,7 @@ class SecurityHeadersSubscriber implements EventSubscriberInterface
         }
 
         $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-        $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+        $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, X-API-Key');
         
         if ($allowCredentials) {
             $response->headers->set('Access-Control-Allow-Credentials', 'true');

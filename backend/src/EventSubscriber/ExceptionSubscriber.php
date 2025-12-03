@@ -37,6 +37,11 @@ class ExceptionSubscriber implements EventSubscriberInterface
         $exception = $event->getThrowable();
         $request = $event->getRequest();
 
+        // Ignora requisições OPTIONS (já tratadas pelo CorsPreflightSubscriber)
+        if ($request->getMethod() === 'OPTIONS') {
+            return;
+        }
+
         // Loga a exceção
         $this->logException($exception, $request);
 
@@ -106,15 +111,21 @@ class ExceptionSubscriber implements EventSubscriberInterface
             $errorData['request_id'] = $_SERVER['REQUEST_ID'];
         }
 
-        return new JsonResponse(
-            [
-                'success' => false,
-                'data' => $errorData,
-            ],
+        $responseData = [
+            'success' => false,
+            'data' => $errorData,
+        ];
+
+        $response = new JsonResponse(
+            $responseData,
             $statusCode,
-            ['Content-Type' => 'application/json; charset=utf-8'],
-            JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT
+            ['Content-Type' => 'application/json; charset=utf-8']
         );
+
+        // Configura opções de encoding JSON
+        $response->setEncodingOptions(JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+
+        return $response;
     }
 
     private function logException(\Throwable $exception, $request): void

@@ -4,6 +4,7 @@ namespace App\Controller\Pobj;
 
 use App\Controller\ControllerBase;
 use App\Infrastructure\Database\Connection;
+use OpenApi\Annotations as OA;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
@@ -16,7 +17,67 @@ class PobjNotificationsController extends ControllerBase
 
     /**
      * Cria uma nova notificação no POBJ
+     * 
      * @Route("/api/pobj/notifications", name="api_pobj_notifications", methods={"POST"})
+     * 
+     * @OA\Post(
+     *     path="/api/pobj/notifications",
+     *     summary="Criar notificação",
+     *     description="Cria uma nova notificação relacionada a um chamado/ticket do POBJ",
+     *     tags={"POBJ", "Notificações"},
+     *     security={{"ApiKeyAuth": {}}},
+     *     @OA\Parameter(
+     *         name="body",
+     *         in="body",
+     *         required=true,
+     *         description="Dados da notificação",
+     *         @OA\Schema(
+     *             type="object",             required={"ticketId"},
+     *             @OA\Property(property="ticketId", @OA\Schema(type="string"), description="ID do ticket/chamado", example="TKT-12345"),
+     *             @OA\Property(property="ticketSubject",  description="Assunto do ticket", example="Atualização de status"),
+     *             @OA\Property(property="date",  format="date-time", description="Data do evento (ISO 8601)", example="2024-12-03T22:00:00Z"),
+     *             @OA\Property(property="actorId",  description="ID do usuário que realizou a ação", example="user123"),
+     *             @OA\Property(property="action",  description="Tipo de ação realizada", example="Atualização"),
+     *             @OA\Property(property="comment",  description="Comentário adicional", example="Status alterado para em andamento"),
+     *             @OA\Property(property="status",  description="Status do ticket", example="aberto", enum={"aberto", "em_andamento", "resolvido", "fechado"})
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Notificação criada com sucesso",
+     *         @OA\Schema(
+     *             
+     *             @OA\Property(property="success",  example=true),
+     *             @OA\Property(
+     *                 property="data",
+     *                 
+     *                 @OA\Property(property="id",  example=1),
+     *                 @OA\Property(property="ticketId",  example="TKT-12345"),
+     *                 @OA\Property(property="ticketSubject",  example="Atualização de status"),
+     *                 @OA\Property(property="date",  format="date-time", example="2024-12-03T22:00:00Z"),
+     *                 @OA\Property(property="actorId",  example="user123"),
+     *                 @OA\Property(property="action",  example="Atualização"),
+     *                 @OA\Property(property="comment",  example="Status alterado"),
+     *                 @OA\Property(property="status",  example="aberto"),
+     *                 @OA\Property(property="read",  example=false)
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Dados inválidos",
+     *         @OA\Schema(
+     *             
+     *             @OA\Property(property="success",  example=false),
+     *             @OA\Property(property="data", 
+     *                 @OA\Property(property="error",  example="Dados inválidos"),
+     *                 @OA\Property(property="code",  example="BAD_REQUEST")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Não autorizado"),
+     *     @OA\Response(response=429, description="Rate limit excedido")
+     * )
      */
     public function create(Request $request): JsonResponse
     {
@@ -85,4 +146,7 @@ class PobjNotificationsController extends ControllerBase
         }
     }
 }
+
+
+
 

@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '../config/api'
+import { API_BASE_URL, getApiKey } from '../config/api'
 import type { ApiResponse } from '../types'
 
 function buildUrl(path: string, params?: Record<string, any>) {
@@ -17,6 +17,23 @@ function buildUrl(path: string, params?: Record<string, any>) {
   return url.toString()
 }
 
+/**
+ * Cria headers padrão para requisições API
+ * Inclui API Key se disponível
+ */
+function buildHeaders(customHeaders?: Record<string, string>): Record<string, string> {
+  const headers: Record<string, string> = {
+    ...customHeaders
+  }
+
+  const apiKey = getApiKey()
+  if (apiKey) {
+    headers['X-API-Key'] = apiKey
+  }
+
+  return headers
+}
+
 export async function apiGet<T>(
   path: string,
   params?: Record<string, any>
@@ -25,8 +42,8 @@ export async function apiGet<T>(
     const url = buildUrl(path, params)
 
     const response = await fetch(url, {
-      method: 'GET'
-      // sem Content-Type no GET
+      method: 'GET',
+      headers: buildHeaders()
     })
 
     if (!response.ok) {
@@ -56,10 +73,78 @@ export async function apiPost<T>(
 
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
+      headers: buildHeaders({
         'Content-Type': 'application/json'
-      },
+      }),
       body: body ? JSON.stringify(body) : undefined
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+
+    const data = await response.json()
+
+    return data.success !== undefined
+      ? data
+      : { success: true, data }
+  } catch (e) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : 'Unknown error'
+    }
+  }
+}
+
+/**
+ * Requisição PUT genérica
+ */
+export async function apiPut<T>(
+  path: string,
+  body?: Record<string, any>,
+  params?: Record<string, any>
+): Promise<ApiResponse<T>> {
+  try {
+    const url = buildUrl(path, params)
+
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers: buildHeaders({
+        'Content-Type': 'application/json'
+      }),
+      body: body ? JSON.stringify(body) : undefined
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+
+    const data = await response.json()
+
+    return data.success !== undefined
+      ? data
+      : { success: true, data }
+  } catch (e) {
+    return {
+      success: false,
+      error: e instanceof Error ? e.message : 'Unknown error'
+    }
+  }
+}
+
+/**
+ * Requisição DELETE genérica
+ */
+export async function apiDelete<T>(
+  path: string,
+  params?: Record<string, any>
+): Promise<ApiResponse<T>> {
+  try {
+    const url = buildUrl(path, params)
+
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: buildHeaders()
     })
 
     if (!response.ok) {

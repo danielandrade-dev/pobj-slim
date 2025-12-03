@@ -4,6 +4,7 @@ namespace App\Controller\Omega;
 
 use App\Controller\ControllerBase;
 use App\Infrastructure\Database\Connection;
+use OpenApi\Annotations as OA;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
@@ -16,7 +17,70 @@ class OmegaNotificationsController extends ControllerBase
 
     /**
      * Cria uma nova notificação no Omega
+     * 
      * @Route("/api/omega/notifications", name="api_omega_notifications", methods={"POST"})
+     * 
+     * @OA\Post(
+     *     path="/api/omega/notifications",
+     *     summary="Criar notificação Omega",
+     *     description="Cria uma nova notificação relacionada a um chamado/ticket do Omega",
+     *     tags={"Omega", "Notificações"},
+     *     security={{"ApiKeyAuth": {}}},
+     *     @OA\Parameter(
+     *         name="body",
+     *         in="body",
+     *         required=true,
+     *         description="Dados da notificação",
+     *         @OA\Schema(
+     *             type="object",
+     *             required={"ticketId"},
+     *             @OA\Property(property="ticketId", @OA\Schema(type="string"), description="ID do ticket/chamado", example="TKT-12345"),
+     *             @OA\Property(property="ticketSubject", type="string", description="Assunto do ticket", example="Atualização de status"),
+     *             @OA\Property(property="date", type="string", format="date-time", description="Data do evento (ISO 8601)", example="2024-12-03T22:00:00Z"),
+     *             @OA\Property(property="actorId", type="string", description="ID do usuário que realizou a ação", example="user123"),
+     *             @OA\Property(property="action", type="string", description="Tipo de ação realizada", example="Atualização"),
+     *             @OA\Property(property="comment", type="string", description="Comentário adicional", example="Status alterado para em andamento"),
+     *             @OA\Property(property="status", type="string", description="Status do ticket", example="aberto", enum={"aberto", "em_andamento", "resolvido", "fechado"}),
+     *             @OA\Property(property="type", type="string", description="Tipo de notificação", example="status_update", enum={"status_update", "comment", "assignment"})
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Notificação criada com sucesso",
+     *         @OA\Schema(
+     *             
+     *             @OA\Property(property="success",  example=true),
+     *             @OA\Property(
+     *                 property="data",
+     *                 
+     *                 @OA\Property(property="id",  example="ntf-1234567890"),
+     *                 @OA\Property(property="ticketId",  example="TKT-12345"),
+     *                 @OA\Property(property="ticketSubject",  example="Atualização de status"),
+     *                 @OA\Property(property="date",  format="date-time", example="2024-12-03T22:00:00Z"),
+     *                 @OA\Property(property="actorId",  example="user123"),
+     *                 @OA\Property(property="action",  example="Atualização"),
+     *                 @OA\Property(property="comment",  example="Status alterado"),
+     *                 @OA\Property(property="status",  example="aberto"),
+     *                 @OA\Property(property="type",  example="status_update"),
+     *                 @OA\Property(property="read",  example=false)
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=400,
+     *         description="Dados inválidos",
+     *         @OA\Schema(
+     *             
+     *             @OA\Property(property="success",  example=false),
+     *             @OA\Property(property="data", 
+     *                 @OA\Property(property="error",  example="Dados inválidos"),
+     *                 @OA\Property(property="code",  example="BAD_REQUEST")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Não autorizado"),
+     *     @OA\Response(response=429, description="Rate limit excedido")
+     * )
      */
     public function create(Request $request): JsonResponse
     {
@@ -89,4 +153,6 @@ class OmegaNotificationsController extends ControllerBase
         }
     }
 }
+
+
 

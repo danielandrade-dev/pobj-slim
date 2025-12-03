@@ -5,6 +5,7 @@ namespace App\Controller\Omega;
 use App\Application\UseCase\Omega\OmegaUsersUseCase;
 use App\Controller\ControllerBase;
 use App\Infrastructure\Database\Connection;
+use OpenApi\Annotations as OA;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
@@ -23,7 +24,47 @@ class OmegaTeamsController extends ControllerBase
 
     /**
      * Lista analistas do time de um supervisor
+     * 
      * @Route("/api/omega/teams/{supervisorId}/analysts", name="api_omega_teams_analysts", methods={"GET"})
+     * 
+     * @OA\Get(
+     *     path="/api/omega/teams/{supervisorId}/analysts",
+     *     summary="Lista analistas do time",
+     *     description="Retorna todos os analistas que pertencem ao time de um supervisor",
+     *     tags={"Omega", "Teams"},
+     *     security={{"ApiKeyAuth": {}}},
+     *     @OA\Parameter(
+     *         name="supervisorId",
+     *         in="path",
+     *         required=true,
+     *         description="ID do supervisor",
+         *         @OA\Schema(type="string", example="supervisor123")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Lista de analistas retornada com sucesso",
+     *         @OA\Schema(
+     *             
+     *             @OA\Property(property="success",  example=true),
+     *             @OA\Property(
+     *                 property="data",
+     *                 
+     *                 @OA\Items(
+     *                     
+     *                     @OA\Property(property="id",  example="analyst123"),
+     *                     @OA\Property(property="name",  example="João Silva"),
+     *                     @OA\Property(property="functional",  example="12345"),
+     *                     @OA\Property(property="role",  example="analista"),
+     *                     @OA\Property(property="analista",  example=true),
+     *                     @OA\Property(property="supervisor",  example=false),
+     *                     @OA\Property(property="admin",  example=false)
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Não autorizado"),
+     *     @OA\Response(response=429, description="Rate limit excedido")
+     * )
      */
     public function getTeamAnalysts(string $supervisorId, Request $request): JsonResponse
     {
@@ -70,7 +111,51 @@ class OmegaTeamsController extends ControllerBase
 
     /**
      * Adiciona um analista ao time de um supervisor
+     * 
      * @Route("/api/omega/teams/{supervisorId}/analysts", name="api_omega_teams_add_analyst", methods={"POST"})
+     * 
+     * @OA\Post(
+     *     path="/api/omega/teams/{supervisorId}/analysts",
+     *     summary="Adicionar analista ao time",
+     *     description="Adiciona um analista ao time de um supervisor",
+     *     tags={"Omega", "Teams"},
+     *     security={{"ApiKeyAuth": {}}},
+     *     @OA\Parameter(
+     *         name="supervisorId",
+     *         in="path",
+     *         required=true,
+     *         description="ID do supervisor",
+         *         @OA\Schema(type="string", example="supervisor123")
+     *     ),
+     *     @OA\Parameter(
+     *         name="body",
+     *         in="body",
+     *         required=true,
+     *         description="Dados do analista",
+     *         @OA\Schema(
+     *             type="object",
+     *             required={"analystId"},
+     *             @OA\Property(property="analystId", @OA\Schema(type="string"), description="ID do analista", example="analyst123")
+     *         )
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Analista adicionado com sucesso",
+     *         @OA\Schema(
+     *             
+     *             @OA\Property(property="success",  example=true),
+     *             @OA\Property(property="data", 
+     *                 @OA\Property(property="message",  example="Analista adicionado ao time com sucesso"),
+     *                 @OA\Property(property="supervisorId",  example="supervisor123"),
+     *                 @OA\Property(property="analystId",  example="analyst123")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=400, description="Dados inválidos ou analista já está no time"),
+     *     @OA\Response(response=404, description="Supervisor ou analista não encontrado"),
+     *     @OA\Response(response=401, description="Não autorizado"),
+     *     @OA\Response(response=429, description="Rate limit excedido")
+     * )
      */
     public function addAnalystToTeam(string $supervisorId, Request $request): JsonResponse
     {
@@ -134,7 +219,46 @@ class OmegaTeamsController extends ControllerBase
 
     /**
      * Remove um analista do time de um supervisor
+     * 
      * @Route("/api/omega/teams/{supervisorId}/analysts/{analystId}/remove", name="api_omega_teams_remove_analyst", methods={"POST"})
+     * 
+     * @OA\Post(
+     *     path="/api/omega/teams/{supervisorId}/analysts/{analystId}/remove",
+     *     summary="Remover analista do time",
+     *     description="Remove um analista do time de um supervisor",
+     *     tags={"Omega", "Teams"},
+     *     security={{"ApiKeyAuth": {}}},
+     *     @OA\Parameter(
+     *         name="supervisorId",
+     *         in="path",
+     *         required=true,
+     *         description="ID do supervisor",
+         *         @OA\Schema(type="string", example="supervisor123")
+     *     ),
+     *     @OA\Parameter(
+     *         name="analystId",
+     *         in="path",
+     *         required=true,
+     *         description="ID do analista",
+         *         @OA\Schema(type="string", example="analyst123")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Analista removido com sucesso",
+     *         @OA\Schema(
+     *             
+     *             @OA\Property(property="success",  example=true),
+     *             @OA\Property(property="data", 
+     *                 @OA\Property(property="message",  example="Analista removido do time com sucesso"),
+     *                 @OA\Property(property="supervisorId",  example="supervisor123"),
+     *                 @OA\Property(property="analystId",  example="analyst123")
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=404, description="Relacionamento não encontrado"),
+     *     @OA\Response(response=401, description="Não autorizado"),
+     *     @OA\Response(response=429, description="Rate limit excedido")
+     * )
      */
     public function removeAnalystFromTeam(string $supervisorId, string $analystId): JsonResponse
     {
@@ -164,7 +288,47 @@ class OmegaTeamsController extends ControllerBase
 
     /**
      * Lista analistas disponíveis para adicionar ao time
+     * 
      * @Route("/api/omega/analysts/available", name="api_omega_analysts_available", methods={"GET"})
+     * 
+     * @OA\Get(
+     *     path="/api/omega/analysts/available",
+     *     summary="Lista analistas disponíveis",
+     *     description="Retorna lista de analistas disponíveis para adicionar a um time. Pode excluir analistas já em um time específico.",
+     *     tags={"Omega", "Teams"},
+     *     security={{"ApiKeyAuth": {}}},
+     *     @OA\Parameter(
+     *         name="excludeTeamId",
+     *         in="query",
+     *         description="ID do supervisor para excluir analistas já no time dele",
+     *         required=false,
+         *         @OA\Schema(type="string", example="supervisor123")
+     *     ),
+     *     @OA\Response(
+     *         response=200,
+     *         description="Lista de analistas disponíveis retornada com sucesso",
+     *         @OA\Schema(
+     *             
+     *             @OA\Property(property="success",  example=true),
+     *             @OA\Property(
+     *                 property="data",
+     *                 
+     *                 @OA\Items(
+     *                     
+     *                     @OA\Property(property="id",  example="analyst123"),
+     *                     @OA\Property(property="name",  example="João Silva"),
+     *                     @OA\Property(property="functional",  example="12345"),
+     *                     @OA\Property(property="role",  example="analista"),
+     *                     @OA\Property(property="analista",  example=true),
+     *                     @OA\Property(property="supervisor",  example=false),
+     *                     @OA\Property(property="admin",  example=false)
+     *                 )
+     *             )
+     *         )
+     *     ),
+     *     @OA\Response(response=401, description="Não autorizado"),
+     *     @OA\Response(response=429, description="Rate limit excedido")
+     * )
      */
     public function getAvailableAnalysts(Request $request): JsonResponse
     {
@@ -212,4 +376,7 @@ class OmegaTeamsController extends ControllerBase
         }
     }
 }
+
+
+
 

@@ -7,56 +7,61 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\Security\Core\Exception\CustomUserMessageAuthenticationException;
-use Symfony\Component\Security\Http\Authenticator\AbstractAuthenticator;
-use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
-use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
-use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPassport;
+use Symfony\Component\Security\Guard\AbstractGuardAuthenticator;
+use Symfony\Component\Security\Core\User\UserProviderInterface;
+use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
- * Authenticator para API Keys
- * Valida API keys enviadas no header X-API-Key
+ * Authenticator para API Key única do projeto
+ * Valida API key enviada no header X-API-Key contra variável de ambiente
  */
-class ApiKeyAuthenticator extends AbstractAuthenticator
+class ApiKeyAuthenticator extends AbstractGuardAuthenticator
 {
-    private $apiKeyRepository;
+    private $apiKey;
 
-    public function __construct(ApiKeyRepository $apiKeyRepository)
+    public function __construct(string $apiKey = null)
     {
-        $this->apiKeyRepository = $apiKeyRepository;
+        // Pega da variável de ambiente ou do parâmetro
+        $this->apiKey = $apiKey ?? $_ENV['API_KEY'] ?? $_SERVER['API_KEY'] ?? null;
     }
 
-    public function supports(Request $request): ?bool
+    public function supports(Request $request): bool
     {
         // Suporta apenas se houver header X-API-Key
         return $request->headers->has('X-API-Key');
     }
 
-    public function authenticate(Request $request): Passport
+    public function getCredentials(Request $request)
     {
-        $apiKey = $request->headers->get('X-API-Key');
-
-        if (null === $apiKey) {
-            throw new CustomUserMessageAuthenticationException('API Key não fornecida');
-        }
-
-        // Valida a API key
-        $apiKeyEntity = $this->apiKeyRepository->findValidKey($apiKey);
-
-        if (!$apiKeyEntity) {
-            throw new CustomUserMessageAuthenticationException('API Key inválida ou expirada');
-        }
-
-        // Atualiza último uso
-        $this->apiKeyRepository->updateLastUsed($apiKeyEntity);
-
-        return new SelfValidatingPassport(
-            new UserBadge($apiKey, function ($apiKey) use ($apiKeyEntity) {
-                return new ApiKeyUser($apiKeyEntity);
-            })
-        );
+        return $request->headers->get('X-API-Key');
     }
 
-    public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?JsonResponse
+    public function getUser($credentials, UserProviderInterface $userProvider): ?UserInterface
+    {
+        if (null === $credentials) {
+            return null;
+        }
+
+        // Valida a API key contra a variável de ambiente
+        if (!$this->apiKey) {
+            throw new CustomUserMessageAuthenticationException('API Key não configurada no servidor');
+        }
+
+        if (!hash_equals($this->apiKey, $credentials)) {
+            throw new CustomUserMessageAuthenticationException('API Key inválida');
+        }
+
+        // Retorna um usuário simples com role ROLE_API
+        return new ApiKeyUser();
+    }
+
+    public function checkCredentials($credentials, UserInterface $user): bool
+    {
+        // A validação já foi feita no getUser
+        return true;
+    }
+
+    public function onAuthenticationSuccess(Request $request, TokenInterface $token, $providerKey)
     {
         // Autenticação bem-sucedida, continua a requisição
         return null;
@@ -76,5 +81,24 @@ class ApiKeyAuthenticator extends AbstractAuthenticator
             ]
         ], 401);
     }
-}
 
+    public function start(Request $request, AuthenticationException $authException = null)
+    {
+        return new JsonResponse([
+            'success' => false,
+            'data' => [
+                'error' => 'Autenticação necessária',
+                'code' => 'UNAUTHORIZED',
+                'details' => [
+                    'message' => 'API Key não fornecida'
+                ],
+                'timestamp' => date('c')
+            ]
+        ], 401);
+    }
+
+    public function supportsRememberMe(): bool
+    {
+        return false;
+    }
+}

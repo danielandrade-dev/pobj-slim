@@ -158,10 +158,10 @@ class ExecRepository extends ServiceEntityRepository
 
         $conn = $this->getEntityManager()->getConnection();
         $result = $conn->executeQuery($sql, $params);
-        $rows = $result->fetchAllAssociative();
-
+        
+        // Processa resultados de forma mais eficiente em memória
         $ranking = [];
-        foreach ($rows as $row) {
+        while ($row = $result->fetchAssociative()) {
             $ranking[] = [
                 'key' => $row['key'] ?? '',
                 'label' => $row['label'] ?? '',
@@ -170,6 +170,7 @@ class ExecRepository extends ServiceEntityRepository
                 'p_mens' => (float)($row['p_mens'] ?? 0)
             ];
         }
+        $result->free();
 
         return $ranking;
     }
@@ -297,13 +298,12 @@ class ExecRepository extends ServiceEntityRepository
 
         $conn = $this->getEntityManager()->getConnection();
         $result = $conn->executeQuery($sql, $params);
-        $rows = $result->fetchAllAssociative();
-
-        // Organiza por família
+        
+        // Processa resultados de forma mais eficiente em memória
         $seriesMap = [];
         $families = [];
 
-        foreach ($rows as $row) {
+        while ($row = $result->fetchAssociative()) {
             $familiaId = $row['familia_id'] ?? '';
             $familiaNome = $row['familia_nome'] ?? '';
             $mes = $row['mes'] ?? '';
@@ -320,6 +320,7 @@ class ExecRepository extends ServiceEntityRepository
 
             $seriesMap[$familiaId]['values'][$mes] = $pct;
         }
+        $result->free();
 
         $series = [];
         $colors = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#06b6d4'];
@@ -402,13 +403,13 @@ class ExecRepository extends ServiceEntityRepository
 
         $conn = $this->getEntityManager()->getConnection();
         $result = $conn->executeQuery($sql, $params);
-        $rows = $result->fetchAllAssociative();
-
+        
+        // Processa resultados de forma mais eficiente em memória
         $units = [];
         $sections = [];
         $data = [];
 
-        foreach ($rows as $row) {
+        while ($row = $result->fetchAssociative()) {
             $regionalId = $row['regional_id'] ?? '';
             $regionalNome = $row['regional_nome'] ?? '';
             $familiaId = $row['familia_id'] ?? '';
@@ -436,6 +437,7 @@ class ExecRepository extends ServiceEntityRepository
                 'meta' => $meta
             ];
         }
+        $result->free();
 
         return [
             'units' => array_values($units),

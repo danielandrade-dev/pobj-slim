@@ -199,11 +199,10 @@ class FHistoricoRankingPobjRepository extends ServiceEntityRepository
 
         $conn = $this->getEntityManager()->getConnection();
         $result = $conn->executeQuery($sql, $params);
-        $rows = $result->fetchAllAssociative();
-
-        // Formata os dados para o formato esperado pelo frontend
+        
+        // Processa resultados de forma mais eficiente em memória
         $formatted = [];
-        foreach ($rows as $row) {
+        while ($row = $result->fetchAssociative()) {
             $formatted[] = [
                 'data' => $row['data'] ? (new \DateTime($row['data']))->format('Y-m-d') : null,
                 'competencia' => $row['competencia'] ?? null,
@@ -225,6 +224,7 @@ class FHistoricoRankingPobjRepository extends ServiceEntityRepository
                 'pontos' => $row['pontos'] !== null ? (float)$row['pontos'] : null,
             ];
         }
+        $result->free();
 
         return $formatted;
     }

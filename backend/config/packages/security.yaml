@@ -1,0 +1,32 @@
+security:
+    # https://symfony.com/doc/current/security.html#where-do-users-come-from-user-providers
+    providers:
+        api_key_provider:
+            id: App\Security\ApiKeyUserProvider
+
+    firewalls:
+        dev:
+            pattern: ^/(_(profiler|wdt)|css|images|js)/
+            security: false
+
+        api:
+            pattern: ^/api
+            stateless: true
+            guard:
+                authenticators:
+                    - App\Security\ApiKeyAuthenticator
+            # JWT será adicionado quando configurado
+            # jwt: ~
+
+    access_control:
+        # Rotas públicas (sem autenticação)
+        - { path: ^/api/auth/login, roles: IS_AUTHENTICATED_ANONYMOUSLY }
+        - { path: ^/api/auth/register, roles: IS_AUTHENTICATED_ANONYMOUSLY }
+        - { path: ^/health, roles: IS_AUTHENTICATED_ANONYMOUSLY }
+        
+        # Rotas protegidas
+        - { path: ^/api, roles: ROLE_API }
+
+    # https://symfony.com/doc/current/security.html#hashing-passwords
+    # Nota: Não usamos encoders pois API Keys não têm senha
+

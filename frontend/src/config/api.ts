@@ -36,4 +36,24 @@ export function getApiBaseUrl(): string {
   return 'http://localhost:8081'
 }
 
+/**
+ * Obtém a API Key para autenticação
+ * Prioridade:
+ * 1. Variável global injetada (window.API_KEY)
+ * 2. Variável de ambiente VITE_API_KEY
+ */
+export function getApiKey(): string | null {
+  if (typeof window !== 'undefined' && (window as any).API_KEY) {
+    const key = String((window as any).API_KEY).trim()
+    if (key) return key
+  }
+
+  if (import.meta.env.DEV) {
+    const envKey = import.meta.env.VITE_API_KEY
+    if (envKey) return String(envKey).trim()
+  }
+
+  return null
+}
+
 export const API_BASE_URL = getApiBaseUrl()
