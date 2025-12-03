@@ -1,13 +1,8 @@
-import { ref, computed, watch, type Ref, type ComputedRef } from 'vue'
+import { ref, computed, watch, nextTick, type Ref, type ComputedRef } from 'vue'
 import type { Period, BusinessSnapshot, ResumoPayload } from '../types'
 import type { FilterState } from './useGlobalFilters'
 import { getResumo, type ResumoFilters } from '../services/resumoService'
 import { useGlobalFilters } from './useGlobalFilters'
-
-interface WatchSources {
-  filters: FilterState
-  period: Period
-}
 
 const resumoPayload = ref<ResumoPayload | null>(null)
 const resumoLoading = ref(false)
@@ -87,8 +82,9 @@ function filtersEqual(f1: ResumoFilters, f2: ResumoFilters): boolean {
   return true
 }
 
-async function fetchResumo(filters: ResumoFilters): Promise<void> {
-  if (lastFilters.value && filtersEqual(lastFilters.value, filters)) {
+async function fetchResumo(filters: ResumoFilters, force = false): Promise<void> {
+  // Se não for forçado e os filtros são iguais, não busca novamente
+  if (!force && lastFilters.value && filtersEqual(lastFilters.value, filters)) {
     return
   }
   
@@ -121,13 +117,19 @@ export function useResumoData(
 ) {
   if (!watcherRegistered) {
     watcherRegistered = true
-    const { filterTrigger } = useGlobalFilters()
+    const { filterTrigger, filterState: globalFilterState, period: globalPeriod } = useGlobalFilters()
     
+    // Observa o filterTrigger para forçar busca quando o botão Filtrar é clicado
+    // Este é o watcher principal que dispara a busca
     watch(
       filterTrigger,
-      () => {
-        const filters = buildFiltersFromState(filterState.value, period.value)
-        fetchResumo(filters)
+      async () => {
+        // Aguarda o próximo tick para garantir que as atualizações reativas foram aplicadas
+        await nextTick()
+        // Força a busca mesmo se os filtros forem iguais (quando o usuário clica em Filtrar)
+        // Usa os valores globais para garantir que está lendo o estado mais recente
+        const filters = buildFiltersFromState(globalFilterState.value, globalPeriod.value)
+        fetchResumo(filters, true)
       },
       { immediate: true }
     )
@@ -135,7 +137,7 @@ export function useResumoData(
 
   const loadResumo = async () => {
     const filters = lastFilters.value ?? buildFiltersFromState(filterState.value, period.value)
-    await fetchResumo(filters)
+    await fetchResumo(filters, true)
   }
 
   return {

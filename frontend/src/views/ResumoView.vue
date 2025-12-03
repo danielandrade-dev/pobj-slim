@@ -38,6 +38,7 @@ const resumoMode = ref<'cards' | 'legacy'>('cards')
 <style scoped>
 .view-section {
   margin-top: 24px;
+  width: 100%;
 }
 
 .resumo-summary {
