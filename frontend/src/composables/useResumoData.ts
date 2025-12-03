@@ -2,6 +2,7 @@ import { ref, computed, watch, type Ref, type ComputedRef } from 'vue'
 import type { Period, BusinessSnapshot, ResumoPayload } from '../types'
 import type { FilterState } from './useGlobalFilters'
 import { getResumo, type ResumoFilters } from '../services/resumoService'
+import { useGlobalFilters } from './useGlobalFilters'
 
 interface WatchSources {
   filters: FilterState
@@ -120,26 +121,15 @@ export function useResumoData(
 ) {
   if (!watcherRegistered) {
     watcherRegistered = true
-    
-    let timeoutId: ReturnType<typeof setTimeout> | null = null
+    const { filterTrigger } = useGlobalFilters()
     
     watch(
-      () => ({
-        filters: filterState.value,
-        period: period.value
-      }),
-      (current: WatchSources) => {
-        if (timeoutId) {
-          clearTimeout(timeoutId)
-        }
-        
-        timeoutId = setTimeout(() => {
-          const filters = buildFiltersFromState(current.filters, current.period)
-          fetchResumo(filters)
-          timeoutId = null
-        }, 100)
+      filterTrigger,
+      () => {
+        const filters = buildFiltersFromState(filterState.value, period.value)
+        fetchResumo(filters)
       },
-      { deep: true, immediate: true }
+      { immediate: true }
     )
   }
 

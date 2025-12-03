@@ -2,6 +2,7 @@ import { ref, computed, watch, type Ref, type ComputedRef } from 'vue'
 import type { Period, DetalhesItem, DetalhesFilters } from '../types'
 import type { FilterState } from './useGlobalFilters'
 import { getDetalhes } from '../services/detalhesService'
+import { useGlobalFilters } from './useGlobalFilters'
 
 const detalhesPayload = ref<DetalhesItem[] | null>(null)
 const detalhesLoading = ref(false)
@@ -105,23 +106,15 @@ export function useDetalhesData(
 ) {
   if (!watcherRegistered) {
     watcherRegistered = true
-    
-    let timeoutId: ReturnType<typeof setTimeout> | null = null
+    const { filterTrigger } = useGlobalFilters()
     
     watch(
-      [filterState, period],
-      ([currentFilters, currentPeriod]) => {
-        if (timeoutId) {
-          clearTimeout(timeoutId)
-        }
-        
-        timeoutId = setTimeout(() => {
-          const filters = buildFiltersFromState(currentFilters, currentPeriod)
-          fetchDetalhes(filters)
-          timeoutId = null
-        }, 100)
+      filterTrigger,
+      () => {
+        const filters = buildFiltersFromState(filterState.value, period.value)
+        fetchDetalhes(filters)
       },
-      { deep: true, immediate: true }
+      { immediate: true }
     )
   }
 

@@ -3,6 +3,8 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { getRanking, type RankingItem, type RankingFilters } from '../services/rankingService'
 import { useGlobalFilters } from '../composables/useGlobalFilters'
 import { formatINT } from '../utils/formatUtils'
+import SelectInput from '../components/SelectInput.vue'
+import type { FilterOption } from '../types'
 
 const { filterState, period } = useGlobalFilters()
 
@@ -113,21 +115,6 @@ const getRankingSelectionForLevel = (level: string): string | null => {
   }
 }
 
-const rankingLevel = computed(() => {
-  const fs = filterState.value
-  const isSelected = (val: string | null | undefined) => {
-    return !isDefaultSelection(val)
-  }
-
-  if (isSelected(fs.gerente)) return 'gerente'
-  if (isSelected(fs.ggestao)) return 'gerenteGestao'
-  if (isSelected(fs.agencia)) return 'agencia'
-  if (isSelected(fs.gerencia)) return 'gerencia'
-  if (isSelected(fs.diretoria)) return 'diretoria'
-  if (isSelected(fs.segmento)) return 'segmento'
-  return 'gerenteGestao'
-})
-
 const levelNames: Record<string, string> = {
   segmento: 'Segmento',
   diretoria: 'Diretoria',
@@ -135,6 +122,28 @@ const levelNames: Record<string, string> = {
   agencia: 'Agência',
   gerente: 'Gerente',
   gerenteGestao: 'Gerente de gestão'
+}
+
+// Nível selecionado manualmente pelo usuário
+const selectedLevel = ref<string>('gerenteGestao')
+
+// Opções de nível para o select
+const levelOptions = computed<FilterOption[]>(() => [
+  { id: 'segmento', nome: 'Segmento' },
+  { id: 'diretoria', nome: 'Diretoria' },
+  { id: 'gerencia', nome: 'Regional' },
+  { id: 'agencia', nome: 'Agência' },
+  { id: 'gerenteGestao', nome: 'Gerente de gestão' },
+  { id: 'gerente', nome: 'Gerente' }
+])
+
+// Usa o nível selecionado manualmente pelo usuário
+const rankingLevel = computed(() => {
+  return selectedLevel.value || 'gerenteGestao'
+})
+
+const handleLevelChange = (value: string): void => {
+  selectedLevel.value = value
 }
 
 const simplificarTexto = (text: string): string => {
@@ -339,12 +348,17 @@ const shouldMaskName = (item: any, index: number): boolean => {
 
             <div class="rk-summary" id="rk-summary">
               <div class="rk-badges">
-                <span class="rk-badge rk-badge--primary">
-                  <strong>Nível:</strong> {{ levelNames[rankingLevel] }}
-                </span>
-                <span class="rk-badge">
-                  <strong>Número do grupo:</strong> —
-                </span>
+                <div class="rk-badge rk-badge--level">
+                  <strong>Nível:</strong>
+                  <SelectInput
+                    id="rk-level-select"
+                    :model-value="selectedLevel"
+                    :options="levelOptions"
+                    placeholder="Selecione o nível"
+                    label="Nível de agrupamento"
+                    @update:model-value="handleLevelChange"
+                  />
+                </div>
                 <span class="rk-badge">
                   <strong>Quantidade de participantes:</strong> {{ formatINT(groupedRanking.length) }}
                 </span>
@@ -385,24 +399,24 @@ const shouldMaskName = (item: any, index: number): boolean => {
 
 <style scoped>
 .ranking-wrapper {
-  --brand: #b30000;
-  --brand-dark: #8f0000;
-  --info: #246BFD;
-  --bg: #f6f7fc;
-  --panel: #ffffff;
-  --stroke: #e7eaf2;
-  --text: #0f1424;
-  --muted: #6b7280;
+  --brand: var(--brad-color-primary, #cc092f);
+  --brand-dark: var(--brad-color-primary-dark, #9d0b21);
+  --info: var(--brad-color-accent, #517bc5);
+  --bg: var(--brad-color-neutral-0, #fff);
+  --panel: var(--brad-color-neutral-0, #fff);
+  --stroke: var(--brad-color-gray-light, #ebebeb);
+  --text: var(--brad-color-neutral-100, #000);
+  --muted: var(--brad-color-gray-dark, #999);
   --radius: 16px;
   --shadow: 0 12px 28px rgba(17, 23, 41, 0.08);
-  --ring: 0 0 0 3px rgba(36, 107, 253, 0.12);
-  --text-muted: #64748b;
+  --ring: 0 0 0 3px rgba(204, 9, 47, 0.12);
+  --text-muted: var(--brad-color-gray-dark, #999);
 
   min-height: 100vh;
   width: 100%;
   padding: 20px 0;
   color: var(--text);
-  font-family: var(--brad-font-family, inherit);
+  font-family: var(--brad-font-family);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   box-sizing: border-box;
@@ -445,6 +459,7 @@ const shouldMaskName = (item: any, index: number): boolean => {
   margin-bottom: 12px;
   padding-top: 12px;
   box-sizing: border-box;
+  transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
 }
 
 .card--ranking {
@@ -467,9 +482,20 @@ const shouldMaskName = (item: any, index: number): boolean => {
 .title-subtitle h3 {
   margin: 0 0 4px 0;
   font-size: 20px;
-  font-weight: 700;
+  font-weight: var(--brad-font-weight-bold, 700);
   color: var(--text);
   line-height: 1.2;
+}
+
+.title-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.title-with-icon h3 {
+  margin: 0;
 }
 
 .title-subtitle .muted {
@@ -496,7 +522,7 @@ const shouldMaskName = (item: any, index: number): boolean => {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   color: var(--muted);
-  font-weight: 600;
+  font-weight: var(--brad-font-weight-semibold, 600);
 }
 
 .input {
@@ -529,59 +555,101 @@ const shouldMaskName = (item: any, index: number): boolean => {
 .rk-badge {
   display: inline-flex;
   align-items: center;
+  gap: 8px;
   padding: 8px 14px;
-  background: rgba(36, 107, 253, 0.12);
+  background: var(--brad-color-primary-xlight, rgba(252, 231, 236, 0.8));
   border-radius: 8px;
   font-size: 13px;
-  color: var(--info);
+  color: var(--brad-color-primary, #cc092f);
   box-sizing: border-box;
 }
 
 .rk-badge--primary {
-  background: var(--info);
-  color: #ffffff;
+  background: var(--brad-color-primary, #cc092f);
+  color: var(--brad-color-on-bg-primary, #fff);
+}
+
+.rk-badge--level {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: var(--brad-color-primary-xlight, rgba(252, 231, 236, 0.8));
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--brad-color-primary, #cc092f);
+  box-sizing: border-box;
+}
+
+.rk-badge--level strong {
+  margin-right: 0;
+  font-weight: var(--brad-font-weight-semibold, 600);
+  white-space: nowrap;
+}
+
+.rk-badge--level :deep(.select) {
+  min-width: 180px;
+}
+
+.rk-badge--level :deep(.select__trigger) {
+  padding: 6px 10px;
+  font-size: 13px;
+  border: 1px solid var(--brad-color-primary, #cc092f);
+  background: var(--panel, #fff);
+  color: var(--text, #000);
 }
 
 .rk-badge strong {
   margin-right: 6px;
-  font-weight: 600;
+  font-weight: var(--brad-font-weight-semibold, 600);
 }
 
 .ranking-table-wrapper {
   overflow-x: auto;
-  padding: 16px;
+  padding: 20px 24px;
   box-sizing: border-box;
 }
 
 .rk-table {
   width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--brad-font-size-base, 16px);
+  table-layout: fixed;
 }
 
 .rk-table thead {
-  background: var(--bg);
+  background: var(--brad-color-gray-light, #ebebeb);
   border-bottom: 2px solid var(--stroke);
+  position: sticky;
+  top: 0;
+  z-index: 1;
 }
 
 .rk-table th {
-  padding: 12px 16px;
+  padding: 14px 20px;
   text-align: left;
-  font-weight: 600;
+  font-weight: var(--brad-font-weight-semibold, 600);
   color: var(--text);
-  font-size: 13px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 
 .rk-table td {
-  padding: 12px 16px;
+  padding: 16px 20px;
   border-bottom: 1px solid var(--stroke);
   color: var(--text);
+  vertical-align: middle;
+}
+
+.rk-table tbody tr {
+  transition: background-color 0.2s ease;
 }
 
 .rk-table tbody tr:hover {
-  background: var(--bg);
+  background: var(--brad-color-primary-xlight, rgba(252, 231, 236, 0.15));
 }
 
 .rk-table tbody tr:last-child td {
@@ -589,25 +657,51 @@ const shouldMaskName = (item: any, index: number): boolean => {
 }
 
 .rk-table tbody tr.rk-row--top {
-  background: rgba(179, 0, 0, 0.05);
-  font-weight: 600;
+  background: var(--brad-color-primary-xlight, rgba(252, 231, 236, 0.3));
 }
 
 .rk-table tbody tr.rk-row--top td {
-  color: var(--brand);
+  color: var(--brad-color-primary, #cc092f);
+  font-weight: var(--brad-font-weight-semibold, 600);
 }
 
 .pos-col {
-  width: 60px;
+  width: 80px;
+  min-width: 80px;
+  max-width: 80px;
   text-align: center;
-  font-weight: 600;
+  font-weight: var(--brad-font-weight-semibold, 600);
   color: var(--text);
+  font-size: 15px;
+  position: relative;
+}
+
+.pos-medal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pos-medal--gold :deep(svg) {
+  color: #ffd700;
+}
+
+.pos-medal--silver :deep(svg) {
+  color: #c0c0c0;
+}
+
+.pos-medal--bronze :deep(svg) {
+  color: #cd7f32;
 }
 
 .unit-col {
-  min-width: 200px;
-  font-weight: 500;
+  width: auto;
+  min-width: 300px;
+  font-weight: var(--brad-font-weight-medium, 500);
   color: var(--text);
+  font-size: 15px;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .rk-name {
@@ -621,33 +715,65 @@ const shouldMaskName = (item: any, index: number): boolean => {
 
 .rank-col {
   text-align: center;
-  font-weight: 600;
-  color: var(--brand);
+  font-weight: var(--brad-font-weight-semibold, 600);
+  color: var(--brad-color-primary, #cc092f);
 }
 
 .points-col {
+  width: 140px;
+  min-width: 140px;
+  max-width: 140px;
   text-align: right;
-  font-weight: 500;
+  font-weight: var(--brad-font-weight-semibold, 600);
   color: var(--text);
   font-variant-numeric: tabular-nums;
+  font-size: 15px;
+  padding-right: 24px;
 }
+
 
 @media (max-width: 768px) {
   .rk-badges {
     flex-direction: column;
   }
 
-  .rk-table {
-    font-size: 13px;
+  .ranking-table-wrapper {
+    padding: 12px 16px;
   }
 
-  .rk-table th,
+  .rk-table {
+    font-size: 14px;
+    min-width: 500px;
+  }
+
+  .rk-table th {
+    padding: 12px 16px;
+    font-size: 11px;
+  }
+
   .rk-table td {
-    padding: 10px 12px;
+    padding: 14px 16px;
+    font-size: 14px;
+  }
+
+  .pos-col {
+    width: 60px;
+    min-width: 60px;
+    max-width: 60px;
+    font-size: 14px;
   }
 
   .unit-col {
-    min-width: 150px;
+    min-width: 200px;
+    font-size: 14px;
+  }
+
+  .points-col {
+    width: 120px;
+    min-width: 120px;
+    max-width: 120px;
+    font-size: 14px;
+    padding-right: 16px;
   }
 }
 </style>

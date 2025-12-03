@@ -42,7 +42,11 @@ const handleTabClick = (viewId: ViewType): void => {
       @click="handleTabClick(view.id)"
     >
       <span class="tab-icon">
-        <Icon :name="view.icon" :size="16" />
+        <Icon 
+          :name="view.icon" 
+          :size="16" 
+          :color="activeView === view.id ? 'white' : undefined" 
+        />
       </span>
       <span class="tab-label">{{ view.label }}</span>
     </button>
@@ -161,6 +165,11 @@ const handleTabClick = (viewId: ViewType): void => {
   transform: scale(1);
 }
 
+.tab.is-active .tab-icon :deep(svg) {
+  color: white !important;
+  stroke: white !important;
+}
+
 .tab.is-active .tab-label {
   font-weight: var(--brad-font-weight-bold, 700);
 }
@@ -246,6 +255,11 @@ const handleTabClick = (viewId: ViewType): void => {
     background: var(--brand, #cc092f);
     color: var(--brad-color-on-bg-primary, #fff);
     box-shadow: 0 8px 20px rgba(204, 9, 47, 0.3);
+  }
+
+  .tab.is-active .tab-icon :deep(svg) {
+    color: white !important;
+    stroke: white !important;
   }
 
   .tab.is-active .tab-label {

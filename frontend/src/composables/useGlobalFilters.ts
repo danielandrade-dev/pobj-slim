@@ -17,6 +17,7 @@ export interface FilterState {
 
 const filterState = ref<FilterState>({})
 const period = ref<Period>(getDefaultPeriod())
+const filterTrigger = ref<number>(0)
 
 export function useGlobalFilters() {
   const updateFilter = (key: keyof FilterState, value: string | undefined): void => {
@@ -39,13 +40,19 @@ export function useGlobalFilters() {
     filterState.value[key] = undefined
   }
 
+  const triggerFilter = (): void => {
+    filterTrigger.value = Date.now()
+  }
+
   return {
     filterState: computed(() => filterState.value),
     period: computed(() => period.value),
+    filterTrigger: computed(() => filterTrigger.value),
     updateFilter,
     updatePeriod,
     clearFilters,
-    clearFilter
+    clearFilter,
+    triggerFilter
   }
 }
 

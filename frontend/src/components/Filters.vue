@@ -21,7 +21,7 @@ const showAdvancedButton = ref(true)
 const { initData, isLoading: initLoading, loadInit } = useInitCache()
 const loading = initLoading
 
-const { updateFilter, updatePeriod, clearFilters } = useGlobalFilters()
+const { updateFilter, updatePeriod, clearFilters, triggerFilter } = useGlobalFilters()
 
 const {
   segmento,
@@ -231,6 +231,7 @@ const handleVisaoAcumuladaChange = (value: string): void => {
 onMounted(() => {
   loadEstrutura()
   applyFilters()
+  triggerFilter()
 })
 
 const toggleAdvancedFilters = (): void => {
@@ -239,6 +240,7 @@ const toggleAdvancedFilters = (): void => {
 
 const handleFilter = (): void => {
   applyFilters()
+  triggerFilter()
 }
 
 const applyFilters = (): void => {
@@ -269,10 +271,6 @@ const handleClear = (): void => {
   clearFilters()
   updatePeriod(period.value)
 }
-
-watch([segmento, diretoria, gerencia, agencia, ggestao, gerente, selectedFamilia, selectedIndicador, selectedSubindicador, selectedStatusKpi], () => {
-  applyFilters()
-}, { deep: true })
 
 watch(() => period.value, (newPeriod) => {
   updatePeriod(newPeriod)
@@ -329,7 +327,7 @@ watch(() => period.value, (newPeriod) => {
       </div>
       <div class="filters__actions">
         <Button id="btn-filtrar" variant="primary" :disabled="isSimuladoresPage" @click="handleFilter">
-          <Icon name="search" :size="16" />
+          <Icon name="search" :size="16" color="white" />
           Filtrar
         </Button>
         <Button id="btn-limpar" variant="secondary" @click="handleClear">
@@ -687,6 +685,34 @@ watch(() => period.value, (newPeriod) => {
   .card--filters .title-subtitle {
     display: none;
   }
+}
+
+#btn-filtrar {
+  color: white !important;
+}
+
+#btn-filtrar :deep(span) {
+  color: white !important;
+}
+
+#btn-filtrar :deep(svg) {
+  color: white !important;
+  stroke: white !important;
+}
+</style>
+
+<style>
+#btn-filtrar {
+  color: white !important;
+}
+
+#btn-filtrar span {
+  color: white !important;
+}
+
+#btn-filtrar svg {
+  color: white !important;
+  stroke: white !important;
 }
 </style>
 
