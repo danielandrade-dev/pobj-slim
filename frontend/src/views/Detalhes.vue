@@ -987,17 +987,17 @@ onMounted(() => {
 
 <style scoped>
 .detalhes-wrapper {
-  --brand: #b30000;
-  --brand-dark: #8f0000;
-  --info: #246BFD;
-  --bg: #f6f7fc;
-  --panel: #ffffff;
-  --stroke: #e7eaf2;
-  --text: #0f1424;
-  --muted: #6b7280;
+  --brand: var(--brad-color-primary, #cc092f);
+  --brand-dark: var(--brad-color-primary-dark, #9d0b21);
+  --info: var(--brad-color-accent, #517bc5);
+  --bg: var(--brad-color-neutral-0, #fff);
+  --panel: var(--brad-color-neutral-0, #fff);
+  --stroke: var(--brad-color-gray-light, #ebebeb);
+  --text: var(--brad-color-neutral-100, #000);
+  --muted: var(--brad-color-gray-dark, #999);
   --radius: 16px;
   --shadow: 0 12px 28px rgba(17, 23, 41, 0.08);
-  --ring: 0 0 0 3px rgba(36, 107, 253, 0.12);
+  --ring: 0 0 0 3px rgba(204, 9, 47, 0.12);
   --omega-gradient: linear-gradient(135deg, rgba(36, 107, 253, 0.12), rgba(255, 255, 255, 0));
   --omega-sidebar-bg: linear-gradient(180deg, rgba(246, 247, 252, 0.88) 0%, rgba(255, 255, 255, 0.95) 100%);
   --omega-badge-bg: rgba(36, 107, 253, 0.12);
@@ -1005,16 +1005,21 @@ onMounted(() => {
   --omega-warning: #f97316;
   --omega-danger: #dc2626;
   --omega-progress: #2563eb;
-  --text-muted: #64748b;
+  --text-muted: var(--brad-color-gray-dark, #999);
 
   min-height: 100vh;
   width: 100%;
   padding: 20px 0;
   color: var(--text);
-  font-family: var(--brad-font-family, inherit);
+  font-family: var(--brad-font-family);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   box-sizing: border-box;
+}
+
+.detalhes-view {
+  width: 100%;
+  margin-top: 24px;
 }
 
 
@@ -1052,8 +1057,9 @@ onMounted(() => {
 .title-subtitle h3 {
   margin: 0 0 4px 0;
   font-size: 20px;
-  font-weight: 800;
+  font-weight: var(--brad-font-weight-bold, 700);
   color: var(--text);
+  line-height: 1.2;
 }
 
 .title-subtitle .muted {

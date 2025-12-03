@@ -10,13 +10,13 @@ import ResumoView from './ResumoView.vue'
 
 <style scoped>
 .home-wrapper {
-  --brand: #b30000;
-  --brand-dark: #8f0000;
-  --bg: #f6f7fc;
-  --panel: #ffffff;
-  --stroke: #e7eaf2;
-  --text: #0f1424;
-  --muted: #6b7280;
+  --brand: var(--brad-color-primary, #cc092f);
+  --brand-dark: var(--brad-color-primary-dark, #9d0b21);
+  --bg: var(--brad-color-neutral-0, #fff);
+  --panel: var(--brad-color-neutral-0, #fff);
+  --stroke: var(--brad-color-gray-light, #ebebeb);
+  --text: var(--brad-color-neutral-100, #000);
+  --muted: var(--brad-color-gray-dark, #999);
   --radius: 16px;
   --shadow: 0 12px 28px rgba(17, 23, 41, 0.08);
 
@@ -24,9 +24,10 @@ import ResumoView from './ResumoView.vue'
   width: 100%;
   padding: 20px 0;
   color: var(--text);
-  font-family: var(--brad-font-family, inherit);
+  font-family: var(--brad-font-family);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  box-sizing: border-box;
 }
 
 
