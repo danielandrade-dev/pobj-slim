@@ -30,11 +30,37 @@ class OmegaStatusRepository extends ServiceEntityRepository
      */
     public function findAllOrdered(): array
     {
-        return $this->createQueryBuilder('s')
+        $statuses = $this->createQueryBuilder('s')
                     ->orderBy('s.ordem', 'ASC')
                     ->addOrderBy('s.label', 'ASC')
                     ->getQuery()
                     ->getResult();
+        
+        // Carrega departamentos manualmente se necessário
+        $departamentoIds = array_filter(array_map(function($status) {
+            return $status->getDepartamentoId();
+        }, $statuses));
+        
+        if (!empty($departamentoIds)) {
+            $departamentoRepository = $this->getEntityManager()->getRepository(\App\Entity\Omega\OmegaDepartamento::class);
+            $departamentos = [];
+            foreach ($departamentoIds as $nomeId) {
+                $dept = $departamentoRepository->findByNomeId($nomeId);
+                if ($dept) {
+                    $departamentos[$nomeId] = $dept;
+                }
+            }
+            
+            // Associa departamentos aos status
+            foreach ($statuses as $status) {
+                $nomeId = $status->getDepartamentoId();
+                if ($nomeId && isset($departamentos[$nomeId])) {
+                    $status->setDepartamento($departamentos[$nomeId]);
+                }
+            }
+        }
+        
+        return $statuses;
     }
 }
 

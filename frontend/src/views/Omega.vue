@@ -313,6 +313,14 @@ async function handleNewTicketSubmit(data: any) {
   
   try {
     const now = new Date().toISOString()
+    
+    // Se o departamento for "Matriz", o chamado vai para a fila (sem ownerId)
+    // Qualquer analista da Matriz pode pegar e atribuir depois
+    const isMatriz = data.department === 'Matriz'
+    const ownerId = isMatriz 
+      ? null  // Chamados da Matriz vão para a fila sem dono
+      : (['analista', 'supervisor', 'admin'].includes(user.role) ? user.id : null)
+    
     const newTicket = {
       subject,
       company: requesterName,
@@ -321,7 +329,7 @@ async function handleNewTicketSubmit(data: any) {
       product: data.type || '',
       family: '',
       section: '',
-      queue: data.department,
+      queue: data.department || 'Matriz',  // Garante que sempre seja Matriz
       status: 'aberto',
       category: data.type,
       priority: 'media' as const,
@@ -329,7 +337,7 @@ async function handleNewTicketSubmit(data: any) {
       updated: now,
       dueDate: null,
       requesterId: user.id,
-      ownerId: ['analista', 'supervisor', 'admin'].includes(user.role) ? user.id : null,
+      ownerId: ownerId,
       teamId: user.teamId || null,
       context: {
         diretoria: '',

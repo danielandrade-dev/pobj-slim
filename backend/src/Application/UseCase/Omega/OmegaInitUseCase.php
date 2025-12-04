@@ -3,6 +3,7 @@
 namespace App\Application\UseCase\Omega;
 
 use App\Repository\Omega\OmegaDepartamentoRepository;
+use App\Repository\Omega\OmegaCategoriaRepository;
 use App\Repository\Omega\OmegaStatusRepository;
 use App\Repository\Omega\OmegaUsuarioRepository;
 use App\Repository\Omega\OmegaChamadoRepository;
@@ -13,17 +14,20 @@ use App\Repository\Omega\OmegaChamadoRepository;
 class OmegaInitUseCase
 {
     private $departamentoRepository;
+    private $categoriaRepository;
     private $statusRepository;
     private $usuarioRepository;
     private $chamadoRepository;
 
     public function __construct(
         OmegaDepartamentoRepository $departamentoRepository,
+        OmegaCategoriaRepository $categoriaRepository,
         OmegaStatusRepository $statusRepository,
         OmegaUsuarioRepository $usuarioRepository,
         OmegaChamadoRepository $chamadoRepository
     ) {
         $this->departamentoRepository = $departamentoRepository;
+        $this->categoriaRepository = $categoriaRepository;
         $this->statusRepository = $statusRepository;
         $this->usuarioRepository = $usuarioRepository;
         $this->chamadoRepository = $chamadoRepository;
@@ -35,8 +39,28 @@ class OmegaInitUseCase
      */
     public function handle(): array
     {
+        // Busca departamentos e suas categorias
+        $departamentos = $this->departamentoRepository->findAllOrderedByNome();
+        $categorias = $this->categoriaRepository->findAllOrdered();
+        
+        // Monta estrutura com departamentos e categorias
+        $structure = [];
+        foreach ($departamentos as $departamento) {
+            $deptArray = $this->entityToArray($departamento);
+            // Adiciona categorias do departamento
+            $deptCategorias = array_filter($categorias, function($cat) use ($departamento) {
+                return $cat->getDepartamento()->getId() === $departamento->getId();
+            });
+            foreach ($deptCategorias as $categoria) {
+                $structure[] = array_merge($deptArray, [
+                    'tipo' => $categoria->getNome(),
+                    'ordem_tipo' => $categoria->getOrdem(),
+                ]);
+            }
+        }
+        
         return [
-            'structure' => $this->convertDtosToArray($this->departamentoRepository->findAllOrderedByNome()),
+            'structure' => $structure,
             'statuses' => $this->convertDtosToArray($this->statusRepository->findAllOrdered()),
             'users' => $this->convertDtosToArray($this->usuarioRepository->findAllOrderedByNome()),
             'tickets' => $this->convertDtosToArray($this->chamadoRepository->findAllOrderedByUpdated()),
@@ -69,23 +93,20 @@ class OmegaInitUseCase
         
         if (strpos($className, 'OmegaDepartamento') !== false) {
             return [
-                'departamento_id' => $entity->getDepartamentoId(),
-                'departamento' => $entity->getDepartamento(),
-                'ordem_departamento' => $entity->getOrdemDepartamento(),
-                'tipo' => $entity->getTipo(),
-                'ordem_tipo' => $entity->getOrdemTipo(),
+                'departamento_id' => $entity->getNomeId(),
+                'departamento' => $entity->getNome(),
+                'ordem_departamento' => $entity->getOrdem(),
             ];
         }
         
         if (strpos($className, 'OmegaStatus') !== false) {
-            $departamento = $entity->getDepartamento();
             return [
                 'id' => $entity->getId(),
                 'label' => $entity->getLabel(),
                 'tone' => $entity->getTone(),
                 'descricao' => $entity->getDescricao(),
                 'ordem' => $entity->getOrdem(),
-                'departamento_id' => $departamento ? $departamento->getDepartamentoId() : null,
+                'departamento_id' => $entity->getDepartamentoId(),
             ];
         }
         
@@ -131,7 +152,7 @@ class OmegaInitUseCase
                 'due_date' => $entity->getDueDate() ? $entity->getDueDate()->format('Y-m-d H:i:s') : null,
                 'requester_id' => $requester ? $requester->getId() : null,
                 'owner_id' => $owner ? $owner->getId() : null,
-                'team_id' => $team ? $team->getDepartamentoId() : null,
+                'team_id' => $team ? $team->getNomeId() : null,
                 'history' => $entity->getHistory(),
                 'diretoria' => $entity->getDiretoria(),
                 'gerencia' => $entity->getGerencia(),

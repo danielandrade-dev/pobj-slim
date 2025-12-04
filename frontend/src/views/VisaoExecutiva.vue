@@ -1,8 +1,14 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useGlobalFilters } from '../composables/useGlobalFilters'
-import { formatBRLReadable, formatBRL, formatDate } from '../utils/formatUtils'
+import { usePDFExport } from '../composables/usePDFExport'
+import { formatDate } from '../utils/formatUtils'
 import { getExecData, type ExecFilters, type ExecData } from '../services/execService'
+import ExecChart from '../components/exec/ExecChart.vue'
+import ExecKPIs from '../components/exec/ExecKPIs.vue'
+import ExecRankings from '../components/exec/ExecRankings.vue'
+import ExecStatus from '../components/exec/ExecStatus.vue'
+import ExecHeatmap from '../components/exec/ExecHeatmap.vue'
 
 const { filterState, period } = useGlobalFilters()
 
@@ -37,7 +43,6 @@ const heatmap = computed(() => execData.value?.heatmap || {
   data: {}
 })
 
-const heatmapMode = ref<'secoes' | 'meta'>('secoes')
 
 const execFilters = computed<ExecFilters>(() => {
   const filters: ExecFilters = {}
@@ -70,26 +75,6 @@ const execFilters = computed<ExecFilters>(() => {
   return filters
 })
 
-const atingimento = computed(() => {
-  if (kpis.value.meta_mens === 0) return 0
-  return (kpis.value.real_mens / kpis.value.meta_mens) * 100
-})
-
-const defasagem = computed(() => {
-  return kpis.value.real_mens - kpis.value.meta_mens
-})
-
-const forecast = computed(() => {
-  const diasDecorridos = new Date().getDate()
-  const diasTotais = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate()
-  const mediaDiaria = kpis.value.real_mens / Math.max(diasDecorridos, 1)
-  return mediaDiaria * diasTotais
-})
-
-const forecastPct = computed(() => {
-  if (kpis.value.meta_mens === 0) return 0
-  return (forecast.value / kpis.value.meta_mens) * 100
-})
 
 const topRanking = computed(() => {
   return [...ranking.value]
@@ -144,124 +129,33 @@ const contexto = computed(() => {
   return `${foco} · Período: ${formatDate(period.value.start)} a ${formatDate(period.value.end)}`
 })
 
-const pctBadgeClass = (p: number): string => {
-  if (p < 50) return 'att-low'
-  if (p < 100) return 'att-warn'
-  return 'att-ok'
-}
+const { exportToPDF } = usePDFExport()
 
-const moneyBadgeClass = (v: number): string => {
-  return v >= 0 ? 'def-pos' : 'def-neg'
-}
-
-const getHeatmapCellClass = (pct: number | null): string => {
-  if (pct === null) return 'hm-empty'
-  if (pct < 50) return 'hm-bad'
-  if (pct < 100) return 'hm-warn'
-  return 'hm-ok'
-}
-
-const getHeatmapValue = (unit: string, section: string): { pct: number | null; text: string } => {
-  const key = `${unit}|${section}`
-  const bucket = heatmap.value.data[key]
-  if (!bucket) return { pct: null, text: '—' }
+const downloadPDF = async () => {
+  const button = document.querySelector('.btn-download-pdf') as HTMLElement
   
-  if (bucket.meta > 0) {
-    const pct = (bucket.real / bucket.meta) * 100
-    return { pct, text: `${Math.round(pct)}%` }
+  try {
+    if (button) {
+      button.style.opacity = '0.6'
+      button.style.pointerEvents = 'none'
+    }
+
+    await exportToPDF('view-exec')
+
+    if (button) {
+      button.style.opacity = '1'
+      button.style.pointerEvents = 'auto'
+    }
+  } catch (error) {
+    console.error('Erro ao gerar PDF:', error)
+    alert('Erro ao gerar PDF. Tente novamente.')
+    
+    if (button) {
+      button.style.opacity = '1'
+      button.style.pointerEvents = 'auto'
+    }
   }
-  
-  if (bucket.real > 0) {
-    return { pct: null, text: '—' }
-  }
-  
-  return { pct: null, text: '—' }
 }
-
-const renderChart = () => {
-  const container = document.getElementById('exec-chart')
-  if (!container || !chartData.value.series.length) return
-  
-  const W = 900
-  const H = 260
-  const m = { t: 28, r: 36, b: 48, l: 64 }
-  const iw = W - m.l - m.r
-  const ih = H - m.t - m.b
-  const n = chartData.value.labels.length
-  
-  const x = (idx: number) => {
-    if (n <= 1) return m.l + iw / 2
-    const step = iw / (n - 1)
-    return m.l + step * idx
-  }
-  
-  const values = chartData.value.series.flatMap(s => s.values.filter(v => v !== null && v !== undefined))
-  const maxVal = values.length ? Math.max(...values) : 0
-  const yMax = Math.max(120, Math.ceil((maxVal || 100) / 10) * 10)
-  
-  const y = (val: number) => {
-    const clamped = Math.min(Math.max(val, 0), yMax)
-    return m.t + ih - (clamped / yMax) * ih
-  }
-  
-  const gridLines = []
-  const steps = 5
-  for (let k = 0; k <= steps; k++) {
-    const val = (yMax / steps) * k
-    gridLines.push({ y: y(val), label: `${Math.round(val)}%` })
-  }
-  
-  const paths = chartData.value.series.map(series => {
-    let d = ''
-    let started = false
-    series.values.forEach((value, idx) => {
-      if (value === null || value === undefined) {
-        started = false
-        return
-      }
-      const cmd = started ? 'L' : 'M'
-      d += `${cmd} ${x(idx)} ${y(value)} `
-      started = true
-    })
-    return `<path class="exec-line" d="${d.trim()}" fill="none" stroke="${series.color}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><title>${series.label}</title></path>`
-  }).join('')
-  
-  const points = chartData.value.series.map(series => 
-    series.values.map((value, idx) => {
-      if (value === null || value === undefined) return ''
-      const monthLabel = chartData.value.labels[idx] || String(idx + 1)
-      const valueLabel = `${value.toFixed(1)}%`
-      return `<circle class="exec-line__point" cx="${x(idx)}" cy="${y(value)}" r="3.4" fill="${series.color}" stroke="#fff" stroke-width="1.2"><title>${series.label} • ${monthLabel}: ${valueLabel}</title></circle>`
-    }).join('')
-  ).join('')
-  
-  const gridY = gridLines.map(line =>
-    `<line x1="${m.l}" y1="${line.y}" x2="${W - m.r}" y2="${line.y}" stroke="#eef2f7"/>
-     <text x="${m.l - 6}" y="${line.y + 3}" font-size="10" text-anchor="end" fill="#6b7280">${line.label}</text>`
-  ).join('')
-  
-  const xlabels = chartData.value.labels.map((lab, idx) =>
-    `<text x="${x(idx)}" y="${H - 10}" font-size="10" text-anchor="middle" fill="#6b7280">${lab}</text>`
-  ).join('')
-  
-  container.innerHTML = `
-    <svg class="exec-chart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Linhas mensais de atingimento por seção">
-      <rect x="0" y="0" width="${W}" height="${H}" fill="white"/>
-      ${gridY}
-      ${paths}
-      ${points}
-      <line x1="${m.l}" y1="${H - m.b}" x2="${W - m.r}" y2="${H - m.b}" stroke="#e5e7eb"/>
-      ${xlabels}
-    </svg>`
-}
-
-watch(chartData, () => {
-  renderChart()
-}, { deep: true })
-
-onMounted(() => {
-  renderChart()
-})
 </script>
 
 <template>
@@ -287,245 +181,35 @@ onMounted(() => {
 
         <!-- Conteúdo real -->
         <template v-else>
-          <!-- Contexto -->
-          <div id="exec-context" class="exec-context">
-            <strong>{{ contexto }}</strong>
+          <!-- Contexto e Botão PDF -->
+          <div class="exec-header">
+            <div id="exec-context" class="exec-context">
+              <strong>{{ contexto }}</strong>
+            </div>
+            <button class="btn-download-pdf" @click="downloadPDF" title="Baixar como PDF">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <span>Baixar PDF</span>
+            </button>
           </div>
 
           <!-- KPIs -->
-          <div id="exec-kpis" class="exec-kpis">
-          <div class="kpi-card">
-            <div class="kpi-card__title">Atingimento mensal</div>
-            <div class="kpi-card__value">
-              <span :title="formatBRL(kpis.real_mens)">{{ formatBRLReadable(kpis.real_mens) }}</span>
-              <small>/ <span :title="formatBRL(kpis.meta_mens)">{{ formatBRLReadable(kpis.meta_mens) }}</span></small>
-            </div>
-            <div class="kpi-card__bar">
-              <div 
-                class="kpi-card__fill" 
-                :class="pctBadgeClass(atingimento)"
-                :style="{ width: `${Math.min(100, Math.max(0, atingimento))}%` }"
-              ></div>
-            </div>
-            <div class="kpi-card__pct">
-              <span class="att-badge" :class="pctBadgeClass(atingimento)">{{ atingimento.toFixed(1) }}%</span>
-            </div>
+          <ExecKPIs :kpis="kpis" />
+
+          <!-- Gráfico -->
+          <ExecChart :chart-data="chartData" />
+
+          <!-- Rankings e Status -->
+          <div class="exec-panels">
+            <ExecRankings :top-ranking="topRanking" :bottom-ranking="bottomRanking" />
+            <ExecStatus :status="status" />
           </div>
 
-          <div class="kpi-card">
-            <div class="kpi-card__title">Defasagem do mês</div>
-            <div class="kpi-card__value" :class="moneyBadgeClass(defasagem)" :title="formatBRL(defasagem)">
-              {{ formatBRLReadable(defasagem) }}
-            </div>
-            <div class="kpi-sub muted">Real – Meta (mês)</div>
-          </div>
-
-          <div class="kpi-card">
-            <div class="kpi-card__title">Forecast x Meta</div>
-            <div class="kpi-card__value">
-              <span :title="formatBRL(forecast)">{{ formatBRLReadable(forecast) }}</span>
-              <small>/ <span :title="formatBRL(kpis.meta_mens)">{{ formatBRLReadable(kpis.meta_mens) }}</span></small>
-            </div>
-            <div class="kpi-card__bar">
-              <div 
-                class="kpi-card__fill" 
-                :class="pctBadgeClass(forecastPct)"
-                :style="{ width: `${Math.min(100, Math.max(0, forecastPct))}%` }"
-              ></div>
-            </div>
-            <div class="kpi-card__pct">
-              <span class="att-badge" :class="pctBadgeClass(forecastPct)">{{ forecastPct.toFixed(1) }}%</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Gráfico -->
-        <div class="exec-chart">
-          <div class="exec-head">
-            <h3 id="exec-chart-title">Evolução mensal por seção</h3>
-            <div id="exec-chart-legend" class="chart-legend">
-              <span 
-                v-for="serie in chartData.series" 
-                :key="serie.id"
-                class="legend-item"
-              >
-                <span 
-                  class="legend-swatch legend-swatch--line" 
-                  :style="{ background: serie.color, borderColor: serie.color }"
-                ></span>
-                {{ serie.label }}
-              </span>
-            </div>
-          </div>
-          <div id="exec-chart" class="chart"></div>
-        </div>
-
-        <!-- Rankings e Status -->
-        <div class="exec-panels">
-          <div class="exec-panel">
-            <div class="exec-h">
-              <h3 id="exec-rank-title">Desempenho por Regional</h3>
-            </div>
-            <div class="exec-rankings">
-              <div class="rank-section">
-                <h4>Top 5</h4>
-                <div id="exec-rank-top" class="rank-mini">
-                  <div 
-                    v-for="item in topRanking" 
-                    :key="item.key"
-                    class="rank-mini__row"
-                  >
-                    <div class="rank-mini__name">
-                      <span class="rank-mini__label">{{ item.label }}</span>
-                    </div>
-                    <div class="rank-mini__bar">
-                      <span :style="{ width: `${Math.min(100, Math.max(0, item.p_mens))}%` }"></span>
-                    </div>
-                    <div class="rank-mini__pct">
-                      <span class="att-badge" :class="pctBadgeClass(item.p_mens)">{{ item.p_mens.toFixed(1) }}%</span>
-                    </div>
-                    <div class="rank-mini__vals">
-                      <strong :title="formatBRL(item.real_mens)">{{ formatBRLReadable(item.real_mens) }}</strong>
-                      <small :title="formatBRL(item.meta_mens)">/ {{ formatBRLReadable(item.meta_mens) }}</small>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="rank-section">
-                <h4>Bottom 5</h4>
-                <div id="exec-rank-bottom" class="rank-mini">
-                  <div 
-                    v-for="item in bottomRanking" 
-                    :key="item.key"
-                    class="rank-mini__row"
-                  >
-                    <div class="rank-mini__name">
-                      <span class="rank-mini__label">{{ item.label }}</span>
-                    </div>
-                    <div class="rank-mini__bar">
-                      <span :style="{ width: `${Math.min(100, Math.max(0, item.p_mens))}%` }"></span>
-                    </div>
-                    <div class="rank-mini__pct">
-                      <span class="att-badge" :class="pctBadgeClass(item.p_mens)">{{ item.p_mens.toFixed(1) }}%</span>
-                    </div>
-                    <div class="rank-mini__vals">
-                      <strong :title="formatBRL(item.real_mens)">{{ formatBRLReadable(item.real_mens) }}</strong>
-                      <small :title="formatBRL(item.meta_mens)">/ {{ formatBRLReadable(item.meta_mens) }}</small>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="exec-panel">
-            <div class="exec-h">
-              <h3 id="exec-status-title">Status das Regionais</h3>
-            </div>
-            <div class="exec-status">
-              <div class="status-section">
-                <h4>Hit (≥100%)</h4>
-                <div id="exec-status-hit" class="list-mini">
-                  <div 
-                    v-for="item in status.hit" 
-                    :key="item.key"
-                    class="list-mini__row"
-                  >
-                    <div class="list-mini__name">{{ item.label }}</div>
-                    <div class="list-mini__val">
-                      <span class="att-badge att-ok">{{ item.p_mens.toFixed(1) }}%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="status-section">
-                <h4>Quase (90-99%)</h4>
-                <div id="exec-status-quase" class="list-mini">
-                  <div 
-                    v-for="item in status.quase" 
-                    :key="item.key"
-                    class="list-mini__row"
-                  >
-                    <div class="list-mini__name">{{ item.label }}</div>
-                    <div class="list-mini__val">
-                      <span class="att-badge att-warn">{{ item.p_mens.toFixed(1) }}%</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="status-section">
-                <h4>Longe (maior defasagem)</h4>
-                <div id="exec-status-longe" class="list-mini">
-                  <div 
-                    v-for="item in status.longe" 
-                    :key="item.key"
-                    class="list-mini__row"
-                  >
-                    <div class="list-mini__name">{{ item.label }}</div>
-                    <div class="list-mini__val">
-                      <span class="def-badge def-neg">{{ formatBRLReadable(item.gap) }}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Heatmap -->
-        <div class="exec-panel">
-          <div class="exec-h">
-            <h3 id="exec-heatmap-title">Heatmap — Regionais × Seções</h3>
-            <div id="exec-heatmap-toggle" class="seg-mini segmented">
-              <button 
-                class="seg-btn" 
-                :class="{ 'is-active': heatmapMode === 'secoes' }"
-                data-hm="secoes"
-                @click="heatmapMode = 'secoes'"
-              >
-                Seções
-              </button>
-              <button 
-                class="seg-btn" 
-                :class="{ 'is-active': heatmapMode === 'meta' }"
-                data-hm="meta"
-                @click="heatmapMode = 'meta'"
-              >
-                Variação Meta
-              </button>
-            </div>
-          </div>
-          <div id="exec-heatmap" class="exec-heatmap">
-            <div class="hm-row hm-head" :style="`--hm-cols: ${heatmap.sections.length}; --hm-first: 240px; --hm-cell: 136px`">
-              <div class="hm-cell hm-corner">Regional \ Família</div>
-              <div 
-                v-for="section in heatmap.sections" 
-                :key="section.id"
-                class="hm-cell hm-col"
-                :title="section.label"
-              >
-                {{ section.label }}
-              </div>
-            </div>
-            <div 
-              v-for="unit in heatmap.units" 
-              :key="unit.value"
-              class="hm-row"
-              :style="`--hm-cols: ${heatmap.sections.length}; --hm-first: 240px; --hm-cell: 136px`"
-            >
-              <div class="hm-cell hm-rowh" :title="unit.label">{{ unit.label }}</div>
-              <div 
-                v-for="section in heatmap.sections" 
-                :key="section.id"
-                class="hm-cell hm-val"
-                :class="getHeatmapCellClass(getHeatmapValue(unit.value, section.id).pct)"
-                :title="`${unit.label} × ${section.label}: ${getHeatmapValue(unit.value, section.id).text}`"
-              >
-                {{ getHeatmapValue(unit.value, section.id).text }}
-              </div>
-            </div>
-          </div>
-        </div>
+          <!-- Heatmap -->
+          <ExecHeatmap :heatmap="heatmap" />
         </template>
       </div>
     </div>
@@ -578,499 +262,10 @@ onMounted(() => {
   font-weight: var(--brad-font-weight-semibold, 600);
 }
 
-.exec-kpis {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 18px;
-}
-
-.kpi-card {
-  background: var(--panel);
-  border: 1px solid var(--stroke);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
-}
-
-.kpi-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12);
-  border-color: #d7def1;
-}
-
-.kpi-card__title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.kpi-card__value {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1.2;
-}
-
-.kpi-card__value small {
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--muted);
-}
-
-.kpi-card__bar {
-  width: 100%;
-  height: 10px;
-  background: #f8fafc;
-  border: 1px solid #e5e7eb;
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.kpi-card__fill {
-  height: 100%;
-  border-radius: 999px;
-  transition: width 0.3s ease;
-}
-
-.kpi-card__fill.att-low {
-  background: #fecaca;
-}
-
-.kpi-card__fill.att-warn {
-  background: #fed7aa;
-}
-
-.kpi-card__fill.att-ok {
-  background: #bbf7d0;
-}
-
-.kpi-card__pct {
-  display: flex;
-  align-items: center;
-}
-
-.kpi-sub {
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.att-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.att-badge.att-low {
-  background: rgba(254, 202, 202, 0.3);
-  color: #991b1b;
-}
-
-.att-badge.att-warn {
-  background: rgba(254, 215, 170, 0.3);
-  color: #92400e;
-}
-
-.att-badge.att-ok {
-  background: rgba(187, 247, 208, 0.3);
-  color: #065f46;
-}
-
-.def-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.def-badge.def-pos {
-  background: rgba(187, 247, 208, 0.3);
-  color: #065f46;
-}
-
-.def-badge.def-neg {
-  background: rgba(254, 202, 202, 0.3);
-  color: #991b1b;
-}
-
-.kpi-card__value.def-pos {
-  color: #065f46;
-}
-
-.kpi-card__value.def-neg {
-  color: #991b1b;
-}
-
-.exec-chart {
-  background: var(--panel);
-  border: 1px solid var(--stroke);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 20px 20px 24px;
-}
-
-.exec-head {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.exec-head h3 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1.2;
-}
-
-.chart {
-  width: 100%;
-  overflow: hidden;
-  padding: 20px;
-  border-radius: 12px;
-  background: #fff;
-}
-
-.chart svg {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-.chart-legend {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 8px;
-}
-
-.legend-item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--text);
-  font-weight: 600;
-  font-size: 13px;
-}
-
-.legend-swatch {
-  display: inline-block;
-  width: 14px;
-  height: 6px;
-  border-radius: 999px;
-  background: #cbd5e1;
-  border: 1px solid #94a3b8;
-  position: relative;
-}
-
-.legend-swatch--line {
-  background: transparent;
-  border: none;
-  height: 0;
-  border-top: 2.5px solid;
-  width: 18px;
-  margin-top: 4px;
-  border-radius: 0;
-}
-
 .exec-panels {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
   gap: 18px;
-}
-
-.exec-panel {
-  background: var(--panel);
-  border: 1px solid var(--stroke);
-  border-radius: var(--radius);
-  box-shadow: var(--shadow);
-  padding: 20px;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
-}
-
-.exec-panel:hover {
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.1);
-}
-
-.exec-h {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.exec-h h3 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1.2;
-}
-
-.exec-rankings {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.rank-section h4 {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.rank-mini {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.rank-mini__row {
-  display: grid;
-  grid-template-columns: 1fr auto auto auto;
-  gap: 12px;
-  align-items: center;
-  padding: 12px;
-  border-radius: 10px;
-  transition: background 0.2s ease, transform 0.15s ease;
-  cursor: pointer;
-}
-
-.rank-mini__row:hover {
-  background: var(--bg);
-  transform: translateX(2px);
-}
-
-.rank-mini__name {
-  min-width: 0;
-}
-
-.rank-mini__label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.rank-mini__bar {
-  width: 100px;
-  height: 8px;
-  background: #f8fafc;
-  border: 1px solid #e5e7eb;
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.rank-mini__bar span {
-  display: block;
-  height: 100%;
-  background: var(--info);
-  border-radius: 999px;
-  transition: width 0.3s ease;
-}
-
-.rank-mini__pct {
-  min-width: 60px;
-  text-align: right;
-}
-
-.rank-mini__vals {
-  min-width: 120px;
-  text-align: right;
-  font-size: 12px;
-  color: var(--text);
-}
-
-.rank-mini__vals strong {
-  font-weight: 600;
-}
-
-.rank-mini__vals small {
-  color: var(--muted);
-}
-
-.exec-status {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.status-section h4 {
-  margin: 0 0 12px 0;
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.list-mini {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.list-mini__row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px;
-  border-radius: 10px;
-  transition: background 0.2s ease, transform 0.15s ease;
-  cursor: pointer;
-}
-
-.list-mini__row:hover {
-  background: var(--bg);
-  transform: translateX(2px);
-}
-
-.list-mini__name {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.list-mini__val {
-  flex-shrink: 0;
-}
-
-.exec-heatmap {
-  overflow-x: auto;
-}
-
-.hm-row {
-  display: grid;
-  grid-template-columns: var(--hm-first) repeat(var(--hm-cols), var(--hm-cell));
-  gap: 1px;
-  background: var(--stroke);
-}
-
-.hm-row.hm-head {
-  background: var(--bg);
-  border-bottom: 2px solid var(--stroke);
-}
-
-.hm-cell {
-  padding: 10px 12px;
-  background: var(--panel);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text);
-  text-align: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.hm-cell.hm-corner {
-  text-align: left;
-  justify-content: flex-start;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.hm-cell.hm-col {
-  font-weight: 700;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-size: 11px;
-}
-
-.hm-cell.hm-rowh {
-  text-align: left;
-  justify-content: flex-start;
-  font-weight: 500;
-  color: var(--text);
-}
-
-.hm-cell.hm-val {
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.hm-cell.hm-val:hover {
-  background: var(--bg);
-}
-
-.hm-cell.hm-ok {
-  background: rgba(187, 247, 208, 0.4);
-  color: #065f46;
-  font-weight: 700;
-}
-
-.hm-cell.hm-warn {
-  background: rgba(254, 215, 170, 0.4);
-  color: #92400e;
-  font-weight: 700;
-}
-
-.hm-cell.hm-bad {
-  background: rgba(254, 202, 202, 0.4);
-  color: #991b1b;
-  font-weight: 700;
-}
-
-.hm-cell.hm-empty {
-  background: var(--bg);
-  color: var(--muted);
-}
-
-.seg-mini.segmented {
-  padding: 2px;
-  border-radius: 8px;
-  background: var(--bg);
-  display: inline-flex;
-  gap: 2px;
-}
-
-.seg-mini .seg-btn {
-  padding: 6px 12px;
-  font-size: 12px;
-  font-weight: 600;
-  border: none;
-  background: transparent;
-  color: var(--muted);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.seg-mini .seg-btn.is-active {
-  background: var(--panel);
-  color: var(--text);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.muted {
-  color: var(--muted);
 }
 
 /* Skeleton Loading */
@@ -1090,19 +285,61 @@ onMounted(() => {
   }
 }
 
-@media (max-width: 768px) {
-  .exec-kpis {
-    grid-template-columns: 1fr;
-  }
+.exec-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 0;
+  flex-wrap: wrap;
+}
 
+.btn-download-pdf {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: var(--brand);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow);
+  white-space: nowrap;
+}
+
+.btn-download-pdf:hover {
+  background: var(--brand-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 16px 36px rgba(204, 9, 47, 0.2);
+}
+
+.btn-download-pdf:active {
+  transform: translateY(0);
+}
+
+.btn-download-pdf svg {
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
   .exec-panels {
     grid-template-columns: 1fr;
   }
 
-  .exec-head {
+  .exec-header {
     flex-direction: column;
-    align-items: flex-start;
+    align-items: stretch;
+  }
+
+  .btn-download-pdf {
+    width: 100%;
+    justify-content: center;
   }
 }
+
 </style>
 

@@ -2,6 +2,7 @@
 import { defineAsyncComponent, onMounted } from 'vue'
 import Header from './components/Header.vue'
 import Footer from './components/Footer.vue'
+import ChatWidget from './components/ChatWidget.vue'
 import { useRoute, useRouter } from 'vue-router'
 
 
@@ -73,6 +74,7 @@ if (typeof window !== 'undefined') {
       </div>
     </main>
     <Footer v-if="route.name !== 'Omega'" />
+    <ChatWidget v-if="route.name !== 'Omega'" />
   </div>
 </template>
 

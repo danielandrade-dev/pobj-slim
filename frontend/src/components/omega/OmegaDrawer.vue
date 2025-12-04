@@ -61,27 +61,10 @@ const flowTargetEmail = ref('')
 const currentUser = computed(() => props.omega.currentUser.value)
 const requesterName = computed(() => currentUser.value?.name || '—')
 
-// Opções de departamento
+// Opções de departamento - por enquanto sempre apenas "Matriz"
 const departmentOptions = computed<FilterOption[]>(() => {
-  const user = currentUser.value
-  if (!user) return []
-  
-  const departments = new Map<string, string>()
-  props.omega.structure.value.forEach((item) => {
-    if (item.departamento && !departments.has(item.departamento)) {
-      departments.set(item.departamento, item.departamento_id || item.departamento)
-    }
-  })
-  
-  const allDepartments = Array.from(departments.keys())
-  
-  if (user.role === 'admin') return allDepartments.map(d => ({ id: d, nome: d }))
-  if (user.role === 'usuario') {
-    const filtered = user.matrixAccess ? allDepartments : allDepartments.filter((d) => d !== 'Matriz')
-    return filtered.map(d => ({ id: d, nome: d }))
-  }
-  
-  return allDepartments.map(d => ({ id: d, nome: d }))
+  // Por enquanto, sempre retorna apenas "Matriz"
+  return [{ id: 'Matriz', nome: 'Matriz' }]
 })
 
 // Opções de tipo baseadas no departamento selecionado
@@ -236,10 +219,12 @@ watch(() => props.open, (isOpen) => {
   } else {
       // Aplica dados iniciais se fornecidos
       nextTick(() => {
+        // Sempre define "Matriz" como departamento padrão
+        department.value = 'Matriz'
+        
         if (props.initialData) {
-          if (props.initialData.department) {
-            department.value = props.initialData.department
-          }
+          // Se houver dados iniciais, aplica apenas o tipo e observação
+          // (departamento sempre será Matriz)
           if (props.initialData.type) {
             // Aguarda o departamento ser definido antes de definir o tipo
             nextTick(() => {
@@ -248,16 +233,6 @@ watch(() => props.open, (isOpen) => {
           }
           if (props.initialData.observation) {
             observation.value = props.initialData.observation
-          }
-        }
-        
-        // Define departamento padrão se não foi fornecido
-        if (departmentOptions.value.length > 0 && !department.value) {
-          const defaultDept = currentUser.value?.defaultQueue || 'POBJ'
-          if (defaultDept && departmentOptions.value.some(d => d.id === defaultDept)) {
-            department.value = defaultDept
-          } else {
-            department.value = departmentOptions.value[0]?.id || null
           }
         }
       })
@@ -321,18 +296,18 @@ watch(department, () => {
                 :model-value="department"
                 :options="departmentOptions"
                 placeholder="Selecione um departamento"
-                :disabled="departmentOptions.length === 0"
+                :disabled="true"
                 @update:model-value="department = $event"
               />
             </label>
 
-            <label class="omega-field" for="omega-form-type">
-              <span class="omega-field__label">Tipo de chamado</span>
+            <label class="omega-field" for="omega-form-type" v-if="department === 'Matriz'">
+              <span class="omega-field__label">Categoria</span>
               <SelectInput
                 id="omega-form-type"
                 :model-value="type"
                 :options="typeOptions"
-                placeholder="Selecione o tipo de chamado"
+                placeholder="Selecione a categoria (relatórios, dashboard, bases, etc.)"
                 :disabled="!department || typeOptions.length === 0"
                 @update:model-value="type = $event"
               />
