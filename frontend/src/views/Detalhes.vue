@@ -752,7 +752,7 @@ onMounted(() => {
                 <input
                   v-model="searchTerm"
                   type="text"
-                  placeholder="Contrato (Ex.: CT-AAAA-999999)"
+                  placeholder="Contrato (Ex.: 999999)"
                   class="input input--search"
                 />
               </div>
