@@ -22,9 +22,7 @@ class SimuladorRepository extends ServiceEntityRepository
         parent::__construct($registry, DProduto::class);
     }
 
-    /**
-     * Retorna o nome da tabela de uma entidade
-     */
+    
     private function getTableName(string $entityClass): string
     {
         return $this->getEntityManager()
@@ -32,9 +30,7 @@ class SimuladorRepository extends ServiceEntityRepository
             ->getTableName();
     }
 
-    /**
-     * Busca produtos com dados agregados para o simulador
-     */
+    
     public function findProdutosForSimulador(?FilterDTO $filters = null): array
     {
         $dProdutosTable = $this->getTableName(DProduto::class);
@@ -50,10 +46,8 @@ class SimuladorRepository extends ServiceEntityRepository
         $params = [];
         $whereClause = $this->buildWhereClause($filters, $params);
 
-        // Filtros de data removidos - simulador não usa filtro de data
-
-        // Usa subconsultas para agregar corretamente
-        $sql = "SELECT
+        
+                $sql = "SELECT
                     CAST(dp.id AS CHAR) AS id,
                     CAST(f.id AS CHAR) AS sectionId,
                     f.nm_familia AS sectionLabel,
@@ -123,8 +117,7 @@ class SimuladorRepository extends ServiceEntityRepository
         $conn = $this->getEntityManager()->getConnection();
         $result = $conn->executeQuery($sql, $params);
         
-        // Processa resultados de forma mais eficiente em memória
-        $produtos = [];
+                $produtos = [];
         while ($row = $result->fetchAssociative()) {
             $ultimaAtualizacao = $row['ultimaAtualizacao'] ?? null;
             if ($ultimaAtualizacao instanceof \DateTimeInterface) {
@@ -159,9 +152,7 @@ class SimuladorRepository extends ServiceEntityRepository
         return $produtos;
     }
 
-    /**
-     * Constrói a cláusula WHERE baseada nos filtros
-     */
+    
     private function buildWhereClause(?FilterDTO $filters, array &$params): string
     {
         $whereClause = '';
@@ -178,20 +169,16 @@ class SimuladorRepository extends ServiceEntityRepository
         $diretoria = $filters->getDiretoria();
         $segmento = $filters->getSegmento();
 
-        // Se tiver gerente, filtra apenas por funcional
-        if ($gerente !== null && $gerente !== '') {
-            // Converte ID para funcional se necessário
-            $gerenteFuncional = $this->getFuncionalFromIdOrFuncional($gerente, Cargo::GERENTE);
+                if ($gerente !== null && $gerente !== '') {
+                        $gerenteFuncional = $this->getFuncionalFromIdOrFuncional($gerente, Cargo::GERENTE);
             if ($gerenteFuncional) {
                 $whereClause .= " AND est.funcional = :gerenteFuncional";
                 $params['gerenteFuncional'] = $gerenteFuncional;
             }
         } elseif ($gerenteGestao !== null && $gerenteGestao !== '') {
-            // Converte ID para funcional se necessário
-            $gerenteGestaoFuncional = $this->getFuncionalFromIdOrFuncional($gerenteGestao, Cargo::GERENTE_GESTAO);
+                        $gerenteGestaoFuncional = $this->getFuncionalFromIdOrFuncional($gerenteGestao, Cargo::GERENTE_GESTAO);
             if ($gerenteGestaoFuncional) {
-                // Se tiver gerente gestão, filtra por todos os gerentes da mesma estrutura
-                $whereClause .= " AND EXISTS (
+                                $whereClause .= " AND EXISTS (
                     SELECT 1 FROM {$estruturaTable} AS ggestao 
                     WHERE ggestao.funcional = :gerenteGestaoFuncional
                     AND ggestao.cargo_id = :cargoGerenteGestao
@@ -204,8 +191,7 @@ class SimuladorRepository extends ServiceEntityRepository
                 $params['cargoGerenteGestao'] = Cargo::GERENTE_GESTAO;
             }
         } else {
-            // Aplica apenas o filtro mais específico da hierarquia de estrutura
-            if ($agencia !== null && $agencia !== '') {
+                        if ($agencia !== null && $agencia !== '') {
                 $whereClause .= " AND est.agencia_id = :agencia";
                 $params['agencia'] = $agencia;
             } elseif ($regional !== null && $regional !== '') {
@@ -223,28 +209,18 @@ class SimuladorRepository extends ServiceEntityRepository
         return $whereClause;
     }
 
-    /**
-     * Converte ID para funcional se necessário
-     * Se o valor for numérico (ID), busca o funcional na tabela d_estrutura
-     * Se o valor for string (funcional), retorna o próprio valor
-     * 
-     * @param mixed $idOrFuncional ID ou funcional
-     * @param int $cargoId ID do cargo (GERENTE ou GERENTE_GESTAO)
-     * @return string|null Funcional encontrado ou null se não encontrar
-     */
+    
     private function getFuncionalFromIdOrFuncional($idOrFuncional, int $cargoId): ?string
     {
         if ($idOrFuncional === null || $idOrFuncional === '') {
             return null;
         }
 
-        // Se não for numérico, assume que já é um funcional
-        if (!is_numeric($idOrFuncional)) {
+                if (!is_numeric($idOrFuncional)) {
             return (string)$idOrFuncional;
         }
 
-        // Se for numérico, busca o funcional na tabela d_estrutura
-        $dEstruturaTable = $this->getTableName(DEstrutura::class);
+                $dEstruturaTable = $this->getTableName(DEstrutura::class);
         $conn = $this->getEntityManager()->getConnection();
         
         $sql = "SELECT funcional FROM {$dEstruturaTable} 

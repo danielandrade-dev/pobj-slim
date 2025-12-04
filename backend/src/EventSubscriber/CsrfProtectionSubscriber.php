@@ -10,10 +10,7 @@ use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Security\Csrf\CsrfToken;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 
-/**
- * CSRF Protection Subscriber
- * Valida tokens CSRF para requisições POST, PUT, DELETE, PATCH
- */
+
 class CsrfProtectionSubscriber implements EventSubscriberInterface
 {
     private $csrfTokenManager;
@@ -48,23 +45,19 @@ class CsrfProtectionSubscriber implements EventSubscriberInterface
 
         $request = $event->getRequest();
 
-        // Aplica apenas para métodos que modificam dados
-        if (!in_array($request->getMethod(), ['POST', 'PUT', 'DELETE', 'PATCH'])) {
+                if (!in_array($request->getMethod(), ['POST', 'PUT', 'DELETE', 'PATCH'])) {
             return;
         }
 
-        // Ignora paths excluídos
-        if ($this->isPathExcluded($request->getPathInfo())) {
+                if ($this->isPathExcluded($request->getPathInfo())) {
             return;
         }
 
-        // Ignora requisições OPTIONS (CORS preflight)
-        if ($request->getMethod() === 'OPTIONS') {
+                if ($request->getMethod() === 'OPTIONS') {
             return;
         }
 
-        // Verifica se há token CSRF
-        $token = $request->headers->get('X-CSRF-Token') 
+                $token = $request->headers->get('X-CSRF-Token') 
               ?? $request->request->get('_token')
               ?? $request->query->get('_token');
 
@@ -74,8 +67,7 @@ class CsrfProtectionSubscriber implements EventSubscriberInterface
             ]);
         }
 
-        // Valida o token
-        $tokenId = $request->getPathInfo();
+                $tokenId = $request->getPathInfo();
         $csrfToken = new CsrfToken($tokenId, $token);
 
         if (!$this->csrfTokenManager->isTokenValid($csrfToken)) {

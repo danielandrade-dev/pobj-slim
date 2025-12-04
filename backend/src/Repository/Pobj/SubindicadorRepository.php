@@ -13,9 +13,7 @@ class SubindicadorRepository extends ServiceEntityRepository
         parent::__construct($registry, Subindicador::class);
     }
 
-    /**
-     * Busca subindicador por nome
-     */
+    
     public function findByNome(string $nome): ?Subindicador
     {
         return $this->createQueryBuilder('s')
@@ -25,9 +23,7 @@ class SubindicadorRepository extends ServiceEntityRepository
                     ->getOneOrNullResult();
     }
 
-    /**
-     * Lista todos os subindicadores ordenados por nome
-     */
+    
     public function findAllOrderedByNome(): array
     {
         return $this->createQueryBuilder('s')

@@ -7,10 +7,7 @@ use App\Domain\Enum\Cargo;
 use App\Entity\Pobj\DEstrutura;
 use Doctrine\ORM\QueryBuilder;
 
-/**
- * Specification baseada em FilterDTO
- * Aplica filtros de estrutura, produto e data
- */
+
 class FilterSpecification extends CompositeSpecification
 {
     private $filters;
@@ -26,25 +23,21 @@ class FilterSpecification extends CompositeSpecification
             return $qb;
         }
         
-        // Filtros de estrutura
-        $segmento = $this->filters->getSegmento();
+                $segmento = $this->filters->getSegmento();
         $diretoria = $this->filters->getDiretoria();
         $regional = $this->filters->getRegional();
         $agencia = $this->filters->getAgencia();
         $gerente = $this->filters->getGerente();
         $gerenteGestao = $this->filters->getGerenteGestao();
         
-        // Aplica apenas o filtro mais específico da hierarquia
-        if ($gerente !== null && $gerente !== '') {
-            // Converte ID para funcional se necessário
-            $gerenteFuncional = $this->getFuncionalFromIdOrFuncional($qb, $gerente, Cargo::GERENTE);
+                if ($gerente !== null && $gerente !== '') {
+                        $gerenteFuncional = $this->getFuncionalFromIdOrFuncional($qb, $gerente, Cargo::GERENTE);
             if ($gerenteFuncional) {
                 $qb->andWhere("{$alias}.funcional = :gerenteFuncional")
                    ->setParameter('gerenteFuncional', $gerenteFuncional);
             }
         } elseif ($gerenteGestao !== null && $gerenteGestao !== '') {
-            // Converte ID para funcional se necessário
-            $gerenteGestaoFuncional = $this->getFuncionalFromIdOrFuncional($qb, $gerenteGestao, Cargo::GERENTE_GESTAO);
+                        $gerenteGestaoFuncional = $this->getFuncionalFromIdOrFuncional($qb, $gerenteGestao, Cargo::GERENTE_GESTAO);
             if ($gerenteGestaoFuncional) {
                 $qb->andWhere("{$alias}.funcional = :gerenteGestaoFuncional")
                    ->setParameter('gerenteGestaoFuncional', $gerenteGestaoFuncional);
@@ -63,8 +56,7 @@ class FilterSpecification extends CompositeSpecification
                ->setParameter('segmentoId', $segmento);
         }
         
-        // Filtros de produto
-        $familia = $this->filters->getFamilia();
+                $familia = $this->filters->getFamilia();
         $indicador = $this->filters->getIndicador();
         $subindicador = $this->filters->getSubindicador();
         
@@ -79,8 +71,7 @@ class FilterSpecification extends CompositeSpecification
                ->setParameter('familiaId', $familia);
         }
         
-        // Filtros de data
-        $dataInicio = $this->filters->getDataInicio();
+                $dataInicio = $this->filters->getDataInicio();
         $dataFim = $this->filters->getDataFim();
         
         if ($dataInicio !== null && $dataInicio !== '') {
@@ -101,29 +92,18 @@ class FilterSpecification extends CompositeSpecification
         return $this->filters !== null && $this->filters->hasAnyFilter();
     }
 
-    /**
-     * Converte ID para funcional se necessário
-     * Se o valor for numérico (ID), busca o funcional na tabela d_estrutura
-     * Se o valor for string (funcional), retorna o próprio valor
-     * 
-     * @param QueryBuilder $qb QueryBuilder para obter EntityManager
-     * @param mixed $idOrFuncional ID ou funcional
-     * @param int $cargoId ID do cargo (GERENTE ou GERENTE_GESTAO)
-     * @return string|null Funcional encontrado ou null se não encontrar
-     */
+    
     private function getFuncionalFromIdOrFuncional(QueryBuilder $qb, $idOrFuncional, int $cargoId): ?string
     {
         if ($idOrFuncional === null || $idOrFuncional === '') {
             return null;
         }
 
-        // Se não for numérico, assume que já é um funcional
-        if (!is_numeric($idOrFuncional)) {
+                if (!is_numeric($idOrFuncional)) {
             return (string)$idOrFuncional;
         }
 
-        // Se for numérico, busca o funcional na tabela d_estrutura
-        $em = $qb->getEntityManager();
+                $em = $qb->getEntityManager();
         $metadata = $em->getClassMetadata(DEstrutura::class);
         $dEstruturaTable = $metadata->getTableName();
         $conn = $em->getConnection();

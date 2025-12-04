@@ -29,9 +29,7 @@ class FDetalhesRepository extends ServiceEntityRepository implements FDetalhesRe
         parent::__construct($registry, FDetalhes::class);
     }
 
-    /**
-     * Retorna o nome da tabela de uma entidade
-     */
+    
     private function getTableName(string $entityClass): string
     {
         return $this->getEntityManager()
@@ -39,13 +37,7 @@ class FDetalhesRepository extends ServiceEntityRepository implements FDetalhesRe
             ->getTableName();
     }
 
-    /**
-     * Constrói a cláusula WHERE baseada nos filtros de estrutura
-     * 
-     * @param FilterDTO|null $filters Filtros a serem aplicados
-     * @param array &$params Parâmetros da query (passado por referência)
-     * @return string Cláusula WHERE construída
-     */
+    
     private function buildEstruturaWhereClause(?FilterDTO $filters, array &$params): string
     {
         if (!$filters) {
@@ -61,15 +53,13 @@ class FDetalhesRepository extends ServiceEntityRepository implements FDetalhesRe
         $segmento = $filters->getSegmento();
 
         if ($gerente !== null && $gerente !== '') {
-            // Converte ID para funcional se necessário
-            $gerenteFuncional = $this->getFuncionalFromIdOrFuncional($gerente, Cargo::GERENTE);
+                        $gerenteFuncional = $this->getFuncionalFromIdOrFuncional($gerente, Cargo::GERENTE);
             if ($gerenteFuncional) {
                 $whereClause .= " AND fr.funcional = :gerenteFuncional";
                 $params['gerenteFuncional'] = $gerenteFuncional;
             }
         } elseif ($gerenteGestao !== null && $gerenteGestao !== '') {
-            // Converte ID para funcional se necessário
-            $gerenteGestaoFuncional = $this->getFuncionalFromIdOrFuncional($gerenteGestao, Cargo::GERENTE_GESTAO);
+                        $gerenteGestaoFuncional = $this->getFuncionalFromIdOrFuncional($gerenteGestao, Cargo::GERENTE_GESTAO);
             if ($gerenteGestaoFuncional) {
                 $dEstruturaTable = $this->getTableName(DEstrutura::class);
                 $whereClause .= " AND EXISTS (
@@ -103,13 +93,7 @@ class FDetalhesRepository extends ServiceEntityRepository implements FDetalhesRe
         return $whereClause;
     }
 
-    /**
-     * Constrói a cláusula WHERE baseada nos filtros de produto
-     * 
-     * @param FilterDTO|null $filters Filtros a serem aplicados
-     * @param array &$params Parâmetros da query (passado por referência)
-     * @return string Cláusula WHERE construída
-     */
+    
     private function buildProdutoWhereClause(?FilterDTO $filters, array &$params): string
     {
         if (!$filters) {
@@ -135,13 +119,7 @@ class FDetalhesRepository extends ServiceEntityRepository implements FDetalhesRe
         return $whereClause;
     }
 
-    /**
-     * Constrói a cláusula WHERE baseada nos filtros de data
-     * 
-     * @param FilterDTO|null $filters Filtros a serem aplicados
-     * @param array &$params Parâmetros da query (passado por referência)
-     * @return string Cláusula WHERE construída
-     */
+    
     private function buildDataWhereClause(?FilterDTO $filters, array &$params): string
     {
         if (!$filters) {
@@ -165,15 +143,7 @@ class FDetalhesRepository extends ServiceEntityRepository implements FDetalhesRe
         return $whereClause;
     }
 
-    /**
-     * Constrói a query SQL completa para buscar detalhes
-     * 
-     * @param array $tableNames Nomes das tabelas
-     * @param string $whereClause Cláusula WHERE completa
-     * @param int $limit Limite de registros
-     * @param int $offset Offset para paginação
-     * @return string Query SQL construída
-     */
+    
     private function buildDetalhesQuery(array $tableNames, string $whereClause, int $limit, int $offset): string
     {
         $sql = "SELECT
@@ -273,9 +243,7 @@ class FDetalhesRepository extends ServiceEntityRepository implements FDetalhesRe
         return $sql;
     }
 
-    /**
-     * Busca detalhes com filtros opcionais, baseado no backend antigo
-     */
+    
     public function findDetalhes(?FilterDTO $filters = null): array
     {
         $fRealizadosTable = $this->getTableName(FRealizados::class);
@@ -294,17 +262,14 @@ class FDetalhesRepository extends ServiceEntityRepository implements FDetalhesRe
 
         $params = [];
         
-        // Adiciona os parâmetros do cargo para o CASE e subqueries
-        $params['cargoGerente'] = Cargo::GERENTE;
+                $params['cargoGerente'] = Cargo::GERENTE;
         $params['cargoGerenteGestao'] = Cargo::GERENTE_GESTAO;
 
-        // Constrói cláusulas WHERE usando métodos específicos
-        $whereClause = $this->buildEstruturaWhereClause($filters, $params);
+                $whereClause = $this->buildEstruturaWhereClause($filters, $params);
         $whereClause .= $this->buildProdutoWhereClause($filters, $params);
         $whereClause .= $this->buildDataWhereClause($filters, $params);
 
-        // Prepara nomes das tabelas
-        $tableNames = [
+                $tableNames = [
             'fRealizados' => $fRealizadosTable,
             'dEstrutura' => $dEstruturaTable,
             'dProdutos' => $dProdutosTable,
@@ -319,8 +284,7 @@ class FDetalhesRepository extends ServiceEntityRepository implements FDetalhesRe
             'subindicador' => $subindicadorTable,
         ];
 
-        // Aplica paginação se solicitada, caso contrário usa limite padrão
-        $limit = 1000;
+                $limit = 1000;
         $offset = 0;
         
         if ($filters && $filters->hasPagination()) {
@@ -331,18 +295,14 @@ class FDetalhesRepository extends ServiceEntityRepository implements FDetalhesRe
         $limit = max(1, min(5000, (int)$limit));
         $offset = max(0, (int)$offset);
         
-        // Constrói a query SQL completa usando método específico
-        $sql = $this->buildDetalhesQuery($tableNames, $whereClause, $limit, $offset);
+                $sql = $this->buildDetalhesQuery($tableNames, $whereClause, $limit, $offset);
 
         $connection = $this->getEntityManager()->getConnection();
         $result = $connection->executeQuery($sql, $params);
         
-        // Processa resultados de forma mais eficiente em memória
-        // Usa fetchAssociative() em loop ao invés de fetchAllAssociative() para reduzir uso de memória
-        $detalhes = [];
+                        $detalhes = [];
         while ($row = $result->fetchAssociative()) {
-            // Formata datas
-            $data = $row['data'] ?? null;
+                        $data = $row['data'] ?? null;
             if ($data instanceof \DateTimeInterface) {
                 $data = $data->format('Y-m-d');
             } elseif (!is_string($data) || $data === '') {
@@ -411,22 +371,15 @@ class FDetalhesRepository extends ServiceEntityRepository implements FDetalhesRe
 
             $detalhes[] = $dto->toArray();
             
-            // Libera memória do DTO após adicionar ao array
-            unset($dto);
+                        unset($dto);
         }
         
-        // Libera memória do result set
-        $result->free();
+                $result->free();
 
         return $detalhes;
     }
 
-    /**
-     * Conta o total de registros que correspondem aos filtros
-     * 
-     * @param FilterDTO|null $filters Filtros a serem aplicados
-     * @return int Total de registros
-     */
+    
     public function countDetalhes(?FilterDTO $filters = null): int
     {
         $fRealizadosTable = $this->getTableName(FRealizados::class);
@@ -530,28 +483,18 @@ class FDetalhesRepository extends ServiceEntityRepository implements FDetalhesRe
         return (int)($row['total'] ?? 0);
     }
 
-    /**
-     * Converte ID para funcional se necessário
-     * Se o valor for numérico (ID), busca o funcional na tabela d_estrutura
-     * Se o valor for string (funcional), retorna o próprio valor
-     * 
-     * @param mixed $idOrFuncional ID ou funcional
-     * @param int $cargoId ID do cargo (GERENTE ou GERENTE_GESTAO)
-     * @return string|null Funcional encontrado ou null se não encontrar
-     */
+    
     private function getFuncionalFromIdOrFuncional($idOrFuncional, int $cargoId): ?string
     {
         if ($idOrFuncional === null || $idOrFuncional === '') {
             return null;
         }
 
-        // Se não for numérico, assume que já é um funcional
-        if (!is_numeric($idOrFuncional)) {
+                if (!is_numeric($idOrFuncional)) {
             return (string)$idOrFuncional;
         }
 
-        // Se for numérico, busca o funcional na tabela d_estrutura
-        $dEstruturaTable = $this->getTableName(DEstrutura::class);
+                $dEstruturaTable = $this->getTableName(DEstrutura::class);
         $conn = $this->getEntityManager()->getConnection();
         
         $sql = "SELECT funcional FROM {$dEstruturaTable} 

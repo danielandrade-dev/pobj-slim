@@ -8,9 +8,7 @@ use App\Repository\Omega\OmegaStatusRepository;
 use App\Repository\Omega\OmegaUsuarioRepository;
 use App\Repository\Omega\OmegaChamadoRepository;
 
-/**
- * UseCase para inicialização do Omega
- */
+
 class OmegaInitUseCase
 {
     private $departamentoRepository;
@@ -33,22 +31,16 @@ class OmegaInitUseCase
         $this->chamadoRepository = $chamadoRepository;
     }
 
-    /**
-     * Retorna todos os dados necessários para inicializar o Omega
-     * @return array
-     */
+    
     public function handle(): array
     {
-        // Busca departamentos e suas categorias
-        $departamentos = $this->departamentoRepository->findAllOrderedByNome();
+                $departamentos = $this->departamentoRepository->findAllOrderedByNome();
         $categorias = $this->categoriaRepository->findAllOrdered();
         
-        // Monta estrutura com departamentos e categorias
-        $structure = [];
+                $structure = [];
         foreach ($departamentos as $departamento) {
             $deptArray = $this->entityToArray($departamento);
-            // Adiciona categorias do departamento
-            $deptCategorias = array_filter($categorias, function($cat) use ($departamento) {
+                        $deptCategorias = array_filter($categorias, function($cat) use ($departamento) {
                 return $cat->getDepartamento()->getId() === $departamento->getId();
             });
             foreach ($deptCategorias as $categoria) {
@@ -67,9 +59,7 @@ class OmegaInitUseCase
         ];
     }
 
-    /**
-     * Converte DTOs/Entidades para arrays
-     */
+    
     private function convertDtosToArray(array $items): array
     {
         $result = array_map(function ($item) {
@@ -79,17 +69,14 @@ class OmegaInitUseCase
         return array_values($result);
     }
 
-    /**
-     * Converte uma entidade para array
-     */
+    
     private function entityToArray($entity): array
     {
         if (method_exists($entity, 'toArray')) {
             return $entity->toArray();
         }
 
-        // Conversão manual baseada no tipo de entidade
-        $className = get_class($entity);
+                $className = get_class($entity);
         
         if (strpos($className, 'OmegaDepartamento') !== false) {
             return [
@@ -164,8 +151,7 @@ class OmegaInitUseCase
             ];
         }
         
-        // Fallback genérico
-        return [];
+                return [];
     }
 }
 

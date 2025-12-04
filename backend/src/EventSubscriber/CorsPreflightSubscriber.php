@@ -8,33 +8,26 @@ use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
-/**
- * Subscriber para tratar requisições OPTIONS (CORS preflight)
- * Deve ter prioridade alta para interceptar antes do ExceptionSubscriber
- */
+
 class CorsPreflightSubscriber implements EventSubscriberInterface
 {
     public static function getSubscribedEvents(): array
     {
         return [
-            KernelEvents::REQUEST => ['onKernelRequest', 100], // Alta prioridade
-        ];
+            KernelEvents::REQUEST => ['onKernelRequest', 100],         ];
     }
 
     public function onKernelRequest(RequestEvent $event): void
     {
         $request = $event->getRequest();
 
-        // Trata apenas requisições OPTIONS (CORS preflight)
-        if ($request->getMethod() !== 'OPTIONS') {
+                if ($request->getMethod() !== 'OPTIONS') {
             return;
         }
 
-        // Cria resposta vazia para OPTIONS
-        $response = new Response('', 200);
+                $response = new Response('', 200);
         
-        // Headers CORS
-        $origin = $request->headers->get('Origin');
+                $origin = $request->headers->get('Origin');
         $allowedOrigins = $this->getAllowedOrigins();
         
         $allowCredentials = false;
@@ -67,8 +60,7 @@ class CorsPreflightSubscriber implements EventSubscriberInterface
         
         $response->headers->set('Access-Control-Max-Age', '3600');
 
-        // Para requisições OPTIONS, retorna resposta vazia imediatamente
-        $event->setResponse($response);
+                $event->setResponse($response);
     }
 
     private function getAllowedOrigins(): array

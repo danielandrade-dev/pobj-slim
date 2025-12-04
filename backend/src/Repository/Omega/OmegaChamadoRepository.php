@@ -13,10 +13,7 @@ class OmegaChamadoRepository extends ServiceEntityRepository
         parent::__construct($registry, OmegaChamado::class);
     }
 
-    /**
-     * Lista todos os chamados ordenados por data de atualização
-     * Otimizado com eager loading para evitar N+1 queries
-     */
+    
     public function findAllOrderedByUpdated(): array
     {
         return $this->createQueryBuilder('c')
@@ -34,24 +31,19 @@ class OmegaChamadoRepository extends ServiceEntityRepository
                     ->getResult();
     }
 
-    /**
-     * Salva um chamado no banco de dados
-     */
+    
     public function save(OmegaChamado $chamado): void
     {
         $this->getEntityManager()->persist($chamado);
         $this->getEntityManager()->flush();
     }
 
-    /**
-     * Gera um ID único para o ticket no formato OME-YYYY-NNNN
-     */
+    
     public function generateNextTicketId(): string
     {
         $year = date('Y');
         
-        // Busca o último ticket do ano
-        $lastTicket = $this->createQueryBuilder('t')
+                $lastTicket = $this->createQueryBuilder('t')
             ->where('t.id LIKE :pattern')
             ->setParameter('pattern', "OME-{$year}-%")
             ->orderBy('t.id', 'DESC')

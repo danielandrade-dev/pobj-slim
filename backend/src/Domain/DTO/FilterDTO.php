@@ -11,8 +11,7 @@ class FilterDTO
 
     public function __construct(array $params = [])
     {
-        // Verifica se page ou limit foram explicitamente solicitados
-        $this->paginationRequested = isset($params['page']) || isset($params['limit']);
+                $this->paginationRequested = isset($params['page']) || isset($params['limit']);
         
         $this->page = isset($params['page']) ? (int)$params['page'] : 1;
         $this->limit = isset($params['limit']) ? (int)$params['limit'] : 20;
@@ -28,8 +27,7 @@ class FilterDTO
 
     public function hasPagination(): bool
     {
-        // Só retorna true se a paginação foi explicitamente solicitada
-        return $this->paginationRequested && $this->page > 0 && $this->limit > 0;
+                return $this->paginationRequested && $this->page > 0 && $this->limit > 0;
     }
 
     public function getOffset(): int
@@ -37,21 +35,14 @@ class FilterDTO
         return ($this->page - 1) * $this->limit;
     }
 
-    /**
-     * Obtém um valor de filtro específico
-     * @param string $key
-     * @param mixed $default
-     * @return mixed
-     */
+    
     public function get(string $key, $default = null)
     {
-        // Para dataInicio, dataFim e nivel, não adiciona 'Id' no final
-        if ($key === 'dataInicio' || $key === 'dataFim' || $key === 'nivel') {
+                if ($key === 'dataInicio' || $key === 'dataFim' || $key === 'nivel') {
             if (isset($this->filters[$key])) {
                 return $this->filters[$key];
             }
-            // Tenta variações comuns
-            $variations = [
+                        $variations = [
                 $this->normalizeKey($key),
                 strtolower($key),
                 strtoupper($key)
@@ -64,8 +55,7 @@ class FilterDTO
             return $default;
         }
         
-        // Suporta múltiplas chaves para compatibilidade
-        $keys = [
+                $keys = [
             $key . 'Id',
             $key,
             $this->normalizeKey($key),
@@ -80,11 +70,7 @@ class FilterDTO
         return $default;
     }
 
-    /**
-     * Normaliza a chave do filtro
-     * @param string $key
-     * @return string
-     */
+    
     private function normalizeKey(string $key): string
     {
         $normalizations = [
@@ -104,8 +90,7 @@ class FilterDTO
         return $normalizations[$key][0] ?? $key;
     }
 
-    // Métodos helper para acesso direto aos filtros comuns
-    public function getSegmento()
+        public function getSegmento()
     {
         return $this->get('segmento');
     }

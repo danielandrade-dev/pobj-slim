@@ -4,9 +4,7 @@ namespace App\Application\UseCase\Omega;
 
 use App\Repository\Omega\OmegaStatusRepository;
 
-/**
- * UseCase para operações relacionadas a status Omega
- */
+
 class OmegaStatusUseCase
 {
     private $repository;
@@ -16,10 +14,7 @@ class OmegaStatusUseCase
         $this->repository = $repository;
     }
 
-    /**
-     * Retorna todos os status Omega
-     * @return array
-     */
+    
     public function getAllStatus(): array
     {
         return $this->repository->findAllOrdered();

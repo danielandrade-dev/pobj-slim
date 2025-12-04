@@ -30,9 +30,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
     }
 
 
-    /**
-     * Constrói subconsulta otimizada para metas (sem joins desnecessários)
-     */
+    
     private function buildMetaSubquery(string $fMetaTable, string $dEstruturaTable, string $metaFilter, ?FilterDTO $filters): string
     {
         $estruturaJoin = $this->needsEstruturaJoin($filters) ? "INNER JOIN {$dEstruturaTable} AS e1 ON e1.funcional = m.funcional" : "";
@@ -45,9 +43,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
                 GROUP BY m.produto_id";
     }
 
-    /**
-     * Constrói subconsulta otimizada para realizados (sem joins desnecessários)
-     */
+    
     private function buildRealizadosSubquery(string $fRealizadosTable, string $dEstruturaTable, string $realizadosFilter, ?FilterDTO $filters): string
     {
         $estruturaJoin = $this->needsEstruturaJoin($filters) ? "INNER JOIN {$dEstruturaTable} AS e2 ON e2.funcional = r.funcional" : "";
@@ -61,9 +57,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
                 GROUP BY r.produto_id";
     }
 
-    /**
-     * Constrói subconsulta otimizada para pontos (sem joins desnecessários)
-     */
+    
     private function buildPontosSubquery(string $fPontosTable, string $dEstruturaTable, string $pontosFilter, ?FilterDTO $filters): string
     {
         $estruturaJoin = $this->needsEstruturaJoin($filters) ? "INNER JOIN {$dEstruturaTable} AS e3 ON e3.funcional = p.funcional" : "";
@@ -77,10 +71,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
                 GROUP BY p.produto_id";
     }
 
-    /**
-     * Retorna produtos com dados agregados (realizados, metas, pontos, variável)
-     * para renderização dos cards
-     */
+    
     public function findProdutos(?FilterDTO $filters = null): array
     {
         $dProdutosTable = $this->getTableName(DProduto::class);
@@ -93,8 +84,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
         $indicadorTable = $this->getTableName(Indicador::class);
         $subindicadorTable = $this->getTableName(Subindicador::class);
 
-        // Constroi filtros de período e estrutura para as subconsultas
-        $params = [];
+                $params = [];
         $metaFilter = '';
         $realizadosFilter = '';
         $pontosFilter = '';
@@ -105,8 +95,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
             $dataFim = $filters->getDataFim();
             
             if ($dataInicio) {
-                // Otimização: usa diretamente as colunas de data sem join com d_calendario
-                $metaFilter .= " AND m.data_meta >= :metaDataInicio";
+                                $metaFilter .= " AND m.data_meta >= :metaDataInicio";
                 $realizadosFilter .= " AND r.data_realizado >= :realizadosDataInicio";
                 $pontosFilter .= " AND p.data_realizado >= :pontosDataInicio";
                 $params['metaDataInicio'] = $dataInicio;
@@ -115,8 +104,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
             }
             
             if ($dataFim) {
-                // Otimização: usa diretamente as colunas de data sem join com d_calendario
-                $metaFilter .= " AND m.data_meta <= :metaDataFim";
+                                $metaFilter .= " AND m.data_meta <= :metaDataFim";
                 $realizadosFilter .= " AND r.data_realizado <= :realizadosDataFim";
                 $pontosFilter .= " AND p.data_realizado <= :pontosDataFim";
                 $params['metaDataFim'] = $dataFim;
@@ -124,16 +112,13 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
                 $params['pontosDataFim'] = $dataFim;
             }
             
-            // Filtros de gerente e gerente gestão (aplicados diretamente no funcional - mais eficiente)
-            $gerente = $filters->getGerente();
+                        $gerente = $filters->getGerente();
             $gerenteGestao = $filters->getGerenteGestao();
             
             if ($gerente !== null && $gerente !== '') {
-                // Converte ID para funcional se necessário
-                $gerenteFuncional = $this->getFuncionalFromIdOrFuncional($gerente, Cargo::GERENTE);
+                                $gerenteFuncional = $this->getFuncionalFromIdOrFuncional($gerente, Cargo::GERENTE);
                 if ($gerenteFuncional) {
-                    // Se tem gerente, filtra apenas por funcional (gerente) - evita join com estrutura
-                    $metaFilter .= " AND m.funcional = :gerenteFuncionalMeta";
+                                        $metaFilter .= " AND m.funcional = :gerenteFuncionalMeta";
                     $realizadosFilter .= " AND r.funcional = :gerenteFuncionalRealizados";
                     $pontosFilter .= " AND p.funcional = :gerenteFuncionalPontos";
                     $params['gerenteFuncionalMeta'] = $gerenteFuncional;
@@ -141,11 +126,9 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
                     $params['gerenteFuncionalPontos'] = $gerenteFuncional;
                 }
             } elseif ($gerenteGestao !== null && $gerenteGestao !== '') {
-                // Converte ID para funcional se necessário
-                $gerenteGestaoFuncional = $this->getFuncionalFromIdOrFuncional($gerenteGestao, Cargo::GERENTE_GESTAO);
+                                $gerenteGestaoFuncional = $this->getFuncionalFromIdOrFuncional($gerenteGestao, Cargo::GERENTE_GESTAO);
                 if ($gerenteGestaoFuncional) {
-                    // Se tem gerente gestão, filtra apenas por funcional (gerente gestão) - evita join com estrutura
-                    $metaFilter .= " AND m.funcional = :gerenteGestaoFuncionalMeta";
+                                        $metaFilter .= " AND m.funcional = :gerenteGestaoFuncionalMeta";
                     $realizadosFilter .= " AND r.funcional = :gerenteGestaoFuncionalRealizados";
                     $pontosFilter .= " AND p.funcional = :gerenteGestaoFuncionalPontos";
                     $params['gerenteGestaoFuncionalMeta'] = $gerenteGestaoFuncional;
@@ -153,9 +136,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
                     $params['gerenteGestaoFuncionalPontos'] = $gerenteGestaoFuncional;
                 }
             } else {
-                // Filtros de estrutura (só aplica se não houver gerente/gerenteGestao)
-                // Com prefixos e sufixos diferentes para cada subconsulta
-                $estruturaFiltersMeta = $this->buildEstruturaFilters($filters, $params, 'e1', 'meta');
+                                                $estruturaFiltersMeta = $this->buildEstruturaFilters($filters, $params, 'e1', 'meta');
                 $estruturaFiltersRealizados = $this->buildEstruturaFilters($filters, $params, 'e2', 'realizados');
                 $estruturaFiltersPontos = $this->buildEstruturaFilters($filters, $params, 'e3', 'pontos');
                 $metaFilter .= $estruturaFiltersMeta;
@@ -163,32 +144,24 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
                 $pontosFilter .= $estruturaFiltersPontos;
             }
             
-            // Filtros de produto (aplica apenas o mais específico da hierarquia)
-            // Hierarquia: subindicador > indicador > familia
-            $subindicador = $filters->getSubindicador();
+                                    $subindicador = $filters->getSubindicador();
             $indicador = $filters->getIndicador();
             $familia = $filters->getFamilia();
             
             if ($subindicador !== null && $subindicador !== '') {
-                // Se tem subindicador, não precisa filtrar por indicador ou familia
-                $produtoFilter .= " AND dp.subindicador_id = :subindicadorId";
+                                $produtoFilter .= " AND dp.subindicador_id = :subindicadorId";
                 $params['subindicadorId'] = $subindicador;
             } elseif ($indicador !== null && $indicador !== '') {
-                // Se tem indicador, não precisa filtrar por familia
-                $produtoFilter .= " AND dp.indicador_id = :indicadorId";
+                                $produtoFilter .= " AND dp.indicador_id = :indicadorId";
                 $params['indicadorId'] = $indicador;
             } elseif ($familia !== null && $familia !== '') {
-                // Aplica apenas familia se não houver filtros mais específicos
-                $produtoFilter .= " AND dp.familia_id = :familiaId";
+                                $produtoFilter .= " AND dp.familia_id = :familiaId";
                 $params['familiaId'] = $familia;
             }
             
-            // Filtro de status (atingido/não atingido)
-            // Usa a mesma lógica do campo 'atingido' calculado na query (linha 191-199)
-            $status = $filters->getStatus();
+                                    $status = $filters->getStatus();
             if ($status !== null && $status !== '' && $status !== '03') {
-                // '01' = Atingido (atingido = 1), '02' = Não Atingido (atingido = 0)
-                if ($status === '01') {
+                                if ($status === '01') {
                     $produtoFilter .= " AND (CASE 
                         WHEN COALESCE(fm.total_meta, 0) > 0 
                         THEN CASE 
@@ -256,8 +229,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
         $connection = $this->getEntityManager()->getConnection();
         $result = $connection->executeQuery($sql, $params);
         
-        // Processa resultados de forma mais eficiente em memória
-        $rows = [];
+                $rows = [];
         while ($row = $result->fetchAssociative()) {
             $rows[] = $row;
         }
@@ -266,10 +238,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
         return $rows;
     }
 
-    /**
-     * Retorna produtos com dados mensais para renderização do resumo-legacy
-     * Retorna dados agrupados por mês (competencia/data_realizado)
-     */
+    
     public function findProdutosMensais(?FilterDTO $filters = null): array
     {
         $dProdutosTable = $this->getTableName(DProduto::class);
@@ -282,8 +251,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
         $indicadorTable = $this->getTableName(Indicador::class);
         $subindicadorTable = $this->getTableName(Subindicador::class);
 
-        // Constroi filtros de período e estrutura para as subconsultas
-        $params = [];
+                $params = [];
         $metaFilter = '';
         $realizadosFilter = '';
         $pontosFilter = '';
@@ -294,8 +262,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
             $dataFim = $filters->getDataFim();
             
             if ($dataInicio) {
-                // Otimização: usa diretamente as colunas de data sem join com d_calendario
-                $metaFilter .= " AND m.data_meta >= :metaDataInicio";
+                                $metaFilter .= " AND m.data_meta >= :metaDataInicio";
                 $realizadosFilter .= " AND r.data_realizado >= :realizadosDataInicio";
                 $pontosFilter .= " AND p.data_realizado >= :pontosDataInicio";
                 $params['metaDataInicio'] = $dataInicio;
@@ -304,8 +271,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
             }
             
             if ($dataFim) {
-                // Otimização: usa diretamente as colunas de data sem join com d_calendario
-                $metaFilter .= " AND m.data_meta <= :metaDataFim";
+                                $metaFilter .= " AND m.data_meta <= :metaDataFim";
                 $realizadosFilter .= " AND r.data_realizado <= :realizadosDataFim";
                 $pontosFilter .= " AND p.data_realizado <= :pontosDataFim";
                 $params['metaDataFim'] = $dataFim;
@@ -313,16 +279,13 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
                 $params['pontosDataFim'] = $dataFim;
             }
             
-            // Filtros de gerente e gerente gestão (aplicados diretamente no funcional - mais eficiente)
-            $gerente = $filters->getGerente();
+                        $gerente = $filters->getGerente();
             $gerenteGestao = $filters->getGerenteGestao();
             
             if ($gerente !== null && $gerente !== '') {
-                // Converte ID para funcional se necessário
-                $gerenteFuncional = $this->getFuncionalFromIdOrFuncional($gerente, Cargo::GERENTE);
+                                $gerenteFuncional = $this->getFuncionalFromIdOrFuncional($gerente, Cargo::GERENTE);
                 if ($gerenteFuncional) {
-                    // Se tem gerente, filtra apenas por funcional (gerente) - evita join com estrutura
-                    $metaFilter .= " AND m.funcional = :gerenteFuncionalMeta";
+                                        $metaFilter .= " AND m.funcional = :gerenteFuncionalMeta";
                     $realizadosFilter .= " AND r.funcional = :gerenteFuncionalRealizados";
                     $pontosFilter .= " AND p.funcional = :gerenteFuncionalPontos";
                     $params['gerenteFuncionalMeta'] = $gerenteFuncional;
@@ -330,11 +293,9 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
                     $params['gerenteFuncionalPontos'] = $gerenteFuncional;
                 }
             } elseif ($gerenteGestao !== null && $gerenteGestao !== '') {
-                // Converte ID para funcional se necessário
-                $gerenteGestaoFuncional = $this->getFuncionalFromIdOrFuncional($gerenteGestao, Cargo::GERENTE_GESTAO);
+                                $gerenteGestaoFuncional = $this->getFuncionalFromIdOrFuncional($gerenteGestao, Cargo::GERENTE_GESTAO);
                 if ($gerenteGestaoFuncional) {
-                    // Se tem gerente gestão, filtra apenas por funcional (gerente gestão) - evita join com estrutura
-                    $metaFilter .= " AND m.funcional = :gerenteGestaoFuncionalMeta";
+                                        $metaFilter .= " AND m.funcional = :gerenteGestaoFuncionalMeta";
                     $realizadosFilter .= " AND r.funcional = :gerenteGestaoFuncionalRealizados";
                     $pontosFilter .= " AND p.funcional = :gerenteGestaoFuncionalPontos";
                     $params['gerenteGestaoFuncionalMeta'] = $gerenteGestaoFuncional;
@@ -342,9 +303,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
                     $params['gerenteGestaoFuncionalPontos'] = $gerenteGestaoFuncional;
                 }
             } else {
-                // Filtros de estrutura (só aplica se não houver gerente/gerenteGestao)
-                // Com prefixos e sufixos diferentes para cada subconsulta
-                $estruturaFiltersMeta = $this->buildEstruturaFilters($filters, $params, 'e1', 'meta');
+                                                $estruturaFiltersMeta = $this->buildEstruturaFilters($filters, $params, 'e1', 'meta');
                 $estruturaFiltersRealizados = $this->buildEstruturaFilters($filters, $params, 'e2', 'realizados');
                 $estruturaFiltersPontos = $this->buildEstruturaFilters($filters, $params, 'e3', 'pontos');
                 $metaFilter .= $estruturaFiltersMeta;
@@ -352,32 +311,24 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
                 $pontosFilter .= $estruturaFiltersPontos;
             }
             
-            // Filtros de produto (aplica apenas o mais específico da hierarquia)
-            // Hierarquia: subindicador > indicador > familia
-            $subindicador = $filters->getSubindicador();
+                                    $subindicador = $filters->getSubindicador();
             $indicador = $filters->getIndicador();
             $familia = $filters->getFamilia();
             
             if ($subindicador !== null && $subindicador !== '') {
-                // Se tem subindicador, não precisa filtrar por indicador ou familia
-                $produtoFilter .= " AND dp.subindicador_id = :subindicadorId";
+                                $produtoFilter .= " AND dp.subindicador_id = :subindicadorId";
                 $params['subindicadorId'] = $subindicador;
             } elseif ($indicador !== null && $indicador !== '') {
-                // Se tem indicador, não precisa filtrar por familia
-                $produtoFilter .= " AND dp.indicador_id = :indicadorId";
+                                $produtoFilter .= " AND dp.indicador_id = :indicadorId";
                 $params['indicadorId'] = $indicador;
             } elseif ($familia !== null && $familia !== '') {
-                // Aplica apenas familia se não houver filtros mais específicos
-                $produtoFilter .= " AND dp.familia_id = :familiaId";
+                                $produtoFilter .= " AND dp.familia_id = :familiaId";
                 $params['familiaId'] = $familia;
             }
             
-            // Filtro de status (atingido/não atingido)
-            // Usa a mesma lógica do campo 'atingido' calculado na query (linha 365-373)
-            $status = $filters->getStatus();
+                                    $status = $filters->getStatus();
             if ($status !== null && $status !== '' && $status !== '03') {
-                // '01' = Atingido (atingido = 1), '02' = Não Atingido (atingido = 0)
-                if ($status === '01') {
+                                if ($status === '01') {
                     $produtoFilter .= " AND (CASE 
                         WHEN COALESCE(fm.total_meta, 0) > 0 
                         THEN CASE 
@@ -445,8 +396,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
         $connection = $this->getEntityManager()->getConnection();
         $result = $connection->executeQuery($sql, $params);
         
-        // Processa resultados de forma mais eficiente em memória
-        $produtos = [];
+                $produtos = [];
         while ($row = $result->fetchAssociative()) {
             $produtos[] = $row;
         }
@@ -456,8 +406,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
             return [];
         }
 
-        // Extrai IDs de produtos
-        $produtoIds = array_unique(array_filter(array_map(function($produto) {
+                $produtoIds = array_unique(array_filter(array_map(function($produto) {
             return $produto['id'] ?? null;
         }, $produtos)));
 
@@ -465,17 +414,13 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
             return [];
         }
 
-        // Busca dados mensais
-        $realizadosMensais = $this->getRealizadosMensais($produtoIds, $filters);
+                $realizadosMensais = $this->getRealizadosMensais($produtoIds, $filters);
         $metasMensais = $this->getMetasMensais($produtoIds, $filters);
 
-        // Combina dados mensais com produtos
-        return $this->combineProdutosDataMonthly($produtos, $realizadosMensais, $metasMensais);
+                return $this->combineProdutosDataMonthly($produtos, $realizadosMensais, $metasMensais);
     }
 
-    /**
-     * Retorna variáveis ordenadas por data de atualização
-     */
+    
     public function findVariavel(?FilterDTO $filters = null): array
     {
         $fVariavelTable = $this->getTableName(FVariavel::class);
@@ -490,23 +435,19 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
         $whereClause = '';
 
         if ($filters) {
-            // Filtros de estrutura (aplica apenas o mais específico da hierarquia)
-            // Se tiver gerente ou gerente gestão, não aplica filtros de estrutura
-            $gerente = $filters->getGerente();
+                                    $gerente = $filters->getGerente();
             $gerenteGestao = $filters->getGerenteGestao();
             
             if ($gerente === null || $gerente === '') {
                 if ($gerenteGestao === null || $gerenteGestao === '') {
-                    // Só aplica filtros de estrutura se não houver gerente ou gerente gestão
-                    $estruturaFilters = $this->buildEstruturaFilters($filters, $params, 'e');
+                                        $estruturaFilters = $this->buildEstruturaFilters($filters, $params, 'e');
                     if ($estruturaFilters) {
                         $whereClause .= $estruturaFilters;
                     }
                 }
             }
 
-            // Filtros de data (aplica apenas se fornecidos)
-            $dataInicio = $filters->getDataInicio();
+                        $dataInicio = $filters->getDataInicio();
             $dataFim = $filters->getDataFim();
             
             if ($dataInicio !== null && $dataInicio !== '') {
@@ -519,22 +460,16 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
                 $params['dataFim'] = $dataFim;
             }
 
-            // Filtro de gerente (funcional) - aplica apenas se fornecido
-            // Se tiver gerente, não aplica outros filtros de estrutura
-            if ($gerente !== null && $gerente !== '') {
-                // Converte ID para funcional se necessário
-                $gerenteFuncional = $this->getFuncionalFromIdOrFuncional($gerente, Cargo::GERENTE);
+                                    if ($gerente !== null && $gerente !== '') {
+                                $gerenteFuncional = $this->getFuncionalFromIdOrFuncional($gerente, Cargo::GERENTE);
                 if ($gerenteFuncional) {
                     $whereClause .= " AND v.funcional = :gerenteFuncional";
                     $params['gerenteFuncional'] = $gerenteFuncional;
                 }
             } elseif ($gerenteGestao !== null && $gerenteGestao !== '') {
-                // Converte ID para funcional se necessário
-                $gerenteGestaoFuncional = $this->getFuncionalFromIdOrFuncional($gerenteGestao, Cargo::GERENTE_GESTAO);
+                                $gerenteGestaoFuncional = $this->getFuncionalFromIdOrFuncional($gerenteGestao, Cargo::GERENTE_GESTAO);
                 if ($gerenteGestaoFuncional) {
-                    // Filtro de gerente gestão (funcional) - aplica apenas se fornecido
-                    // Se tiver gerente gestão, não aplica outros filtros de estrutura
-                    $whereClause .= " AND v.funcional = :gerenteGestaoFuncional";
+                                                            $whereClause .= " AND v.funcional = :gerenteGestaoFuncional";
                     $params['gerenteGestaoFuncional'] = $gerenteGestaoFuncional;
                 }
             }
@@ -570,23 +505,19 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
         $connection = $this->getEntityManager()->getConnection();
         $result = $connection->executeQuery($sql, $params);
         
-        // Processa resultados de forma mais eficiente em memória
-        $rows = [];
+                $rows = [];
         while ($row = $result->fetchAssociative()) {
             $rows[] = $row;
         }
         $result->free();
 
-        // Formata datas - campos relacionados a produtos/indicadores permanecem null
-        // pois f_variavel não tem relação direta com essas entidades
-        $variaveis = [];
+                        $variaveis = [];
         foreach ($rows as $row) {
             $data = $row['data'] ?? null;
             if ($data instanceof \DateTimeInterface) {
                 $data = $data->format('Y-m-d');
             } elseif (is_string($data)) {
-                // Já está no formato correto
-            } else {
+                            } else {
                 $data = null;
             }
 
@@ -594,16 +525,12 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
                 'data' => $data,
                 'competencia' => $data,
             ]);
-            // Campos id_indicador, ds_indicador, familia_id, familia_nome, familia_codigo,
-            // indicador_codigo, subindicador_codigo permanecem null (não existem em f_variavel)
-        }
+                                }
 
         return $variaveis;
     }
 
-    /**
-     * Retorna todos os registros do calendário
-     */
+    
     public function findCalendario(): array
     {
         $calendarios = $this->getEntityManager()
@@ -641,9 +568,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
         return $result;
     }
 
-    /**
-     * Busca realizados agregados por produto
-     */
+    
     private function getRealizadosAgregados(array $produtoIds, ?FilterDTO $filters): array
     {
         if (empty($produtoIds)) {
@@ -662,8 +587,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
             ->setParameter('produtoIds', $produtoIds)
             ->groupBy('r.produto');
         
-        // Aplica filtros de período se existirem
-        $dataInicio = $filters ? $filters->getDataInicio() : null;
+                $dataInicio = $filters ? $filters->getDataInicio() : null;
         $dataFim = $filters ? $filters->getDataFim() : null;
         
         if ($dataInicio) {
@@ -690,9 +614,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
         return $result;
     }
 
-    /**
-     * Busca metas agregadas por produto
-     */
+    
     private function getMetasAgregadas(array $produtoIds, ?FilterDTO $filters): array
     {
         if (empty($produtoIds)) {
@@ -708,8 +630,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
             ->setParameter('produtoIds', $produtoIds)
             ->groupBy('m.produto');
         
-        // Aplica filtros de período se existirem
-        $dataInicio = $filters ? $filters->getDataInicio() : null;
+                $dataInicio = $filters ? $filters->getDataInicio() : null;
         $dataFim = $filters ? $filters->getDataFim() : null;
         
         if ($dataInicio) {
@@ -733,9 +654,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
         return $result;
     }
 
-    /**
-     * Busca pontos agregados por produto
-     */
+    
     private function getPontosAgregados(array $produtoIds, ?FilterDTO $filters): array
     {
         if (empty($produtoIds)) {
@@ -752,8 +671,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
             ->setParameter('produtoIds', $produtoIds)
             ->groupBy('p.produto');
         
-        // Aplica filtros de período se existirem
-        $dataInicio = $filters ? $filters->getDataInicio() : null;
+                $dataInicio = $filters ? $filters->getDataInicio() : null;
         $dataFim = $filters ? $filters->getDataFim() : null;
         
         if ($dataInicio) {
@@ -780,20 +698,13 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
         return $result;
     }
 
-    /**
-     * Busca variável agregada por produto
-     * Nota: f_variavel não tem relação direta com produtos, então retorna vazio por enquanto
-     */
+    
     private function getVariavelAgregada(array $produtoIds, ?FilterDTO $filters): array
     {
-        // A tabela f_variavel não tem relação direta com produtos/indicadores
-        // Por enquanto retorna vazio, pode ser implementado depois se necessário
-        return [];
+                        return [];
     }
 
-    /**
-     * Combina dados de produtos com dados agregados
-     */
+    
     private function combineProdutosData(
         array $produtos,
         array $realizados,
@@ -815,8 +726,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
             $pontosRealizado = $pontosData['pontos'] ?? 0;
             $pontosMeta = $pontosData['pontos_meta'] ?? ($produto['peso'] ?? 0);
             
-            // Calcula atingimento
-            $ating = $metaTotal > 0 ? ($realizadoTotal / $metaTotal) : 0;
+                        $ating = $metaTotal > 0 ? ($realizadoTotal / $metaTotal) : 0;
             $atingido = $ating >= 1 || ($pontosMeta > 0 && ($pontosRealizado / $pontosMeta) >= 1);
             
             $result[] = [
@@ -844,9 +754,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
         return $result;
     }
 
-    /**
-     * Formata produtos para cards quando não há dados agregados
-     */
+    
     private function formatProdutosForCards(array $produtos): array
     {
         return array_map(function($produto) {
@@ -873,9 +781,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
         }, $produtos);
     }
 
-    /**
-     * Busca realizados mensais por produto e mês
-     */
+    
     private function getRealizadosMensais(array $produtoIds, ?FilterDTO $filters): array
     {
         if (empty($produtoIds)) {
@@ -899,8 +805,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
         
         $params = $produtoIds;
         
-        // Aplica filtros de período se existirem
-        $dataInicio = $filters ? $filters->getDataInicio() : null;
+                $dataInicio = $filters ? $filters->getDataInicio() : null;
         $dataFim = $filters ? $filters->getDataFim() : null;
         
         if ($dataInicio) {
@@ -913,13 +818,11 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
             $params[] = $dataFim;
         }
         
-        // Aplica filtros de estrutura
-        if ($filters) {
+                if ($filters) {
             $estruturaParams = [];
             $estruturaFilters = $this->buildEstruturaFilters($filters, $estruturaParams, 'e');
             if ($estruturaFilters) {
-                // Converte parâmetros nomeados para posicionais
-                $estruturaSql = $estruturaFilters;
+                                $estruturaSql = $estruturaFilters;
                 foreach ($estruturaParams as $key => $value) {
                     $estruturaSql = str_replace(":{$key}", '?', $estruturaSql);
                     $params[] = $value;
@@ -933,8 +836,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
         $connection = $this->getEntityManager()->getConnection();
         $result = $connection->executeQuery($sql, $params);
         
-        // Processa resultados de forma mais eficiente em memória
-        $rows = [];
+                $rows = [];
         while ($row = $result->fetchAssociative()) {
             $rows[] = $row;
         }
@@ -950,8 +852,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
             }
             $result[$produtoId][$mes] = (float)($row['realizado_total'] ?? 0);
             
-            // Armazena a última atualização mais recente por produto
-            if ($row['ultima_atualizacao']) {
+                        if ($row['ultima_atualizacao']) {
                 if (!isset($ultimaAtualizacaoMap[$produtoId]) || 
                     $row['ultima_atualizacao'] > $ultimaAtualizacaoMap[$produtoId]) {
                     $ultimaAtualizacaoMap[$produtoId] = $row['ultima_atualizacao'];
@@ -959,8 +860,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
             }
         }
         
-        // Adiciona última atualização ao resultado
-        foreach ($ultimaAtualizacaoMap as $produtoId => $ultimaAtualizacao) {
+                foreach ($ultimaAtualizacaoMap as $produtoId => $ultimaAtualizacao) {
             if (!isset($result[$produtoId]['_ultima_atualizacao'])) {
                 $result[$produtoId]['_ultima_atualizacao'] = $ultimaAtualizacao;
             }
@@ -969,9 +869,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
         return $result;
     }
 
-    /**
-     * Busca metas mensais por produto e mês
-     */
+    
     private function getMetasMensais(array $produtoIds, ?FilterDTO $filters): array
     {
         if (empty($produtoIds)) {
@@ -993,8 +891,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
         
         $params = $produtoIds;
         
-        // Aplica filtros de período se existirem
-        $dataInicio = $filters ? $filters->getDataInicio() : null;
+                $dataInicio = $filters ? $filters->getDataInicio() : null;
         $dataFim = $filters ? $filters->getDataFim() : null;
         
         if ($dataInicio) {
@@ -1007,13 +904,11 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
             $params[] = $dataFim;
         }
         
-        // Aplica filtros de estrutura
-        if ($filters) {
+                if ($filters) {
             $estruturaParams = [];
             $estruturaFilters = $this->buildEstruturaFilters($filters, $estruturaParams, 'e');
             if ($estruturaFilters) {
-                // Converte parâmetros nomeados para posicionais
-                $estruturaSql = $estruturaFilters;
+                                $estruturaSql = $estruturaFilters;
                 foreach ($estruturaParams as $key => $value) {
                     $estruturaSql = str_replace(":{$key}", '?', $estruturaSql);
                     $params[] = $value;
@@ -1027,8 +922,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
         $connection = $this->getEntityManager()->getConnection();
         $result = $connection->executeQuery($sql, $params);
         
-        // Processa resultados de forma mais eficiente em memória
-        $rows = [];
+                $rows = [];
         while ($row = $result->fetchAssociative()) {
             $rows[] = $row;
         }
@@ -1047,9 +941,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
         return $result;
     }
 
-    /**
-     * Combina dados de produtos com dados mensais
-     */
+    
     private function combineProdutosDataMonthly(
         array $produtos,
         array $realizadosMensais,
@@ -1063,17 +955,14 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
             $realizadosMes = $realizadosMensais[$produtoId] ?? [];
             $metasMes = $metasMensais[$produtoId] ?? [];
             
-            // Remove a chave especial de última atualização
-            $ultimaAtualizacao = $realizadosMes['_ultima_atualizacao'] ?? null;
+                        $ultimaAtualizacao = $realizadosMes['_ultima_atualizacao'] ?? null;
             unset($realizadosMes['_ultima_atualizacao']);
             
-            // Calcula totais
-            $realizadoTotal = array_sum($realizadosMes);
+                        $realizadoTotal = array_sum($realizadosMes);
             $metaTotal = array_sum($metasMes);
             $ating = $metaTotal > 0 ? ($realizadoTotal / $metaTotal) : 0;
             
-            // Prepara dados mensais
-            $meses = array_unique(array_merge(array_keys($realizadosMes), array_keys($metasMes)));
+                        $meses = array_unique(array_merge(array_keys($realizadosMes), array_keys($metasMes)));
             $dadosMensais = [];
             
             foreach ($meses as $mes) {
@@ -1085,31 +974,26 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
                     'mes' => $mes,
                     'meta' => $meta,
                     'realizado' => $realizado,
-                    'atingimento' => $atingMes * 100 // Em percentual
-                ];
+                    'atingimento' => $atingMes * 100                 ];
             }
             
-            // Converte peso corretamente (pode vir como string do banco)
-            $peso = $produto['peso'] ?? null;
+                        $peso = $produto['peso'] ?? null;
             if ($peso === null || $peso === '') {
                 $peso = 0;
             } else {
                 $peso = (float)$peso;
             }
             
-            // Converte pontos corretamente (pode vir como string do banco)
-            $pontos = $produto['pontos'] ?? null;
+                        $pontos = $produto['pontos'] ?? null;
             if ($pontos === null || $pontos === '') {
                 $pontos = 0;
             } else {
                 $pontos = (float)$pontos;
             }
             
-            // Converte pontos_meta corretamente (pode vir como string do banco)
-            $pontosMeta = $produto['pontos_meta'] ?? null;
+                        $pontosMeta = $produto['pontos_meta'] ?? null;
             if ($pontosMeta === null || $pontosMeta === '') {
-                $pontosMeta = $peso; // Se não houver pontos_meta, usa o peso
-            } else {
+                $pontosMeta = $peso;             } else {
                 $pontosMeta = (float)$pontosMeta;
             }
             
@@ -1137,9 +1021,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
         return $result;
     }
 
-    /**
-     * Obtém o nome da tabela de uma entidade usando os metadados do Doctrine
-     */
+    
     private function getTableName(string $entityClass): string
     {
         return $this->getEntityManager()
@@ -1147,13 +1029,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
             ->getTableName();
     }
 
-    /**
-     * Constrói filtros de estrutura para as queries
-     * Retorna a string SQL com os filtros e adiciona os parâmetros ao array $params
-     * Aplica apenas o filtro mais específico da hierarquia (gerente > gerenteGestao > agencia > regional > diretoria > segmento)
-     * @param string $prefix Prefixo do alias da tabela d_estrutura (ex: 'e1', 'e2', 'e3')
-     * @param string $suffix Sufixo único para os parâmetros (ex: 'meta', 'realizados', 'pontos')
-     */
+    
     private function buildEstruturaFilters(?FilterDTO $filters, array &$params, string $prefix = 'e', string $suffix = ''): string
     {
         if (!$filters) {
@@ -1169,35 +1045,24 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
         $diretoria = $filters->getDiretoria();
         $segmento = $filters->getSegmento();
 
-        // Aplica apenas o filtro mais específico da hierarquia
-        // Hierarquia: gerente > gerenteGestao > agencia > regional > diretoria > segmento
-        if ($gerente !== null && $gerente !== '') {
-            // Se tem gerente, filtra apenas por funcional (gerente)
-            // Nota: Este filtro será aplicado na query principal através do funcional
-            // Não aplicamos aqui porque precisa ser no nível da tabela f_* (funcional)
-            return '';
+                        if ($gerente !== null && $gerente !== '') {
+                                                return '';
         } elseif ($gerenteGestao !== null && $gerenteGestao !== '') {
-            // Se tem gerente gestão, filtra apenas por funcional (gerente gestão)
-            // Nota: Este filtro será aplicado na query principal através do funcional
-            return '';
+                                    return '';
         } elseif ($agencia !== null && $agencia !== '') {
-            // Se tem agencia, não precisa filtrar por regional, diretoria ou segmento
-            $key = "agenciaId" . ($suffix ? "_{$suffix}" : '');
+                        $key = "agenciaId" . ($suffix ? "_{$suffix}" : '');
             $filtersSql .= " AND {$prefix}.agencia_id = :{$key}";
             $params[$key] = $agencia;
         } elseif ($regional !== null && $regional !== '') {
-            // Se tem regional, não precisa filtrar por diretoria ou segmento
-            $key = "regionalId" . ($suffix ? "_{$suffix}" : '');
+                        $key = "regionalId" . ($suffix ? "_{$suffix}" : '');
             $filtersSql .= " AND {$prefix}.regional_id = :{$key}";
             $params[$key] = $regional;
         } elseif ($diretoria !== null && $diretoria !== '') {
-            // Se tem diretoria, não precisa filtrar por segmento
-            $key = "diretoriaId" . ($suffix ? "_{$suffix}" : '');
+                        $key = "diretoriaId" . ($suffix ? "_{$suffix}" : '');
             $filtersSql .= " AND {$prefix}.diretoria_id = :{$key}";
             $params[$key] = $diretoria;
         } elseif ($segmento !== null && $segmento !== '') {
-            // Aplica apenas segmento se não houver filtros mais específicos
-            $key = "segmentoId" . ($suffix ? "_{$suffix}" : '');
+                        $key = "segmentoId" . ($suffix ? "_{$suffix}" : '');
             $filtersSql .= " AND {$prefix}.segmento_id = :{$key}";
             $params[$key] = $segmento;
         }
@@ -1205,11 +1070,7 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
         return $filtersSql;
     }
 
-    /**
-     * Verifica se é necessário fazer join com d_estrutura baseado nos filtros
-     * Retorna true apenas se houver filtros de estrutura (agencia, regional, diretoria, segmento)
-     * e não houver filtros de gerente/gerenteGestao (que já filtram por funcional diretamente)
-     */
+    
     private function needsEstruturaJoin(?FilterDTO $filters): bool
     {
         if (!$filters) {
@@ -1219,40 +1080,28 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
         $gerente = $filters->getGerente();
         $gerenteGestao = $filters->getGerenteGestao();
         
-        // Se tem gerente ou gerente gestão, não precisa de join com estrutura
-        if (($gerente !== null && $gerente !== '') || ($gerenteGestao !== null && $gerenteGestao !== '')) {
+                if (($gerente !== null && $gerente !== '') || ($gerenteGestao !== null && $gerenteGestao !== '')) {
             return false;
         }
 
-        // Precisa de join apenas se houver filtros de estrutura
-        return ($filters->getAgencia() !== null && $filters->getAgencia() !== '') ||
+                return ($filters->getAgencia() !== null && $filters->getAgencia() !== '') ||
                ($filters->getRegional() !== null && $filters->getRegional() !== '') ||
                ($filters->getDiretoria() !== null && $filters->getDiretoria() !== '') ||
                ($filters->getSegmento() !== null && $filters->getSegmento() !== '');
     }
 
-    /**
-     * Converte ID para funcional se necessário
-     * Se o valor for numérico (ID), busca o funcional na tabela d_estrutura
-     * Se o valor for string (funcional), retorna o próprio valor
-     * 
-     * @param mixed $idOrFuncional ID ou funcional
-     * @param int $cargoId ID do cargo (GERENTE ou GERENTE_GESTAO)
-     * @return string|null Funcional encontrado ou null se não encontrar
-     */
+    
     private function getFuncionalFromIdOrFuncional($idOrFuncional, int $cargoId): ?string
     {
         if ($idOrFuncional === null || $idOrFuncional === '') {
             return null;
         }
 
-        // Se não for numérico, assume que já é um funcional
-        if (!is_numeric($idOrFuncional)) {
+                if (!is_numeric($idOrFuncional)) {
             return (string)$idOrFuncional;
         }
 
-        // Se for numérico, busca o funcional na tabela d_estrutura
-        $dEstruturaTable = $this->getTableName(DEstrutura::class);
+                $dEstruturaTable = $this->getTableName(DEstrutura::class);
         $conn = $this->getEntityManager()->getConnection();
         
         $sql = "SELECT funcional FROM {$dEstruturaTable} 

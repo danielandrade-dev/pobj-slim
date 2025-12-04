@@ -6,9 +6,7 @@ use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
 use Symfony\Component\Security\Core\User\UserInterface;
 use Symfony\Component\Security\Core\User\UserProviderInterface;
 
-/**
- * User Provider simples para API Key
- */
+
 class ApiKeyUserProvider implements UserProviderInterface
 {
     public function loadUserByUsername($username)

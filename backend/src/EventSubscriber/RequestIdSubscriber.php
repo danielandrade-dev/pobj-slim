@@ -6,9 +6,7 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
-/**
- * Adiciona um Request ID único a cada requisição para rastreamento
- */
+
 class RequestIdSubscriber implements EventSubscriberInterface
 {
     public static function getSubscribedEvents(): array
@@ -22,14 +20,12 @@ class RequestIdSubscriber implements EventSubscriberInterface
     {
         $request = $event->getRequest();
         
-        // Gera um Request ID único se não existir
-        if (!$request->headers->has('X-Request-ID')) {
+                if (!$request->headers->has('X-Request-ID')) {
             $requestId = $this->generateRequestId();
             $request->headers->set('X-Request-ID', $requestId);
         }
         
-        // Armazena no $_SERVER para uso global
-        $_SERVER['REQUEST_ID'] = $request->headers->get('X-Request-ID');
+                $_SERVER['REQUEST_ID'] = $request->headers->get('X-Request-ID');
     }
 
     private function generateRequestId(): string

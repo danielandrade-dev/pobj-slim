@@ -21,9 +21,7 @@ class FHistoricoRankingPobjRepository extends ServiceEntityRepository
         parent::__construct($registry, FPontos::class);
     }
 
-    /**
-     * Retorna o nome da tabela de uma entidade
-     */
+    
     private function getTableName(string $entityClass): string
     {
         return $this->getEntityManager()
@@ -31,9 +29,7 @@ class FHistoricoRankingPobjRepository extends ServiceEntityRepository
             ->getTableName();
     }
 
-    /**
-     * Lista todo o histórico ordenado por ranking (agora usando f_pontos)
-     */
+    
     public function findAllOrderedByRanking(): array
     {
         $fPontosTable = $this->getTableName(FPontos::class);
@@ -50,20 +46,15 @@ class FHistoricoRankingPobjRepository extends ServiceEntityRepository
         return $result->fetchAllAssociative();
     }
 
-    /**
-     * Busca dados de ranking com filtros e informações de estrutura
-     * Agora usa f_pontos ao invés de f_historico_ranking_pobj
-     */
+    
     public function findRankingWithFilters(?FilterDTO $filters = null): array
     {
-        // Primeiro, verifica se há dados na tabela
-        $fPontosTable = $this->getTableName(FPontos::class);
+                $fPontosTable = $this->getTableName(FPontos::class);
         $conn = $this->getEntityManager()->getConnection();
         $countResult = $conn->executeQuery("SELECT COUNT(*) as total FROM {$fPontosTable}");
         $count = $countResult->fetchOne();
         
-        // Se não houver dados, retorna vazio
-        if ($count == 0) {
+                if ($count == 0) {
             return [];
         }
         
@@ -75,19 +66,14 @@ class FHistoricoRankingPobjRepository extends ServiceEntityRepository
         $regionalTable = $this->getTableName(Regional::class);
         $agenciaTable = $this->getTableName(Agencia::class);
 
-        // Adiciona parâmetros de cargo primeiro
-        $params = [
+                $params = [
             'cargoGerente' => Cargo::GERENTE,
             'cargoGerenteGestao' => Cargo::GERENTE_GESTAO
         ];
         $whereClause = '';
 
         if ($filters) {
-            // Apenas filtros de data são aplicados na query
-            // Os filtros de estrutura (segmento, diretoria, regional, agencia, gerenteGestao, gerente)
-            // não são aplicados aqui para que todos os participantes do ranking sejam retornados.
-            // O mascaramento de nomes é feito no UseCase baseado nos filtros.
-            
+                                                            
             $dataInicio = $filters->getDataInicio();
             $dataFim = $filters->getDataFim();
 
@@ -102,8 +88,7 @@ class FHistoricoRankingPobjRepository extends ServiceEntityRepository
             }
         }
 
-        // Primeiro, cria uma subquery com os dados agregados
-        $subquery = "SELECT
+                $subquery = "SELECT
                     MAX(p.data_realizado) AS data,
                     DATE_FORMAT(MAX(p.data_realizado), '%Y-%m') AS competencia,
                     CAST(seg.id AS CHAR) AS segmento_id,
@@ -173,9 +158,7 @@ class FHistoricoRankingPobjRepository extends ServiceEntityRepository
                 WHERE 1=1 {$whereClause}
                 GROUP BY est.funcional, seg.id, dir.id, reg.id, ag.id, est.cargo_id, ggestao.funcional, ggestao.nome, ggestao.id, est.id";
 
-        // Query principal com ranking calculado baseado no realizado_mensal
-        // Usa variáveis MySQL para calcular o ranking considerando empates
-        $sql = "SELECT 
+                        $sql = "SELECT 
                     ranked.*,
                     @rank := CASE 
                         WHEN @prev_realizado = ranked.realizado_mensal THEN @rank
@@ -191,8 +174,7 @@ class FHistoricoRankingPobjRepository extends ServiceEntityRepository
         $conn = $this->getEntityManager()->getConnection();
         $result = $conn->executeQuery($sql, $params);
         
-        // Processa resultados de forma mais eficiente em memória
-        $formatted = [];
+                $formatted = [];
         while ($row = $result->fetchAssociative()) {
             $formatted[] = [
                 'data' => $row['data'] ? (new \DateTime($row['data']))->format('Y-m-d') : null,
@@ -210,8 +192,7 @@ class FHistoricoRankingPobjRepository extends ServiceEntityRepository
                 'gerente_gestao_nome' => $row['gerente_gestao_nome'] ?? null,
                 'gerente_id' => $row['gerente_id'] ?? null,
                 'gerente_nome' => $row['gerente_nome'] ?? null,
-                'rank' => $row['ranking_mensal'] !== null ? (int)$row['ranking_mensal'] : null, // Ranking baseado no realizado_mensal
-                'realizado_mensal' => $row['realizado_mensal'] !== null ? (float)$row['realizado_mensal'] : null,
+                'rank' => $row['ranking_mensal'] !== null ? (int)$row['ranking_mensal'] : null,                 'realizado_mensal' => $row['realizado_mensal'] !== null ? (float)$row['realizado_mensal'] : null,
                 'meta_mensal' => $row['meta_mensal'] !== null ? (float)$row['meta_mensal'] : null,
                 'pontos' => $row['pontos'] !== null ? (float)$row['pontos'] : null,
             ];
@@ -221,28 +202,18 @@ class FHistoricoRankingPobjRepository extends ServiceEntityRepository
         return $formatted;
     }
 
-    /**
-     * Converte ID para funcional se necessário
-     * Se o valor for numérico (ID), busca o funcional na tabela d_estrutura
-     * Se o valor for string (funcional), retorna o próprio valor
-     * 
-     * @param mixed $idOrFuncional ID ou funcional
-     * @param int $cargoId ID do cargo (GERENTE ou GERENTE_GESTAO)
-     * @return string|null Funcional encontrado ou null se não encontrar
-     */
+    
     private function getFuncionalFromIdOrFuncional($idOrFuncional, int $cargoId): ?string
     {
         if ($idOrFuncional === null || $idOrFuncional === '') {
             return null;
         }
 
-        // Se não for numérico, assume que já é um funcional
-        if (!is_numeric($idOrFuncional)) {
+                if (!is_numeric($idOrFuncional)) {
             return (string)$idOrFuncional;
         }
 
-        // Se for numérico, busca o funcional na tabela d_estrutura
-        $dEstruturaTable = $this->getTableName(DEstrutura::class);
+                $dEstruturaTable = $this->getTableName(DEstrutura::class);
         $conn = $this->getEntityManager()->getConnection();
         
         $sql = "SELECT funcional FROM {$dEstruturaTable} 

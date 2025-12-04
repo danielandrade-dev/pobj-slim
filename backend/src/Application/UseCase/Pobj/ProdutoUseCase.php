@@ -16,21 +16,16 @@ class ProdutoUseCase
         $this->repository = $repository;
     }
 
-    /**
-     * Retorna produtos com dados agregados (realizados, metas, pontos, variável)
-     * para renderização dos cards
-     */
+    
     public function handle(FilterDTO $filters = null): array
     {
-        // Busca produtos base
-        $produtos = $this->repository->findAllOrdered();
+                $produtos = $this->repository->findAllOrdered();
         
         if (empty($produtos)) {
             return [];
         }
 
-        // Extrai IDs de produtos (d_produtos.id)
-        $produtoIds = array_unique(array_filter(array_map(function($produto) {
+                $produtoIds = array_unique(array_filter(array_map(function($produto) {
             return $produto['id'] ?? null;
         }, $produtos)));
 
@@ -38,19 +33,15 @@ class ProdutoUseCase
             return $this->formatProdutosForCards($produtos);
         }
 
-        // Busca dados agregados usando produto_id
-        $realizados = $this->getRealizadosAgregados($produtoIds, $filters);
+                $realizados = $this->getRealizadosAgregados($produtoIds, $filters);
         $metas = $this->getMetasAgregadas($produtoIds, $filters);
         $pontos = $this->getPontosAgregados($produtoIds, $filters);
         $variavel = $this->getVariavelAgregada($produtoIds, $filters);
 
-        // Combina dados
-        return $this->combineProdutosData($produtos, $realizados, $metas, $pontos, $variavel);
+                return $this->combineProdutosData($produtos, $realizados, $metas, $pontos, $variavel);
     }
 
-    /**
-     * Busca realizados agregados por produto
-     */
+    
     private function getRealizadosAgregados(array $produtoIds, ?FilterDTO $filters): array
     {
         if (empty($produtoIds)) {
@@ -68,8 +59,7 @@ class ProdutoUseCase
         
         $params = $produtoIds;
         
-        // Aplica filtros de período se existirem
-        $dataInicio = $filters ? $filters->getDataInicio() : null;
+                $dataInicio = $filters ? $filters->getDataInicio() : null;
         $dataFim = $filters ? $filters->getDataFim() : null;
         
         if ($dataInicio) {
@@ -99,9 +89,7 @@ class ProdutoUseCase
         return $result;
     }
 
-    /**
-     * Busca metas agregadas por produto
-     */
+    
     private function getMetasAgregadas(array $produtoIds, ?FilterDTO $filters): array
     {
         if (empty($produtoIds)) {
@@ -117,8 +105,7 @@ class ProdutoUseCase
         
         $params = $produtoIds;
         
-        // Aplica filtros de período se existirem
-        $dataInicio = $filters ? $filters->getDataInicio() : null;
+                $dataInicio = $filters ? $filters->getDataInicio() : null;
         $dataFim = $filters ? $filters->getDataFim() : null;
         
         if ($dataInicio) {
@@ -145,9 +132,7 @@ class ProdutoUseCase
         return $result;
     }
 
-    /**
-     * Busca pontos agregados por produto
-     */
+    
     private function getPontosAgregados(array $produtoIds, ?FilterDTO $filters): array
     {
         if (empty($produtoIds)) {
@@ -164,8 +149,7 @@ class ProdutoUseCase
         
         $params = $produtoIds;
         
-        // Aplica filtros de período se existirem
-        $dataInicio = $filters ? $filters->getDataInicio() : null;
+                $dataInicio = $filters ? $filters->getDataInicio() : null;
         $dataFim = $filters ? $filters->getDataFim() : null;
         
         if ($dataInicio) {
@@ -195,20 +179,13 @@ class ProdutoUseCase
         return $result;
     }
 
-    /**
-     * Busca variável agregada por produto
-     * Nota: f_variavel não tem relação direta com produtos, então retorna vazio por enquanto
-     */
+    
     private function getVariavelAgregada(array $produtoIds, ?FilterDTO $filters): array
     {
-        // A tabela f_variavel não tem relação direta com produtos/indicadores
-        // Por enquanto retorna vazio, pode ser implementado depois se necessário
-        return [];
+                        return [];
     }
 
-    /**
-     * Combina dados de produtos com dados agregados
-     */
+    
     private function combineProdutosData(
         array $produtos,
         array $realizados,
@@ -230,8 +207,7 @@ class ProdutoUseCase
             $pontosRealizado = $pontosData['pontos'] ?? 0;
             $pontosMeta = $pontosData['pontos_meta'] ?? ($produto['peso'] ?? 0);
             
-            // Calcula atingimento
-            $ating = $metaTotal > 0 ? ($realizadoTotal / $metaTotal) : 0;
+                        $ating = $metaTotal > 0 ? ($realizadoTotal / $metaTotal) : 0;
             $atingido = $ating >= 1 || ($pontosMeta > 0 && ($pontosRealizado / $pontosMeta) >= 1);
             
             $result[] = [
@@ -259,9 +235,7 @@ class ProdutoUseCase
         return $result;
     }
 
-    /**
-     * Formata produtos para cards quando não há dados agregados
-     */
+    
     private function formatProdutosForCards(array $produtos): array
     {
         return array_map(function($produto) {
@@ -288,21 +262,16 @@ class ProdutoUseCase
         }, $produtos);
     }
 
-    /**
-     * Retorna produtos com dados mensais para renderização do resumo-legacy
-     * Retorna dados agrupados por mês (competencia/data_realizado)
-     */
+    
     public function handleMonthly(FilterDTO $filters = null): array
     {
-        // Busca produtos base
-        $produtos = $this->repository->fetch($filters);
+                $produtos = $this->repository->fetch($filters);
         
         if (empty($produtos)) {
             return [];
         }
 
-        // Extrai IDs de produtos
-        $produtoIds = array_unique(array_filter(array_map(function($produto) {
+                $produtoIds = array_unique(array_filter(array_map(function($produto) {
             return $produto['id'] ?? null;
         }, $produtos)));
 
@@ -310,17 +279,13 @@ class ProdutoUseCase
             return [];
         }
 
-        // Busca dados mensais
-        $realizadosMensais = $this->getRealizadosMensais($produtoIds, $filters);
+                $realizadosMensais = $this->getRealizadosMensais($produtoIds, $filters);
         $metasMensais = $this->getMetasMensais($produtoIds, $filters);
 
-        // Combina dados mensais com produtos
-        return $this->combineProdutosDataMonthly($produtos, $realizadosMensais, $metasMensais);
+                return $this->combineProdutosDataMonthly($produtos, $realizadosMensais, $metasMensais);
     }
 
-    /**
-     * Busca realizados mensais por produto e mês
-     */
+    
     private function getRealizadosMensais(array $produtoIds, ?FilterDTO $filters): array
     {
         if (empty($produtoIds)) {
@@ -339,8 +304,7 @@ class ProdutoUseCase
         
         $params = $produtoIds;
         
-        // Aplica filtros de período se existirem
-        $dataInicio = $filters ? $filters->getDataInicio() : null;
+                $dataInicio = $filters ? $filters->getDataInicio() : null;
         $dataFim = $filters ? $filters->getDataFim() : null;
         
         if ($dataInicio) {
@@ -368,8 +332,7 @@ class ProdutoUseCase
             }
             $result[$produtoId][$mes] = (float)($row['realizado_total'] ?? 0);
             
-            // Armazena a última atualização mais recente por produto
-            if ($row['ultima_atualizacao']) {
+                        if ($row['ultima_atualizacao']) {
                 if (!isset($ultimaAtualizacaoMap[$produtoId]) || 
                     $row['ultima_atualizacao'] > $ultimaAtualizacaoMap[$produtoId]) {
                     $ultimaAtualizacaoMap[$produtoId] = $row['ultima_atualizacao'];
@@ -377,8 +340,7 @@ class ProdutoUseCase
             }
         }
         
-        // Adiciona última atualização ao resultado
-        foreach ($ultimaAtualizacaoMap as $produtoId => $ultimaAtualizacao) {
+                foreach ($ultimaAtualizacaoMap as $produtoId => $ultimaAtualizacao) {
             if (!isset($result[$produtoId]['_ultima_atualizacao'])) {
                 $result[$produtoId]['_ultima_atualizacao'] = $ultimaAtualizacao;
             }
@@ -387,9 +349,7 @@ class ProdutoUseCase
         return $result;
     }
 
-    /**
-     * Busca metas mensais por produto e mês
-     */
+    
     private function getMetasMensais(array $produtoIds, ?FilterDTO $filters): array
     {
         if (empty($produtoIds)) {
@@ -406,8 +366,7 @@ class ProdutoUseCase
         
         $params = $produtoIds;
         
-        // Aplica filtros de período se existirem
-        $dataInicio = $filters ? $filters->getDataInicio() : null;
+                $dataInicio = $filters ? $filters->getDataInicio() : null;
         $dataFim = $filters ? $filters->getDataFim() : null;
         
         if ($dataInicio) {
@@ -438,9 +397,7 @@ class ProdutoUseCase
         return $result;
     }
 
-    /**
-     * Combina dados de produtos com dados mensais
-     */
+    
     private function combineProdutosDataMonthly(
         array $produtos,
         array $realizadosMensais,
@@ -454,17 +411,14 @@ class ProdutoUseCase
             $realizadosMes = $realizadosMensais[$produtoId] ?? [];
             $metasMes = $metasMensais[$produtoId] ?? [];
             
-            // Remove a chave especial de última atualização
-            $ultimaAtualizacao = $realizadosMes['_ultima_atualizacao'] ?? null;
+                        $ultimaAtualizacao = $realizadosMes['_ultima_atualizacao'] ?? null;
             unset($realizadosMes['_ultima_atualizacao']);
             
-            // Calcula totais
-            $realizadoTotal = array_sum($realizadosMes);
+                        $realizadoTotal = array_sum($realizadosMes);
             $metaTotal = array_sum($metasMes);
             $ating = $metaTotal > 0 ? ($realizadoTotal / $metaTotal) : 0;
             
-            // Prepara dados mensais
-            $meses = array_unique(array_merge(array_keys($realizadosMes), array_keys($metasMes)));
+                        $meses = array_unique(array_merge(array_keys($realizadosMes), array_keys($metasMes)));
             $dadosMensais = [];
             
             foreach ($meses as $mes) {
@@ -476,8 +430,7 @@ class ProdutoUseCase
                     'mes' => $mes,
                     'meta' => $meta,
                     'realizado' => $realizado,
-                    'atingimento' => $atingMes * 100 // Em percentual
-                ];
+                    'atingimento' => $atingMes * 100                 ];
             }
             
             $result[] = [

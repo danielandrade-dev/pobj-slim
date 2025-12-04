@@ -4,10 +4,7 @@ namespace App\Exception;
 
 use Symfony\Component\HttpFoundation\Response;
 
-/**
- * Exceção base da aplicação
- * Todas as exceções customizadas devem estender esta classe
- */
+
 abstract class AppException extends \RuntimeException
 {
     protected $statusCode;

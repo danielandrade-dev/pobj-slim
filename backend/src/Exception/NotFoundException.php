@@ -4,9 +4,7 @@ namespace App\Exception;
 
 use Symfony\Component\HttpFoundation\Response;
 
-/**
- * Exceção para recursos não encontrados
- */
+
 class NotFoundException extends AppException
 {
     public function __construct(

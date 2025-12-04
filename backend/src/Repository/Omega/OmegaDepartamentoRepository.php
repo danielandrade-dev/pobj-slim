@@ -13,9 +13,7 @@ class OmegaDepartamentoRepository extends ServiceEntityRepository
         parent::__construct($registry, OmegaDepartamento::class);
     }
 
-    /**
-     * Busca departamento por nome
-     */
+    
     public function findByNome(string $nome): ?OmegaDepartamento
     {
         return $this->createQueryBuilder('d')
@@ -25,9 +23,7 @@ class OmegaDepartamentoRepository extends ServiceEntityRepository
                     ->getOneOrNullResult();
     }
 
-    /**
-     * Busca departamento por nome_id
-     */
+    
     public function findByNomeId(string $nomeId): ?OmegaDepartamento
     {
         return $this->createQueryBuilder('d')
@@ -37,9 +33,7 @@ class OmegaDepartamentoRepository extends ServiceEntityRepository
                     ->getOneOrNullResult();
     }
 
-    /**
-     * Lista todos os departamentos ordenados
-     */
+    
     public function findAllOrderedByNome(): array
     {
         return $this->createQueryBuilder('d')

@@ -5,9 +5,7 @@ namespace App\Infrastructure\Database;
 use PDO;
 use PDOException;
 
-/**
- * Classe para gerenciar conexão com banco de dados usando PDO
- */
+
 class Connection
 {
     private static $instance = null;
@@ -48,12 +46,7 @@ class Connection
         return $this->pdo;
     }
 
-    /**
-     * Executa uma query SELECT e retorna os resultados
-     * @param string $sql
-     * @param array $params
-     * @return array
-     */
+    
     public function select(string $sql, array $params = []): array
     {
         $stmt = $this->pdo->prepare($sql);
@@ -61,12 +54,7 @@ class Connection
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    /**
-     * Executa uma query e retorna o número de linhas afetadas
-     * @param string $sql
-     * @param array $params
-     * @return int
-     */
+    
     public function execute(string $sql, array $params = []): int
     {
         $stmt = $this->pdo->prepare($sql);

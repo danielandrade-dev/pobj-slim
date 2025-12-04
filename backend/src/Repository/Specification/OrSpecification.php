@@ -4,9 +4,7 @@ namespace App\Repository\Specification;
 
 use Doctrine\ORM\QueryBuilder;
 
-/**
- * Specification que combina duas specifications com OR
- */
+
 class OrSpecification extends CompositeSpecification
 {
     private $left;

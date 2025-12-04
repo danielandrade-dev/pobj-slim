@@ -13,9 +13,7 @@ class FamiliaRepository extends ServiceEntityRepository
         parent::__construct($registry, Familia::class);
     }
 
-    /**
-     * Busca família por nome
-     */
+    
     public function findByNome(string $nome): ?Familia
     {
         return $this->createQueryBuilder('f')
@@ -25,9 +23,7 @@ class FamiliaRepository extends ServiceEntityRepository
                     ->getOneOrNullResult();
     }
 
-    /**
-     * Lista todas as famílias ordenadas por nome
-     */
+    
     public function findAllOrderedByNome(): array
     {
         return $this->createQueryBuilder('f')

@@ -13,9 +13,7 @@ class FRealizadosRepository extends ServiceEntityRepository
         parent::__construct($registry, FRealizados::class);
     }
 
-    /**
-     * Lista todos os realizados ordenados por data
-     */
+    
     public function findAllOrderedByData(): array
     {
         return $this->createQueryBuilder('r')

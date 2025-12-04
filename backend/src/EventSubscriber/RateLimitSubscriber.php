@@ -10,10 +10,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\KernelEvents;
 
-/**
- * Rate Limiting Subscriber
- * Implementa rate limiting simples baseado em IP e endpoint
- */
+
 class RateLimitSubscriber implements EventSubscriberInterface
 {
     private $logger;
@@ -24,10 +21,7 @@ class RateLimitSubscriber implements EventSubscriberInterface
     {
         $this->logger = $logger;
         $this->rateLimits = array_merge([
-            'default' => ['limit' => 100, 'window' => 60], // 100 requests por minuto
-            'auth' => ['limit' => 5, 'window' => 60], // 5 tentativas de auth por minuto
-            'api' => ['limit' => 1000, 'window' => 3600], // 1000 requests por hora
-        ], $rateLimits);
+            'default' => ['limit' => 100, 'window' => 60],             'auth' => ['limit' => 5, 'window' => 60],             'api' => ['limit' => 1000, 'window' => 3600],         ], $rateLimits);
     }
 
     public static function getSubscribedEvents(): array
@@ -41,21 +35,17 @@ class RateLimitSubscriber implements EventSubscriberInterface
     {
         $request = $event->getRequest();
 
-        // Ignora requisições OPTIONS (CORS preflight)
-        if ($request->getMethod() === 'OPTIONS') {
+                if ($request->getMethod() === 'OPTIONS') {
             return;
         }
 
-        // Determina o tipo de rate limit baseado na rota
-        $rateLimitType = $this->getRateLimitType($request);
+                $rateLimitType = $this->getRateLimitType($request);
         $config = $this->rateLimits[$rateLimitType] ?? $this->rateLimits['default'];
 
-        // Identifica o cliente
-        $clientId = $this->getClientIdentifier($request);
+                $clientId = $this->getClientIdentifier($request);
         $key = $rateLimitType . ':' . $clientId;
 
-        // Verifica rate limit
-        if (!$this->checkRateLimit($key, $config['limit'], $config['window'])) {
+                if (!$this->checkRateLimit($key, $config['limit'], $config['window'])) {
             $this->logger->warning('Rate limit excedido', [
                 'client_id' => $clientId,
                 'rate_limit_type' => $rateLimitType,
@@ -84,8 +74,7 @@ class RateLimitSubscriber implements EventSubscriberInterface
 
             $event->setResponse($response);
         } else {
-            // Adiciona headers de rate limit
-            $response = $event->getResponse();
+                        $response = $event->getResponse();
             if ($response) {
                 $response->headers->set('X-RateLimit-Limit', $config['limit']);
                 $response->headers->set('X-RateLimit-Remaining', $this->getRemaining($key, $config['limit']));
@@ -110,14 +99,12 @@ class RateLimitSubscriber implements EventSubscriberInterface
 
     private function getClientIdentifier(Request $request): string
     {
-        // Rate limiting baseado apenas no IP
-        $ip = $request->getClientIp();
+                $ip = $request->getClientIp();
         if ($ip) {
             return 'ip:' . $ip;
         }
 
-        // Fallback para session ID (caso não tenha IP)
-        return 'session:' . ($request->getSession() ? $request->getSession()->getId() : 'unknown');
+                return 'session:' . ($request->getSession() ? $request->getSession()->getId() : 'unknown');
     }
 
     private function checkRateLimit(string $key, int $limit, int $window): bool
@@ -125,8 +112,7 @@ class RateLimitSubscriber implements EventSubscriberInterface
         $now = time();
         $windowStart = $now - $window;
 
-        // Limpa entradas antigas
-        if (isset($this->storage[$key])) {
+                if (isset($this->storage[$key])) {
             $this->storage[$key] = array_filter(
                 $this->storage[$key],
                 function ($timestamp) use ($windowStart) {
@@ -137,13 +123,11 @@ class RateLimitSubscriber implements EventSubscriberInterface
             $this->storage[$key] = [];
         }
 
-        // Verifica se excedeu o limite
-        if (count($this->storage[$key]) >= $limit) {
+                if (count($this->storage[$key]) >= $limit) {
             return false;
         }
 
-        // Adiciona requisição atual
-        $this->storage[$key][] = $now;
+                $this->storage[$key][] = $now;
 
         return true;
     }

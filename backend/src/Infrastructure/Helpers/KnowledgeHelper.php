@@ -4,24 +4,17 @@ namespace App\Infrastructure\Helpers;
 
 use RuntimeException;
 
-/**
- * Helper para processamento de conhecimento e integração com OpenAI
- * Implementa RAG (Retrieval-Augmented Generation) simples
- */
+
 class KnowledgeHelper
 {
-    /**
-     * Obtém variável de ambiente
-     */
+    
     public static function env(string $key, ?string $default = null): ?string
     {
         $v = $_ENV[$key] ?? getenv($key);
         return (is_string($v) && $v !== '') ? $v : $default;
     }
 
-    /**
-     * Faz requisição HTTP POST JSON
-     */
+    
     public static function httpPostJson(string $url, array $headers, array $payload): array
     {
         $ch = curl_init($url);
@@ -50,18 +43,14 @@ class KnowledgeHelper
         return $json;
     }
 
-    /**
-     * Verifica se pdftotext está disponível
-     */
+    
     private static function hasPdfToText(): bool
     {
         @exec('pdftotext -v', $o, $r);
         return ($r === 0 || stripos(implode("\n", $o), 'pdftotext') !== false);
     }
 
-    /**
-     * Converte PDF para texto
-     */
+    
     private static function pdfToText(string $path): string
     {
         if (!is_file($path)) {
@@ -80,9 +69,7 @@ class KnowledgeHelper
         return "[AVISO] Não foi possível extrair texto do PDF '" . basename($path) . "' neste servidor. Converta para .txt e coloque em docs/knowledge.";
     }
 
-    /**
-     * Converte CSV para texto
-     */
+    
     private static function csvToText(string $path): string
     {
         if (!is_file($path)) {
@@ -109,8 +96,7 @@ class KnowledgeHelper
             $rows[] = $assoc;
             $i++;
             if ($i > 2000) {
-                break; // limite de segurança
-            }
+                break;             }
         }
         fclose($fh);
         $out = "CSV: " . basename($path) . "\n";
@@ -124,9 +110,7 @@ class KnowledgeHelper
         return $out;
     }
 
-    /**
-     * Converte JSON para texto
-     */
+    
     private static function jsonToText(string $path): string
     {
         if (!is_file($path)) {
@@ -143,18 +127,14 @@ class KnowledgeHelper
         return "JSON: " . basename($path) . "\n" . json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     }
 
-    /**
-     * Converte TXT para texto
-     */
+    
     private static function txtToText(string $path): string
     {
         $t = @file_get_contents($path);
         return is_string($t) ? trim($t) : '';
     }
 
-    /**
-     * Converte arquivo para texto baseado na extensão
-     */
+    
     private static function fileToText(string $path): string
     {
         $ext = strtolower(pathinfo($path, PATHINFO_EXTENSION));
@@ -170,12 +150,9 @@ class KnowledgeHelper
         if ($ext === 'txt') {
             return self::txtToText($path);
         }
-        return ''; // ignorar extensões não suportadas
-    }
+        return '';     }
 
-    /**
-     * Escaneia pasta de conhecimento
-     */
+    
     private static function scanKnowledge(string $dir): array
     {
         if (!is_dir($dir)) {
@@ -186,7 +163,7 @@ class KnowledgeHelper
             new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS)
         );
         foreach ($it as $file) {
-            /** @var \SplFileInfo $file */
+            
             $ext = strtolower($file->getExtension());
             if (!in_array($ext, ['txt', 'pdf', 'csv', 'json'], true)) {
                 continue;
@@ -205,9 +182,7 @@ class KnowledgeHelper
         return $out;
     }
 
-    /**
-     * Divide texto em chunks
-     */
+    
     private static function chunkText(string $text, int $chunkSize = 1600, int $overlap = 200): array
     {
         $text = str_replace("\r", "", $text);
@@ -232,9 +207,7 @@ class KnowledgeHelper
         return $chunks;
     }
 
-    /**
-     * Gera embeddings para textos
-     */
+    
     private static function embed(array $texts): array
     {
         $apiKey = self::env('OPENAI_API_KEY', '');
@@ -243,8 +216,7 @@ class KnowledgeHelper
         }
         $model = self::env('OPENAI_EMBED_MODEL', 'text-embedding-3-small');
 
-        // Lotes para evitar payload muito grande
-        $batch = 80;
+                $batch = 80;
         $out = [];
         $n = count($texts);
         for ($i = 0; $i < $n; $i += $batch) {
@@ -261,9 +233,7 @@ class KnowledgeHelper
         return $out;
     }
 
-    /**
-     * Constrói ou carrega índice de conhecimento
-     */
+    
     public static function buildOrLoadIndex(string $dir, string $indexPath): array
     {
         $files = self::scanKnowledge($dir);
@@ -272,17 +242,14 @@ class KnowledgeHelper
             $sig[$f['path']] = $f['mtime'];
         }
 
-        // Carrega índice existente se assinatura confere
-        if (is_file($indexPath)) {
+                if (is_file($indexPath)) {
             $idx = json_decode((string)file_get_contents($indexPath), true);
             if (is_array($idx) && ($idx['signature'] ?? null) === $sig) {
                 return $idx;
             }
         }
 
-        // (Re)constrói índice
-        $items = [];  // cada item = ['source'=>path, 'name'=>name, 'chunk_id'=>X, 'text'=>...]
-        foreach ($files as $f) {
+                $items = [];          foreach ($files as $f) {
             $chunks = self::chunkText($f['text']);
             foreach ($chunks as $c) {
                 $items[] = [
@@ -310,9 +277,7 @@ class KnowledgeHelper
         return $idx;
     }
 
-    /**
-     * Calcula similaridade cosseno
-     */
+    
     private static function cosine(array $a, array $b): float
     {
         $dot = 0.0;
@@ -327,9 +292,7 @@ class KnowledgeHelper
         return ($na > 0 && $nb > 0) ? $dot / (sqrt($na) * sqrt($nb)) : 0.0;
     }
 
-    /**
-     * Recupera top-K trechos mais relevantes para a query
-     */
+    
     public static function retrieveTopK(string $query, array $index, int $k = 6): array
     {
         if ($query === '' || empty($index['items'])) {

@@ -4,9 +4,7 @@ namespace App\Application\UseCase\Pobj;
 
 use App\Repository\Pobj\DStatusIndicadorRepository;
 
-/**
- * UseCase para operações relacionadas a status de indicadores
- */
+
 class StatusIndicadoresUseCase
 {
     private $statusRepository;
@@ -16,10 +14,7 @@ class StatusIndicadoresUseCase
         $this->statusRepository = $statusRepository;
     }
 
-    /**
-     * Retorna todos os status de indicadores
-     * @return array
-     */
+    
     public function handle(): array
     {
         $statuses = $this->statusRepository->findAllOrderedById();

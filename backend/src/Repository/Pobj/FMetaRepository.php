@@ -13,9 +13,7 @@ class FMetaRepository extends ServiceEntityRepository
         parent::__construct($registry, FMeta::class);
     }
 
-    /**
-     * Lista todas as metas ordenadas por data
-     */
+    
     public function findAllOrderedByData(): array
     {
         return $this->createQueryBuilder('m')

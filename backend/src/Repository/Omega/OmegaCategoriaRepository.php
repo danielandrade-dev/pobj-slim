@@ -14,9 +14,7 @@ class OmegaCategoriaRepository extends ServiceEntityRepository
         parent::__construct($registry, OmegaCategoria::class);
     }
 
-    /**
-     * Busca categorias por departamento
-     */
+    
     public function findByDepartamento(OmegaDepartamento $departamento): array
     {
         return $this->createQueryBuilder('c')
@@ -28,9 +26,7 @@ class OmegaCategoriaRepository extends ServiceEntityRepository
                     ->getResult();
     }
 
-    /**
-     * Busca categorias por nome do departamento
-     */
+    
     public function findByDepartamentoNome(string $departamentoNome): array
     {
         return $this->createQueryBuilder('c')
@@ -43,9 +39,7 @@ class OmegaCategoriaRepository extends ServiceEntityRepository
                     ->getResult();
     }
 
-    /**
-     * Lista todas as categorias ordenadas
-     */
+    
     public function findAllOrdered(): array
     {
         return $this->createQueryBuilder('c')

@@ -32,9 +32,7 @@ class InitRepository extends ServiceEntityRepository
         parent::__construct($registry, DEstrutura::class);
     }
 
-    /**
-     * @return GerenteGestaoWithAgenciaDTO[]
-     */
+    
     public function findGerentesGestoesWithAgencia(): array
     {
         $results = $this->createQueryBuilder('e')
@@ -59,10 +57,7 @@ class InitRepository extends ServiceEntityRepository
         return $dtos;
     }
 
-    /**
-     * Busca gerentes com seus respectivos gerentes de gestão da mesma agência
-     * @return GerenteWithGestorDTO[]
-     */
+    
     public function findGerentesWithGestor(): array
     {
         $gerentes = $this->createQueryBuilder('e')
@@ -106,9 +101,7 @@ class InitRepository extends ServiceEntityRepository
     }
 
 
-    /**
-     * @return AgenciaDTO[]
-     */
+    
     public function findAgencias(): array
     {
         $results = $this->getEntityManager()
@@ -130,9 +123,7 @@ class InitRepository extends ServiceEntityRepository
 
         return $dtos;
     }
-    /**
-     * @return RegionalDTO[]
-     */
+    
     public function findRegionais(): array
     {
         $results = $this->getEntityManager()
@@ -154,9 +145,7 @@ class InitRepository extends ServiceEntityRepository
 
         return $dtos;
     }
-    /**
-     * @return DiretoriaDTO[]
-     */
+    
     public function findDiretorias(): array
     {
         $results = $this->getEntityManager()
@@ -178,9 +167,7 @@ class InitRepository extends ServiceEntityRepository
 
         return $dtos;
     }
-    /**
-     * @return SegmentoDTO[]
-     */
+    
     public function findSegmentos(): array
     {
         $results = $this->getEntityManager()
@@ -200,9 +187,7 @@ class InitRepository extends ServiceEntityRepository
 
         return $dtos;
     }
-    /**
-     * @return FamiliaDTO[]
-     */
+    
     public function findFamilias(): array
     {
         $results = $this->getEntityManager()
@@ -222,9 +207,7 @@ class InitRepository extends ServiceEntityRepository
 
         return $dtos;
     }
-    /**
-     * @return IndicadorDTO[]
-     */
+    
     public function findIndicadores(): array
     {
         $results = $this->getEntityManager()
@@ -246,9 +229,7 @@ class InitRepository extends ServiceEntityRepository
 
         return $dtos;
     }
-    /**
-     * @return SubindicadorDTO[]
-     */
+    
     public function findSubindicadores(): array
     {
         $results = $this->getEntityManager()
@@ -270,9 +251,7 @@ class InitRepository extends ServiceEntityRepository
 
         return $dtos;
     }
-    /**
-     * @return StatusIndicadorDTO[]
-     */
+    
     public function findStatusIndicadores(): array
     {
         $results = $this->getEntityManager()

@@ -13,9 +13,7 @@ class FVariavelRepository extends ServiceEntityRepository
         parent::__construct($registry, FVariavel::class);
     }
 
-    /**
-     * Lista todas as variáveis ordenadas por data de atualização
-     */
+    
     public function findAllOrderedByDataAtualizacao(): array
     {
         return $this->createQueryBuilder('v')

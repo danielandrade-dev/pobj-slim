@@ -13,9 +13,7 @@ class FPontosRepository extends ServiceEntityRepository
         parent::__construct($registry, FPontos::class);
     }
 
-    /**
-     * Lista todos os pontos ordenados por data
-     */
+    
     public function findAllOrderedByData(): array
     {
         return $this->createQueryBuilder('p')

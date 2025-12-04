@@ -13,9 +13,7 @@ class OmegaStatusRepository extends ServiceEntityRepository
         parent::__construct($registry, OmegaStatus::class);
     }
 
-    /**
-     * Busca status por label
-     */
+    
     public function findByLabel(string $label): ?OmegaStatus
     {
         return $this->createQueryBuilder('s')
@@ -25,9 +23,7 @@ class OmegaStatusRepository extends ServiceEntityRepository
                     ->getOneOrNullResult();
     }
 
-    /**
-     * Lista todos os status ordenados por ordem e label
-     */
+    
     public function findAllOrdered(): array
     {
         $statuses = $this->createQueryBuilder('s')
@@ -36,8 +32,7 @@ class OmegaStatusRepository extends ServiceEntityRepository
                     ->getQuery()
                     ->getResult();
         
-        // Carrega departamentos manualmente se necessário
-        $departamentoIds = array_filter(array_map(function($status) {
+                $departamentoIds = array_filter(array_map(function($status) {
             return $status->getDepartamentoId();
         }, $statuses));
         
@@ -51,8 +46,7 @@ class OmegaStatusRepository extends ServiceEntityRepository
                 }
             }
             
-            // Associa departamentos aos status
-            foreach ($statuses as $status) {
+                        foreach ($statuses as $status) {
                 $nomeId = $status->getDepartamentoId();
                 if ($nomeId && isset($departamentos[$nomeId])) {
                     $status->setDepartamento($departamentos[$nomeId]);

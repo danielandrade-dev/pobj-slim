@@ -41,9 +41,7 @@ class OmegaStatus
      */
     private $departamentoId;
 
-    /**
-     * Relacionamento não mapeado - carregado manualmente quando necessário
-     */
+    
     private $departamento;
 
     public function getId(): ?string

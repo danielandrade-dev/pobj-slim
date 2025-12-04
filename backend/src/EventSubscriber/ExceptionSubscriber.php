@@ -11,9 +11,7 @@ use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
 
-/**
- * Subscriber que captura todas as exceções e padroniza as respostas de erro
- */
+
 class ExceptionSubscriber implements EventSubscriberInterface
 {
     private $logger;
@@ -37,16 +35,13 @@ class ExceptionSubscriber implements EventSubscriberInterface
         $exception = $event->getThrowable();
         $request = $event->getRequest();
 
-        // Ignora requisições OPTIONS (já tratadas pelo CorsPreflightSubscriber)
-        if ($request->getMethod() === 'OPTIONS') {
+                if ($request->getMethod() === 'OPTIONS') {
             return;
         }
 
-        // Loga a exceção
-        $this->logException($exception, $request);
+                $this->logException($exception, $request);
 
-        // Cria resposta padronizada
-        $response = $this->createResponse($exception);
+                $response = $this->createResponse($exception);
 
         $event->setResponse($response);
     }
@@ -55,13 +50,11 @@ class ExceptionSubscriber implements EventSubscriberInterface
     {
         $isDev = $this->environment === 'dev';
 
-        // Se for uma AppException customizada, usa seus dados
-        if ($exception instanceof AppException) {
+                if ($exception instanceof AppException) {
             $statusCode = $exception->getStatusCode();
             $errorData = $exception->toArray();
         } 
-        // Se for uma HttpException do Symfony, extrai status code
-        elseif ($exception instanceof HttpExceptionInterface) {
+                elseif ($exception instanceof HttpExceptionInterface) {
             $statusCode = $exception->getStatusCode();
             $errorData = [
                 'error' => $exception->getMessage() ?: 'Erro HTTP',
@@ -69,8 +62,7 @@ class ExceptionSubscriber implements EventSubscriberInterface
                 'details' => [],
             ];
         }
-        // Exceções de validação do Symfony
-        elseif ($exception instanceof \Symfony\Component\Validator\Exception\ValidationFailedException) {
+                elseif ($exception instanceof \Symfony\Component\Validator\Exception\ValidationFailedException) {
             $statusCode = Response::HTTP_UNPROCESSABLE_ENTITY;
             $violations = [];
             foreach ($exception->getViolations() as $violation) {
@@ -85,8 +77,7 @@ class ExceptionSubscriber implements EventSubscriberInterface
                 'details' => ['validation_errors' => $violations],
             ];
         }
-        // Outras exceções
-        else {
+                else {
             $statusCode = Response::HTTP_INTERNAL_SERVER_ERROR;
             $errorData = [
                 'error' => $isDev ? $exception->getMessage() : 'Erro interno do servidor',
@@ -95,8 +86,7 @@ class ExceptionSubscriber implements EventSubscriberInterface
             ];
         }
 
-        // Adiciona informações extras em desenvolvimento
-        if ($isDev) {
+                if ($isDev) {
             $errorData['debug'] = [
                 'class' => get_class($exception),
                 'file' => $exception->getFile(),
@@ -105,8 +95,7 @@ class ExceptionSubscriber implements EventSubscriberInterface
             ];
         }
 
-        // Adiciona timestamp e request ID se disponível
-        $errorData['timestamp'] = date('c');
+                $errorData['timestamp'] = date('c');
         if (isset($_SERVER['REQUEST_ID'])) {
             $errorData['request_id'] = $_SERVER['REQUEST_ID'];
         }
@@ -122,8 +111,7 @@ class ExceptionSubscriber implements EventSubscriberInterface
             ['Content-Type' => 'application/json; charset=utf-8']
         );
 
-        // Configura opções de encoding JSON
-        $response->setEncodingOptions(JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
+                $response->setEncodingOptions(JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT);
 
         return $response;
     }
@@ -138,14 +126,12 @@ class ExceptionSubscriber implements EventSubscriberInterface
             'request_content' => $request->getContent(),
         ];
 
-        // Adiciona informações adicionais se for AppException
-        if ($exception instanceof AppException) {
+                if ($exception instanceof AppException) {
             $context['error_code'] = $exception->getErrorCode();
             $context['details'] = $exception->getDetails();
         }
 
-        // Loga com nível apropriado
-        if ($exception instanceof AppException) {
+                if ($exception instanceof AppException) {
             $statusCode = $exception->getStatusCode();
         } elseif ($exception instanceof HttpExceptionInterface) {
             $statusCode = $exception->getStatusCode();
@@ -153,8 +139,7 @@ class ExceptionSubscriber implements EventSubscriberInterface
             $statusCode = Response::HTTP_INTERNAL_SERVER_ERROR;
         }
 
-        // Determina nível de log baseado no status code
-        if ($statusCode >= 500) {
+                if ($statusCode >= 500) {
             $this->logger->error(
                 sprintf(
                     'Erro %s: %s em %s:%d',

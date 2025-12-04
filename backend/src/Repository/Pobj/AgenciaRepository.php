@@ -13,9 +13,7 @@ class AgenciaRepository extends ServiceEntityRepository
         parent::__construct($registry, Agencia::class);
     }
 
-    /**
-     * Busca agência por nome
-     */
+    
     public function findByNome(string $nome): ?Agencia
     {
         return $this->createQueryBuilder('a')
@@ -25,9 +23,7 @@ class AgenciaRepository extends ServiceEntityRepository
                     ->getOneOrNullResult();
     }
 
-    /**
-     * Lista todas as agências ordenadas por nome
-     */
+    
     public function findAllOrderedByNome(): array
     {
         return $this->createQueryBuilder('a')

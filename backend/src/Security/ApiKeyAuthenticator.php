@@ -11,30 +11,24 @@ use Symfony\Component\Security\Guard\AbstractGuardAuthenticator;
 use Symfony\Component\Security\Core\User\UserProviderInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
-/**
- * Authenticator para API Key única do projeto
- * Valida API key enviada no header X-API-Key contra variável de ambiente
- */
+
 class ApiKeyAuthenticator extends AbstractGuardAuthenticator
 {
     private $apiKey;
 
     public function __construct(string $apiKey = null)
     {
-        // Pega da variável de ambiente ou do parâmetro
-        $this->apiKey = $apiKey ?? $_ENV['API_KEY'] ?? $_SERVER['API_KEY'] ?? null;
+                $this->apiKey = $apiKey ?? $_ENV['API_KEY'] ?? $_SERVER['API_KEY'] ?? null;
     }
 
     public function supports(Request $request): bool
     {
-        // Não requer autenticação para rotas de documentação
-        $path = $request->getPathInfo();
+                $path = $request->getPathInfo();
         if (preg_match('#^/api/doc#', $path)) {
             return false;
         }
         
-        // Suporta apenas se houver header X-API-Key
-        return $request->headers->has('X-API-Key');
+                return $request->headers->has('X-API-Key');
     }
 
     public function getCredentials(Request $request)
@@ -48,8 +42,7 @@ class ApiKeyAuthenticator extends AbstractGuardAuthenticator
             return null;
         }
 
-        // Valida a API key contra a variável de ambiente
-        if (!$this->apiKey) {
+                if (!$this->apiKey) {
             throw new CustomUserMessageAuthenticationException('API Key não configurada no servidor');
         }
 
@@ -57,20 +50,17 @@ class ApiKeyAuthenticator extends AbstractGuardAuthenticator
             throw new CustomUserMessageAuthenticationException('API Key inválida');
         }
 
-        // Retorna um usuário simples com role ROLE_API
-        return new ApiKeyUser();
+                return new ApiKeyUser();
     }
 
     public function checkCredentials($credentials, UserInterface $user): bool
     {
-        // A validação já foi feita no getUser
-        return true;
+                return true;
     }
 
     public function onAuthenticationSuccess(Request $request, TokenInterface $token, $providerKey)
     {
-        // Autenticação bem-sucedida, continua a requisição
-        return null;
+                return null;
     }
 
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): JsonResponse

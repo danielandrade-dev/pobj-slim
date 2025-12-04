@@ -4,9 +4,7 @@ namespace App\Application\UseCase\Pobj;
 
 use App\Repository\Pobj\FMetaRepository;
 
-/**
- * UseCase para operações relacionadas a metas
- */
+
 class MetaUseCase
 {
     private $repository;

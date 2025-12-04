@@ -4,9 +4,7 @@ namespace App\Exception;
 
 use Symfony\Component\HttpFoundation\Response;
 
-/**
- * Exceção para erros de banco de dados
- */
+
 class DatabaseException extends AppException
 {
     public function __construct(

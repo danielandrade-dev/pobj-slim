@@ -2,9 +2,7 @@
 
 namespace App\Domain\Enum;
 
-/**
- * Enum-like class for StatusIndicador (PHP 7.1 compatible)
- */
+
 class StatusIndicador
 {
     const ATINGIDO = '01';

@@ -160,8 +160,7 @@ class ExecRepository extends ServiceEntityRepository
         $conn = $this->getEntityManager()->getConnection();
         $result = $conn->executeQuery($sql, $params);
         
-        // Processa resultados de forma mais eficiente em memória
-        $ranking = [];
+                $ranking = [];
         while ($row = $result->fetchAssociative()) {
             $ranking[] = [
                 'key' => $row['key'] ?? '',
@@ -302,8 +301,7 @@ class ExecRepository extends ServiceEntityRepository
         $conn = $this->getEntityManager()->getConnection();
         $result = $conn->executeQuery($sql, $params);
         
-        // Processa resultados de forma mais eficiente em memória
-        $seriesMap = [];
+                $seriesMap = [];
         $families = [];
 
         while ($row = $result->fetchAssociative()) {
@@ -369,8 +367,7 @@ class ExecRepository extends ServiceEntityRepository
         $dataInicio = $filters ? $filters->getDataInicio() : null;
         $dataFim = $filters ? $filters->getDataFim() : null;
 
-        // Determina os meses a serem retornados (últimos 6 meses ou período especificado)
-        $months = [];
+                $months = [];
         if ($dataInicio && $dataFim) {
             $start = new \DateTime($dataInicio);
             $end = new \DateTime($dataFim);
@@ -400,8 +397,7 @@ class ExecRepository extends ServiceEntityRepository
             }
         }
 
-        // Query para dados por família (com dados mensais)
-        $sql = "SELECT
+                $sql = "SELECT
                     CAST(reg.id AS CHAR) AS regional_id,
                     reg.nome AS regional_nome,
                     CAST(fam.id AS CHAR) AS familia_id,
@@ -446,8 +442,7 @@ class ExecRepository extends ServiceEntityRepository
         $conn = $this->getEntityManager()->getConnection();
         $result = $conn->executeQuery($sql, $params);
         
-        // Processa resultados de forma mais eficiente em memória
-        $units = [];
+                $units = [];
         $sectionsFamilia = [];
         $sectionsIndicador = [];
         $dataFamilia = [];
@@ -473,24 +468,21 @@ class ExecRepository extends ServiceEntityRepository
                 ];
             }
 
-            // Seções por família
-            if (!isset($sectionsFamilia[$familiaId])) {
+                        if (!isset($sectionsFamilia[$familiaId])) {
                 $sectionsFamilia[$familiaId] = [
                     'id' => $familiaId,
                     'label' => $familiaNome
                 ];
             }
 
-            // Seções por indicador
-            if (!isset($sectionsIndicador[$indicadorId])) {
+                        if (!isset($sectionsIndicador[$indicadorId])) {
                 $sectionsIndicador[$indicadorId] = [
                     'id' => $indicadorId,
                     'label' => $indicadorNome
                 ];
             }
 
-            // Dados agregados por família (sem mês)
-            $keyFamilia = "{$regionalId}|{$familiaId}";
+                        $keyFamilia = "{$regionalId}|{$familiaId}";
             if (!isset($dataFamilia[$keyFamilia])) {
                 $dataFamilia[$keyFamilia] = [
                     'real' => 0,
@@ -500,8 +492,7 @@ class ExecRepository extends ServiceEntityRepository
             $dataFamilia[$keyFamilia]['real'] += $realizado;
             $dataFamilia[$keyFamilia]['meta'] += $meta;
 
-            // Dados agregados por indicador (sem mês)
-            $keyIndicador = "{$regionalId}|{$indicadorId}";
+                        $keyIndicador = "{$regionalId}|{$indicadorId}";
             if (!isset($dataIndicador[$keyIndicador])) {
                 $dataIndicador[$keyIndicador] = [
                     'real' => 0,
@@ -511,8 +502,7 @@ class ExecRepository extends ServiceEntityRepository
             $dataIndicador[$keyIndicador]['real'] += $realizado;
             $dataIndicador[$keyIndicador]['meta'] += $meta;
 
-            // Dados mensais por família (para calcular variação)
-            $keyFamiliaMensal = "{$regionalId}|{$familiaId}|{$mes}";
+                        $keyFamiliaMensal = "{$regionalId}|{$familiaId}|{$mes}";
             if (!isset($dataFamiliaMensal[$keyFamiliaMensal])) {
                 $dataFamiliaMensal[$keyFamiliaMensal] = [
                     'real' => 0,
@@ -522,8 +512,7 @@ class ExecRepository extends ServiceEntityRepository
             $dataFamiliaMensal[$keyFamiliaMensal]['real'] += $realizado;
             $dataFamiliaMensal[$keyFamiliaMensal]['meta'] += $meta;
 
-            // Dados mensais por indicador (para calcular variação)
-            $keyIndicadorMensal = "{$regionalId}|{$indicadorId}|{$mes}";
+                        $keyIndicadorMensal = "{$regionalId}|{$indicadorId}|{$mes}";
             if (!isset($dataIndicadorMensal[$keyIndicadorMensal])) {
                 $dataIndicadorMensal[$keyIndicadorMensal] = [
                     'real' => 0,
@@ -563,17 +552,14 @@ class ExecRepository extends ServiceEntityRepository
         $diretoria = $filters->getDiretoria();
         $segmento = $filters->getSegmento();
 
-        // Se tiver gerente, filtra apenas por funcional
-        if ($gerente !== null && $gerente !== '') {
-            // Converte ID para funcional se necessário
-            $gerenteFuncional = $this->getFuncionalFromIdOrFuncional($gerente, Cargo::GERENTE);
+                if ($gerente !== null && $gerente !== '') {
+                        $gerenteFuncional = $this->getFuncionalFromIdOrFuncional($gerente, Cargo::GERENTE);
             if ($gerenteFuncional) {
                 $whereClause .= " AND est.funcional = :gerenteFuncional";
                 $params['gerenteFuncional'] = $gerenteFuncional;
             }
         } elseif ($gerenteGestao !== null && $gerenteGestao !== '') {
-            // Converte ID para funcional se necessário
-            $gerenteGestaoFuncional = $this->getFuncionalFromIdOrFuncional($gerenteGestao, Cargo::GERENTE_GESTAO);
+                        $gerenteGestaoFuncional = $this->getFuncionalFromIdOrFuncional($gerenteGestao, Cargo::GERENTE_GESTAO);
             if ($gerenteGestaoFuncional) {
                 $whereClause .= " AND EXISTS (
                     SELECT 1 FROM {$estruturaTable} AS ggestao 
@@ -621,28 +607,18 @@ class ExecRepository extends ServiceEntityRepository
         return $whereClause;
     }
 
-    /**
-     * Converte ID para funcional se necessário
-     * Se o valor for numérico (ID), busca o funcional na tabela d_estrutura
-     * Se o valor for string (funcional), retorna o próprio valor
-     * 
-     * @param mixed $idOrFuncional ID ou funcional
-     * @param int $cargoId ID do cargo (GERENTE ou GERENTE_GESTAO)
-     * @return string|null Funcional encontrado ou null se não encontrar
-     */
+    
     private function getFuncionalFromIdOrFuncional($idOrFuncional, int $cargoId): ?string
     {
         if ($idOrFuncional === null || $idOrFuncional === '') {
             return null;
         }
 
-        // Se não for numérico, assume que já é um funcional
-        if (!is_numeric($idOrFuncional)) {
+                if (!is_numeric($idOrFuncional)) {
             return (string)$idOrFuncional;
         }
 
-        // Se for numérico, busca o funcional na tabela d_estrutura
-        $dEstruturaTable = $this->getTableName(DEstrutura::class);
+                $dEstruturaTable = $this->getTableName(DEstrutura::class);
         $conn = $this->getEntityManager()->getConnection();
         
         $sql = "SELECT funcional FROM {$dEstruturaTable} 

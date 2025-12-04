@@ -4,10 +4,7 @@ namespace App\Exception;
 
 use Symfony\Component\HttpFoundation\Response;
 
-/**
- * Exceção para erros de validação
- * Usada quando dados de entrada são inválidos
- */
+
 class ValidationException extends AppException
 {
     public function __construct(

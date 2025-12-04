@@ -13,9 +13,7 @@ class OmegaUsuarioRepository extends ServiceEntityRepository
         parent::__construct($registry, OmegaUsuario::class);
     }
 
-    /**
-     * Busca usuário por nome
-     */
+    
     public function findByNome(string $nome): ?OmegaUsuario
     {
         return $this->createQueryBuilder('u')
@@ -25,9 +23,7 @@ class OmegaUsuarioRepository extends ServiceEntityRepository
                     ->getOneOrNullResult();
     }
 
-    /**
-     * Busca usuário por funcional
-     */
+    
     public function findByFuncional(string $funcional): ?OmegaUsuario
     {
         return $this->createQueryBuilder('u')
@@ -37,9 +33,7 @@ class OmegaUsuarioRepository extends ServiceEntityRepository
                     ->getOneOrNullResult();
     }
 
-    /**
-     * Lista todos os usuários ordenados por nome
-     */
+    
     public function findAllOrderedByNome(): array
     {
         return $this->createQueryBuilder('u')

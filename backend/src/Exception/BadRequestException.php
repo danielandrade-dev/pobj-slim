@@ -4,9 +4,7 @@ namespace App\Exception;
 
 use Symfony\Component\HttpFoundation\Response;
 
-/**
- * Exceção para requisições malformadas
- */
+
 class BadRequestException extends AppException
 {
     public function __construct(

@@ -13,9 +13,7 @@ class DProdutoRepository extends ServiceEntityRepository
         parent::__construct($registry, DProduto::class);
     }
 
-    /**
-     * Lista todos os produtos ordenados por família, indicador e subindicador
-     */
+    
     public function findAllOrdered(): array
     {
         return $this->createQueryBuilder('p')

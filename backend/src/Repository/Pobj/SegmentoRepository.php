@@ -13,9 +13,7 @@ class SegmentoRepository extends ServiceEntityRepository
         parent::__construct($registry, Segmento::class);
     }
 
-    /**
-     * Busca segmento por nome
-     */
+    
     public function findByNome(string $nome): ?Segmento
     {
         return $this->createQueryBuilder('s')
@@ -25,9 +23,7 @@ class SegmentoRepository extends ServiceEntityRepository
                     ->getOneOrNullResult();
     }
 
-    /**
-     * Lista todos os segmentos ordenados por nome
-     */
+    
     public function findAllOrderedByNome(): array
     {
         return $this->createQueryBuilder('s')

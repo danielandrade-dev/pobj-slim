@@ -4,9 +4,7 @@ namespace App\Exception;
 
 use Symfony\Component\HttpFoundation\Response;
 
-/**
- * Exceção para erros de autenticação/autorização
- */
+
 class UnauthorizedException extends AppException
 {
     public function __construct(

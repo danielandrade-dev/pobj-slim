@@ -2,40 +2,29 @@
 
 namespace App\Security;
 
-/**
- * Classe para sanitização de inputs
- * Previne SQL Injection, XSS e outros ataques
- */
+
 class InputSanitizer
 {
-    /**
-     * Sanitiza uma string removendo caracteres perigosos
-     */
+    
     public static function sanitizeString(?string $input, bool $allowHtml = false): ?string
     {
         if ($input === null) {
             return null;
         }
 
-        // Remove null bytes
-        $input = str_replace("\0", '', $input);
+                $input = str_replace("\0", '', $input);
 
-        // Remove caracteres de controle
-        $input = preg_replace('/[\x00-\x1F\x7F]/', '', $input);
+                $input = preg_replace('/[\x00-\x1F\x7F]/', '', $input);
 
         if (!$allowHtml) {
-            // Remove tags HTML e PHP
-            $input = strip_tags($input);
-            // Escapa caracteres especiais HTML
-            $input = htmlspecialchars($input, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                        $input = strip_tags($input);
+                        $input = htmlspecialchars($input, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         }
 
         return trim($input);
     }
 
-    /**
-     * Sanitiza um array recursivamente
-     */
+    
     public static function sanitizeArray(array $input, bool $allowHtml = false): array
     {
         $sanitized = [];
@@ -55,9 +44,7 @@ class InputSanitizer
         return $sanitized;
     }
 
-    /**
-     * Valida e sanitiza um email
-     */
+    
     public static function sanitizeEmail(?string $email): ?string
     {
         if ($email === null) {
@@ -70,9 +57,7 @@ class InputSanitizer
         return $email ?: null;
     }
 
-    /**
-     * Sanitiza um número inteiro
-     */
+    
     public static function sanitizeInt($input, int $min = null, int $max = null): ?int
     {
         if ($input === null) {
@@ -97,9 +82,7 @@ class InputSanitizer
         return $value;
     }
 
-    /**
-     * Sanitiza um número float
-     */
+    
     public static function sanitizeFloat($input, float $min = null, float $max = null): ?float
     {
         if ($input === null) {
@@ -124,9 +107,7 @@ class InputSanitizer
         return $value;
     }
 
-    /**
-     * Sanitiza uma URL
-     */
+    
     public static function sanitizeUrl(?string $url): ?string
     {
         if ($url === null) {
@@ -139,17 +120,14 @@ class InputSanitizer
         return $url ?: null;
     }
 
-    /**
-     * Remove SQL injection patterns
-     */
+    
     public static function preventSqlInjection(?string $input): ?string
     {
         if ($input === null) {
             return null;
         }
 
-        // Remove padrões comuns de SQL injection
-        $patterns = [
+                $patterns = [
             '/(\bUNION\b.*\bSELECT\b)/i',
             '/(\bSELECT\b.*\bFROM\b)/i',
             '/(\bINSERT\b.*\bINTO\b)/i',
@@ -168,15 +146,12 @@ class InputSanitizer
         return $input;
     }
 
-    /**
-     * Sanitiza dados de entrada de uma requisição
-     */
+    
     public static function sanitizeRequestData(array $data, bool $allowHtml = false): array
     {
         $sanitized = self::sanitizeArray($data, $allowHtml);
 
-        // Aplica prevenção adicional de SQL injection em strings
-        array_walk_recursive($sanitized, function (&$value) {
+                array_walk_recursive($sanitized, function (&$value) {
             if (is_string($value)) {
                 $value = self::preventSqlInjection($value);
             }

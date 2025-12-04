@@ -4,9 +4,7 @@ namespace App\Security;
 
 use Symfony\Component\Security\Core\User\UserInterface;
 
-/**
- * User representation simples para API Key
- */
+
 class ApiKeyUser implements UserInterface
 {
     public function getRoles(): array
@@ -31,7 +29,6 @@ class ApiKeyUser implements UserInterface
 
     public function eraseCredentials(): void
     {
-        // Não há credenciais para apagar
-    }
+            }
 }
 

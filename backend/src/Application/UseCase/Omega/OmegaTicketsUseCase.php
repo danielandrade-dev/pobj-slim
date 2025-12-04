@@ -8,9 +8,7 @@ use App\Repository\Omega\OmegaStatusRepository;
 use App\Repository\Omega\OmegaDepartamentoRepository;
 use App\Repository\Omega\OmegaUsuarioRepository;
 
-/**
- * UseCase para operações relacionadas a tickets Omega
- */
+
 class OmegaTicketsUseCase
 {
     private $repository;
@@ -30,10 +28,7 @@ class OmegaTicketsUseCase
         $this->usuarioRepository = $usuarioRepository;
     }
 
-    /**
-     * Retorna todos os tickets Omega
-     * @return array
-     */
+    
     public function getAllTickets(): array
     {
         return $this->repository->findAllOrderedByUpdated();
@@ -44,36 +39,25 @@ class OmegaTicketsUseCase
         return $this->getAllTickets();
     }
 
-    /**
-     * Cria um novo ticket Omega
-     * @param array $data
-     * @return OmegaChamado
-     */
+    
     public function createTicket(array $data): OmegaChamado
     {
         $ticket = new OmegaChamado();
         
-        // Gera ID único através do repository
-        $ticket->setId($this->repository->generateNextTicketId());
+                $ticket->setId($this->repository->generateNextTicketId());
         
-        // Mapeia dados básicos
-        $this->mapBasicData($ticket, $data);
+                $this->mapBasicData($ticket, $data);
         
-        // Mapeia relacionamentos
-        $this->mapRelationships($ticket, $data);
+                $this->mapRelationships($ticket, $data);
         
-        // Mapeia contexto e histórico
-        $this->mapContextAndHistory($ticket, $data);
+                $this->mapContextAndHistory($ticket, $data);
         
-        // Salva através do repository
-        $this->repository->save($ticket);
+                $this->repository->save($ticket);
         
         return $ticket;
     }
 
-    /**
-     * Mapeia dados básicos do ticket
-     */
+    
     private function mapBasicData(OmegaChamado $ticket, array $data): void
     {
         $ticket->setSubject($data['subject'] ?? 'Chamado Omega');
@@ -95,33 +79,26 @@ class OmegaTicketsUseCase
         }
     }
 
-    /**
-     * Mapeia relacionamentos (status, requester, owner, team)
-     */
+    
     private function mapRelationships(OmegaChamado $ticket, array $data): void
     {
-        // Status
-        $statusLabel = $data['status'] ?? 'aberto';
+                $statusLabel = $data['status'] ?? 'aberto';
         $status = $this->statusRepository->findByLabel($statusLabel) 
             ?? $this->statusRepository->findByLabel('aberto');
         $ticket->setStatus($status);
         
-        // Requester
-        if (isset($data['requesterId'])) {
+                if (isset($data['requesterId'])) {
             $requester = $this->usuarioRepository->find($data['requesterId']);
             $ticket->setRequester($requester);
         }
         
-        // Owner
-        if (isset($data['ownerId']) && $data['ownerId']) {
+                if (isset($data['ownerId']) && $data['ownerId']) {
             $owner = $this->usuarioRepository->find($data['ownerId']);
             $ticket->setOwner($owner);
         }
         
-        // Team (departamento)
-        if (isset($data['teamId']) && $data['teamId']) {
-            // teamId pode ser um ID numérico ou um nome_id (string)
-            if (is_numeric($data['teamId'])) {
+                if (isset($data['teamId']) && $data['teamId']) {
+                        if (is_numeric($data['teamId'])) {
                 $team = $this->departamentoRepository->find($data['teamId']);
             } else {
                 $team = $this->departamentoRepository->findByNomeId($data['teamId']);
@@ -133,13 +110,10 @@ class OmegaTicketsUseCase
         }
     }
 
-    /**
-     * Mapeia contexto organizacional e histórico
-     */
+    
     private function mapContextAndHistory(OmegaChamado $ticket, array $data): void
     {
-        // Contexto organizacional
-        if (isset($data['context'])) {
+                if (isset($data['context'])) {
             $context = $data['context'];
             $ticket->setDiretoria($context['diretoria'] ?? null);
             $ticket->setGerencia($context['gerencia'] ?? null);
@@ -148,8 +122,7 @@ class OmegaTicketsUseCase
             $ticket->setGerente($context['gerente'] ?? null);
         }
         
-        // Histórico
-        if (isset($data['history']) && is_array($data['history'])) {
+                if (isset($data['history']) && is_array($data['history'])) {
             $historyData = $this->formatHistory($data['history']);
             $ticket->setHistory(json_encode($historyData, JSON_UNESCAPED_UNICODE));
         } elseif (isset($data['observation'])) {
@@ -162,12 +135,7 @@ class OmegaTicketsUseCase
         }
     }
 
-    /**
-     * Atualiza um ticket existente
-     * @param string $id
-     * @param array $data
-     * @return OmegaChamado|null
-     */
+    
     public function updateTicket(string $id, array $data): ?OmegaChamado
     {
         $ticket = $this->repository->find($id);
@@ -176,8 +144,7 @@ class OmegaTicketsUseCase
             return null;
         }
         
-        // Atualiza dados básicos se fornecidos
-        if (isset($data['subject'])) {
+                if (isset($data['subject'])) {
             $ticket->setSubject($data['subject']);
         }
         
@@ -197,8 +164,7 @@ class OmegaTicketsUseCase
             $ticket->setDueDate($data['dueDate'] ? new \DateTime($data['dueDate']) : null);
         }
         
-        // Atualiza data de atualização
-        if (isset($data['updated'])) {
+                if (isset($data['updated'])) {
             try {
                 $ticket->setUpdated(new \DateTime($data['updated']));
             } catch (\Exception $e) {
@@ -208,21 +174,17 @@ class OmegaTicketsUseCase
             $ticket->setUpdated(new \DateTime());
         }
         
-        // Atualiza status se fornecido
-        if (isset($data['status'])) {
-            // Tenta encontrar por ID primeiro, depois por label
-            $status = $this->statusRepository->find($data['status']);
+                if (isset($data['status'])) {
+                        $status = $this->statusRepository->find($data['status']);
             if (!$status) {
-                // Se não encontrou por ID, tenta por label
-                $status = $this->statusRepository->findByLabel($data['status']);
+                                $status = $this->statusRepository->findByLabel($data['status']);
             }
             if ($status) {
                 $ticket->setStatus($status);
             }
         }
         
-        // Atualiza relacionamentos
-        if (isset($data['requesterId'])) {
+                if (isset($data['requesterId'])) {
             $requester = $this->usuarioRepository->find($data['requesterId']);
             if ($requester) {
                 $ticket->setRequester($requester);
@@ -236,8 +198,7 @@ class OmegaTicketsUseCase
         
         if (isset($data['teamId'])) {
             if ($data['teamId']) {
-                // teamId pode ser um ID numérico ou um nome_id (string)
-                if (is_numeric($data['teamId'])) {
+                                if (is_numeric($data['teamId'])) {
                     $team = $this->departamentoRepository->find($data['teamId']);
                 } else {
                     $team = $this->departamentoRepository->findByNomeId($data['teamId']);
@@ -248,14 +209,12 @@ class OmegaTicketsUseCase
             $ticket->setTeam($team);
         }
         
-        // Atualiza histórico se fornecido
-        if (isset($data['history']) && is_array($data['history'])) {
+                if (isset($data['history']) && is_array($data['history'])) {
             $historyData = $this->formatHistory($data['history']);
             $ticket->setHistory(json_encode($historyData, JSON_UNESCAPED_UNICODE));
         }
         
-        // Atualiza contexto se fornecido
-        if (isset($data['context']) && is_array($data['context'])) {
+                if (isset($data['context']) && is_array($data['context'])) {
             $context = $data['context'];
             if (isset($context['diretoria'])) {
                 $ticket->setDiretoria($context['diretoria']);
@@ -274,15 +233,12 @@ class OmegaTicketsUseCase
             }
         }
         
-        // Salva as alterações
-        $this->repository->save($ticket);
+                $this->repository->save($ticket);
         
         return $ticket;
     }
 
-    /**
-     * Formata array de histórico para estrutura padronizada
-     */
+    
     private function formatHistory(array $history): array
     {
         $formatted = [];
@@ -298,11 +254,7 @@ class OmegaTicketsUseCase
         return $formatted;
     }
     
-    /**
-     * Converte entidade OmegaChamado para array
-     * @param OmegaChamado $ticket
-     * @return array
-     */
+    
     public function ticketToArray(OmegaChamado $ticket): array
     {
         $status = $ticket->getStatus();

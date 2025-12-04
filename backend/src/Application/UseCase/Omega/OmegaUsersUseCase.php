@@ -4,9 +4,7 @@ namespace App\Application\UseCase\Omega;
 
 use App\Repository\Omega\OmegaUsuarioRepository;
 
-/**
- * UseCase para operações relacionadas a usuários Omega
- */
+
 class OmegaUsersUseCase
 {
     private $repository;
@@ -16,10 +14,7 @@ class OmegaUsersUseCase
         $this->repository = $repository;
     }
 
-    /**
-     * Retorna todos os usuários Omega
-     * @return array
-     */
+    
     public function getAllUsers(): array
     {
         return $this->repository->findAllOrderedByNome();

@@ -13,9 +13,7 @@ class CargoRepository extends ServiceEntityRepository
         parent::__construct($registry, Cargo::class);
     }
 
-    /**
-     * Exemplo de método customizado
-     */
+    
     public function findByNome(string $nome): ?Cargo
     {
         return $this->createQueryBuilder('c')
@@ -25,9 +23,7 @@ class CargoRepository extends ServiceEntityRepository
                     ->getOneOrNullResult();
     }
 
-    /**
-     * Exemplo de listar todos ordenados por nome
-     */
+    
     public function findAllOrderedByNome(): array
     {
         return $this->createQueryBuilder('c')

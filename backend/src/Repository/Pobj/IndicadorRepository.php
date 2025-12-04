@@ -13,9 +13,7 @@ class IndicadorRepository extends ServiceEntityRepository
         parent::__construct($registry, Indicador::class);
     }
 
-    /**
-     * Busca indicador por nome
-     */
+    
     public function findByNome(string $nome): ?Indicador
     {
         return $this->createQueryBuilder('i')
@@ -25,9 +23,7 @@ class IndicadorRepository extends ServiceEntityRepository
                     ->getOneOrNullResult();
     }
 
-    /**
-     * Lista todos os indicadores ordenados por nome
-     */
+    
     public function findAllOrderedByNome(): array
     {
         return $this->createQueryBuilder('i')

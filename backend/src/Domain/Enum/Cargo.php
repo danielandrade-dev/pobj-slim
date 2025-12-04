@@ -2,9 +2,7 @@
 
 namespace App\Domain\Enum;
 
-/**
- * Enum-like class for Cargo (PHP 7.1 compatible)
- */
+
 class Cargo
 {
     const DIRETOR = 1;
@@ -47,12 +45,7 @@ class Cargo
         }
     }
 
-    /**
-     * Tenta criar uma instância de Cargo a partir do ID
-     * 
-     * @param int $id
-     * @return self|null
-     */
+    
     public static function tryFromId(int $id)
     {
         if (in_array($id, self::$validValues, true)) {

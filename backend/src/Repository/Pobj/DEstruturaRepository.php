@@ -16,9 +16,7 @@ class DEstruturaRepository extends ServiceEntityRepository implements DEstrutura
         parent::__construct($registry, DEstrutura::class);
     }
 
-    /**
-     * Busca estrutura por funcional
-     */
+    
     public function findByFuncional(string $funcional): ?DEstrutura
     {
         return $this->createQueryBuilder('e')
@@ -47,15 +45,10 @@ class DEstruturaRepository extends ServiceEntityRepository implements DEstrutura
                     ->getResult();
     }
 
-    /**
-     * Busca gerentes com seus respectivos gerentes de gestão da mesma agência
-     * Otimizado para evitar N+1 queries usando eager loading e agrupamento
-     * @return GerenteWithGestorDTO[]
-     */
+    
     public function findGerentesWithGestor(): array
     {
-        // Busca todos os gerentes com eager loading de cargo e agencia
-        $gerentes = $this->createQueryBuilder('e')
+                $gerentes = $this->createQueryBuilder('e')
             ->innerJoin('e.cargo', 'c')
             ->leftJoin('e.agencia', 'a')
             ->addSelect('c')
@@ -72,16 +65,14 @@ class DEstruturaRepository extends ServiceEntityRepository implements DEstrutura
             return [];
         }
 
-        // Agrupa gerentes por agência para buscar gestores em batch
-        $agenciasIds = [];
+                $agenciasIds = [];
         foreach ($gerentes as $gerente) {
             if ($gerente->getAgencia()) {
                 $agenciasIds[] = $gerente->getAgencia()->getId();
             }
         }
 
-        // Busca todos os gestores de uma vez (evita N+1)
-        $gestoresPorAgencia = [];
+                $gestoresPorAgencia = [];
         if (!empty($agenciasIds)) {
             $gestores = $this->createQueryBuilder('g')
                 ->innerJoin('g.cargo', 'cg')
@@ -96,8 +87,7 @@ class DEstruturaRepository extends ServiceEntityRepository implements DEstrutura
                 ->getQuery()
                 ->getResult();
 
-            // Agrupa gestores por agência
-            foreach ($gestores as $gestor) {
+                        foreach ($gestores as $gestor) {
                 if ($gestor->getAgencia()) {
                     $agenciaId = $gestor->getAgencia()->getId();
                     if (!isset($gestoresPorAgencia[$agenciaId])) {
@@ -107,8 +97,7 @@ class DEstruturaRepository extends ServiceEntityRepository implements DEstrutura
             }
         }
 
-        // Monta o resultado usando o cache de gestores
-        $result = [];
+                $result = [];
         foreach ($gerentes as $gerente) {
             $gestor = null;
             if ($gerente->getAgencia()) {

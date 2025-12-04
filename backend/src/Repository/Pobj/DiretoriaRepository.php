@@ -13,9 +13,7 @@ class DiretoriaRepository extends ServiceEntityRepository
         parent::__construct($registry, Diretoria::class);
     }
 
-    /**
-     * Busca diretoria por nome
-     */
+    
     public function findByNome(string $nome): ?Diretoria
     {
         return $this->createQueryBuilder('d')
@@ -25,9 +23,7 @@ class DiretoriaRepository extends ServiceEntityRepository
                     ->getOneOrNullResult();
     }
 
-    /**
-     * Lista todas as diretorias ordenadas por nome
-     */
+    
     public function findAllOrderedByNome(): array
     {
         return $this->createQueryBuilder('d')

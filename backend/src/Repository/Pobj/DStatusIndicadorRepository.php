@@ -13,9 +13,7 @@ class DStatusIndicadorRepository extends ServiceEntityRepository
         parent::__construct($registry, DStatusIndicador::class);
     }
 
-    /**
-     * Busca status por nome
-     */
+    
     public function findByStatus(string $status): ?DStatusIndicador
     {
         return $this->createQueryBuilder('s')
@@ -25,9 +23,7 @@ class DStatusIndicadorRepository extends ServiceEntityRepository
                     ->getOneOrNullResult();
     }
 
-    /**
-     * Lista todos os status ordenados por ID
-     */
+    
     public function findAllOrderedById(): array
     {
         return $this->createQueryBuilder('s')

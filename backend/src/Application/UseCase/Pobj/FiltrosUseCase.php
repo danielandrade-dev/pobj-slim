@@ -47,8 +47,7 @@ class FiltrosUseCase
 
     public function getFiltroByNivel($nivel): array
     {
-        // Compatibilidade com PHP 7.1 - aceita string
-        $nivelValue = is_string($nivel) ? $nivel : (string)$nivel;
+                $nivelValue = is_string($nivel) ? $nivel : (string)$nivel;
         
         switch ($nivelValue) {
             case FiltroNivel::SEGMENTOS:
@@ -60,10 +59,8 @@ class FiltrosUseCase
             case FiltroNivel::AGENCIAS:
                 return $this->formatEntityToArray($this->agenciaRepository->findAllOrderedByNome());
             case FiltroNivel::GGESTOES:
-                return []; // TODO: Implementar com DEstruturaRepository
-            case FiltroNivel::GERENTES:
-                return []; // TODO: Implementar com DEstruturaRepository
-            case FiltroNivel::STATUS_INDICADORES:
+                return [];             case FiltroNivel::GERENTES:
+                return [];             case FiltroNivel::STATUS_INDICADORES:
                 return $this->formatEntityToArray($this->statusRepository->findAllOrderedById(), 'id', 'status');
             default:
                 throw new \InvalidArgumentException('Nível inválido: ' . $nivelValue);
