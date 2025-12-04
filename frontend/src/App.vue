@@ -3,6 +3,7 @@ import { defineAsyncComponent, onMounted, computed } from 'vue'
 import Header from './components/Header.vue'
 import Footer from './components/Footer.vue'
 import ChatWidget from './components/ChatWidget.vue'
+import ToastContainer from './components/ToastContainer.vue'
 import { useRoute, useRouter } from 'vue-router'
 
 interface OmegaDetail {
@@ -79,6 +80,7 @@ if (typeof window !== 'undefined') {
     </main>
     <Footer v-if="!isOmegaRoute" />
     <ChatWidget v-if="!isOmegaRoute" />
+    <ToastContainer />
   </div>
 </template>
 
@@ -107,7 +109,6 @@ body {
   font-family: "Bradesco", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
-/* Garantir que SVGs dos ícones sejam exibidos */
 svg {
   display: inline-block !important;
   vertical-align: middle;

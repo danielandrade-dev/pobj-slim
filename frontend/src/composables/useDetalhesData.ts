@@ -4,6 +4,7 @@ import type { FilterState } from './useGlobalFilters'
 import { getDetalhes } from '../api/modules/pobj.api'
 import { buildDetalhesFilters, filtersEqual } from '../utils/filterUtils'
 import { useGlobalFilters } from './useGlobalFilters'
+import { useToast } from './useToast'
 
 const detalhesPayload = ref<DetalhesItem[] | null>(null)
 const detalhesLoading = ref(false)
@@ -21,21 +22,31 @@ async function fetchDetalhes(filters: DetalhesFilters): Promise<void> {
     return
   }
   
+  const { loading: showLoading, dismiss: dismissLoading, error: showError } = useToast()
+  const loadingId = showLoading('Carregando detalhes...')
+  
   lastFilters.value = filters
   detalhesLoading.value = true
   detalhesError.value = null
 
   try {
     const data = await getDetalhes(filters)
+    dismissLoading(loadingId)
     if (data) {
       detalhesPayload.value = data
+      if (data.length > 0) {
+        showLoading(`Carregados ${data.length} registros`, 'success', 2000)
+      }
     } else {
       detalhesError.value = 'Não foi possível carregar os dados de detalhes'
       detalhesPayload.value = []
+      showError('Não foi possível carregar os dados de detalhes')
     }
   } catch (error) {
-    console.error('Erro ao carregar detalhes:', error)
-    detalhesError.value = error instanceof Error ? error.message : 'Erro desconhecido'
+    dismissLoading(loadingId)
+    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido'
+    detalhesError.value = errorMsg
+    showError(`Erro ao carregar detalhes: ${errorMsg}`)
   } finally {
     detalhesLoading.value = false
   }

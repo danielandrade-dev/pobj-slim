@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { getRanking, type RankingItem, type RankingFilters } from '../api/modules/pobj.api'
 import { useGlobalFilters } from '../composables/useGlobalFilters'
+import { useToast } from '../composables/useToast'
 import { formatINT } from '../utils/formatUtils'
 
 const { filterState, period, filterTrigger } = useGlobalFilters()
@@ -10,7 +11,6 @@ const rankingData = ref<RankingItem[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
 
-// Função auxiliar para sanitizar valores de filtro
 const sanitizeFilterValue = (value?: string): string | undefined => {
   if (!value) return undefined
   const trimmed = value.trim()
@@ -47,10 +47,7 @@ const rankingFilters = computed<RankingFilters>(() => {
   return filters
 })
 
-// Determina o nível automaticamente baseado nos filtros aplicados
-// Hierarquia: gerente > gerenteGestao > agencia > regional > diretoria > segmento
 const selectedLevel = computed<string>(() => {
-  // Verifica na ordem da hierarquia (do mais específico para o menos específico)
   if (filterState.value.gerente && filterState.value.gerente.toLowerCase() !== 'todos') {
     return 'gerente'
   }
@@ -69,11 +66,9 @@ const selectedLevel = computed<string>(() => {
   if (filterState.value.segmento && filterState.value.segmento.toLowerCase() !== 'todos') {
     return 'segmento'
   }
-  // Padrão: gerenteGestao quando nenhum filtro está aplicado
   return 'gerenteGestao'
 })
 
-// Label do nível atual para exibição
 const levelLabel = computed<string>(() => {
   const labels: Record<string, string> = {
     'segmento': 'Segmento',
@@ -86,23 +81,32 @@ const levelLabel = computed<string>(() => {
   return labels[selectedLevel.value] || 'Gerente de gestão'
 })
 
+const { loading: showLoading, dismiss: dismissLoading, error: showError, success } = useToast()
+
 const loadRanking = async () => {
   loading.value = true
   error.value = null
+  const loadingId = showLoading('Carregando ranking...')
 
   try {
     const data = await getRanking(rankingFilters.value, selectedLevel.value)
+    dismissLoading(loadingId)
     if (data) {
       rankingData.value = data
       error.value = null
+      if (data.length > 0) {
+        success(`Ranking carregado com ${data.length} participantes`, 2000)
+      }
     } else {
-      error.value = 'Não foi possível carregar os dados de ranking. Verifique os filtros selecionados ou tente novamente.'
+      error.value = 'Não foi possível carregar os dados de ranking'
       rankingData.value = []
+      showError('Não foi possível carregar os dados de ranking')
     }
   } catch (err) {
+    dismissLoading(loadingId)
     const errorMsg = err instanceof Error ? err.message : 'Erro desconhecido'
-    error.value = `Erro ao carregar ranking: ${errorMsg}`
-    console.error('Erro ao carregar ranking:', err)
+    error.value = errorMsg
+    showError(`Erro ao carregar ranking: ${errorMsg}`)
     rankingData.value = []
   } finally {
     loading.value = false
@@ -113,12 +117,10 @@ onMounted(() => {
   loadRanking()
 })
 
-// Observa mudanças nos filtros e no trigger
 watch([filterState, filterTrigger], () => {
   loadRanking()
 }, { deep: true })
 
-// Os dados já vêm processados do backend (agrupados e com displayLabel)
 const groupedRanking = computed(() => {
   return rankingData.value
 })

@@ -144,16 +144,15 @@ export async function getRanking(
   }
   
   const errorMessage = response.error || 'Erro desconhecido ao buscar ranking'
-  console.error('Erro ao buscar ranking:', errorMessage)
   
   if (typeof response.data === 'object' && response.data !== null && 'error' in response.data) {
     const backendError = (response.data as { error?: string }).error
     if (backendError?.includes('Column not found') || backendError?.includes('Unknown column')) {
-      console.error('Erro SQL no backend:', backendError)
+      throw new Error('Erro no servidor: problema na consulta SQL. Contate o suporte.')
     }
   }
   
-  return null
+  throw new Error(errorMessage)
 }
 
 export async function getResumo(filters?: ProdutoFilters): Promise<ResumoPayload | null> {

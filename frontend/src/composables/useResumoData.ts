@@ -4,6 +4,7 @@ import type { FilterState } from './useGlobalFilters'
 import { getResumo } from '../api/modules/pobj.api'
 import { buildProdutoFilters, filtersEqual } from '../utils/filterUtils'
 import { useGlobalFilters } from './useGlobalFilters'
+import { useToast } from './useToast'
 
 const resumoPayload = ref<ResumoPayload | null>(null)
 const resumoLoading = ref(false)
@@ -22,7 +23,6 @@ const emptySnapshot: BusinessSnapshot = {
 }
 
 async function fetchResumo(filters: ProdutoFilters, force = false): Promise<void> {
-  // Se não for forçado e os filtros são iguais, não busca novamente
   if (!force && lastFilters.value && filtersEqual(lastFilters.value, filters)) {
     return
   }
@@ -31,20 +31,31 @@ async function fetchResumo(filters: ProdutoFilters, force = false): Promise<void
     return
   }
   
+  const { loading: showLoading, dismiss: dismissLoading, error: showError } = useToast()
+  const loadingId = showLoading('Carregando resumo...')
+  
   lastFilters.value = filters
   resumoLoading.value = true
   resumoError.value = null
 
   try {
     const data = await getResumo(filters)
+    dismissLoading(loadingId)
     if (data) {
       resumoPayload.value = data
+      const totalCards = (data.cards?.length || 0) + (data.classifiedCards?.length || 0)
+      if (totalCards > 0) {
+        showLoading(`Resumo carregado com ${totalCards} itens`, 'success', 2000)
+      }
     } else {
       resumoError.value = 'Não foi possível carregar o resumo'
+      showError('Não foi possível carregar o resumo')
     }
   } catch (error) {
-    console.error('Erro ao carregar resumo:', error)
-    resumoError.value = error instanceof Error ? error.message : 'Erro desconhecido'
+    dismissLoading(loadingId)
+    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido'
+    resumoError.value = errorMsg
+    showError(`Erro ao carregar resumo: ${errorMsg}`)
   } finally {
     resumoLoading.value = false
   }
@@ -58,15 +69,10 @@ export function useResumoData(
     watcherRegistered = true
     const { filterTrigger, filterState: globalFilterState, period: globalPeriod } = useGlobalFilters()
     
-    // Observa o filterTrigger para forçar busca quando o botão Filtrar é clicado
-    // Este é o watcher principal que dispara a busca
     watch(
       filterTrigger,
       async () => {
-        // Aguarda o próximo tick para garantir que as atualizações reativas foram aplicadas
         await nextTick()
-        // Força a busca mesmo se os filtros forem iguais (quando o usuário clica em Filtrar)
-        // Usa os valores globais para garantir que está lendo o estado mais recente
         const filters = buildProdutoFilters(globalFilterState.value, globalPeriod.value)
         fetchResumo(filters, true)
       },
