@@ -126,17 +126,6 @@ function getColumnTooltip(columnId: string) {
 const isCanceled = computed(() => {
   return !!props.node.detail?.dt_cancelamento
 })
-
-const contractId = computed(() => {
-  const id = props.node.label || ''
-  if (!id) return '—'
-  if (id.startsWith('CT-')) return id
-  const match = id.match(/(\d{4})-?(\d+)/)
-  if (match) {
-    return `${match[1]}-${match[2]}`
-  }
-  return id
-})
 </script>
 
 <template>
@@ -196,34 +185,18 @@ const contractId = computed(() => {
   <tr v-if="node.level === 'contrato' && expanded" class="tree-row tree-detail-row">
     <td :colspan="activeColumns.length + 2" class="tree-detail-cell">
       <div class="contract-detail-card">
-        <!-- Barra superior com resumo -->
-        <div class="contract-detail-card__header">
-          <div class="contract-detail-card__header-left">
-            <div class="contract-detail-card__id">
-              <span class="contract-detail-card__id-label">CT-{{ contractId }}</span>
-              <span v-if="isCanceled" class="contract-detail-card__badge contract-detail-card__badge--canceled">
-                <Icon name="alert-triangle" :size="16" />
-                Cancelado
-              </span>
-            </div>
-          </div>
-          <div class="contract-detail-card__header-center">
-            <div class="contract-detail-card__summary">
-              <span class="contract-detail-card__summary-item">{{ formatBRLReadable(node.summary.valor_realizado) }}</span>
-              <span class="contract-detail-card__summary-item">—</span>
-              <span class="contract-detail-card__summary-item">—</span>
-              <span class="contract-detail-card__summary-item">{{ formatBRLReadable(node.summary.meta_diaria) }}</span>
-              <span class="contract-detail-card__summary-item">{{ formatBRLReadable(node.summary.referencia_hoje) }}</span>
-              <span class="contract-detail-card__summary-item">{{ formatIntReadable(node.summary.pontos) }} pts</span>
-              <span class="contract-detail-card__summary-item">{{ formatBRLReadable(node.summary.meta_diaria_necessaria) }}</span>
-              <span class="contract-detail-card__summary-item">{{ formatIntReadable(node.summary.peso) }} pts</span>
-              <span class="contract-detail-card__summary-item">{{ formatBRLReadable(node.summary.projecao) }}</span>
-            </div>
-          </div>
-          <div class="contract-detail-card__header-right">
-            <span class="contract-detail-card__date">{{ formatDate(node.summary.data) }}</span>
-            <Icon name="ticket" class="contract-detail-card__icon" :size="20" />
-          </div>
+        <!-- Ações do card -->
+        <div class="contract-detail-card__actions">
+          <button
+            type="button"
+            class="contract-detail-card__action-btn"
+            title="Abrir chamado"
+            aria-label="Abrir chamado"
+            @click.stop="emit('action', { type: 'ticket', node })"
+          >
+            <Icon name="ticket" :size="18" />
+            <span>Abrir chamado</span>
+          </button>
         </div>
 
         <!-- Aviso de cancelamento -->
@@ -281,6 +254,7 @@ const contractId = computed(() => {
         :detail-open="false"
         :active-columns="activeColumns"
         @toggle="emit('toggle', $event)"
+        @action="emit('action', $event)"
       />
   </template>
 </template>
@@ -387,91 +361,42 @@ const contractId = computed(() => {
   font-family: var(--brad-font-family, inherit);
 }
 
-.contract-detail-card__header {
+.contract-detail-card__actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding: 16px 20px;
-  background: #fef2f2;
-  border-bottom: 1px solid #fee2e2;
-  gap: 16px;
-}
-
-.contract-detail-card__header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-shrink: 0;
-}
-
-.contract-detail-card__id {
-  display: flex;
-  align-items: center;
+  border-bottom: 1px solid var(--stroke, #e7eaf2);
   gap: 12px;
 }
 
-.contract-detail-card__id-label {
-  font-size: 15px;
-  font-weight: var(--brad-font-weight-bold, 700);
-  color: var(--brand, #cc092f);
-  font-family: var(--brad-font-family, inherit);
-}
-
-.contract-detail-card__badge {
+.contract-detail-card__action-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.contract-detail-card__badge--canceled {
-  background: #fee2e2;
-  color: #dc2626;
-  border: 1px solid #fecaca;
-}
-
-.contract-detail-card__header-center {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow-x: auto;
-}
-
-.contract-detail-card__summary {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  white-space: nowrap;
-}
-
-.contract-detail-card__summary-item {
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--stroke, #e7eaf2);
+  background: var(--panel, #fff);
+  color: var(--text, #0f1424);
   font-size: 13px;
   font-weight: var(--brad-font-weight-semibold, 600);
-  color: var(--text, #0f1424);
-  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
   font-family: var(--brad-font-family, inherit);
+  outline: none;
 }
 
-.contract-detail-card__header-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-shrink: 0;
+.contract-detail-card__action-btn:hover,
+.contract-detail-card__action-btn:focus-visible {
+  background: var(--brand-xlight, rgba(204, 9, 47, 0.12));
+  color: var(--brand, #cc092f);
+  border-color: var(--brand-light, rgba(204, 9, 47, 0.35));
+  outline: none;
 }
 
-.contract-detail-card__date {
-  font-size: 13px;
-  font-weight: var(--brad-font-weight-semibold, 600);
-  color: var(--text, #0f1424);
-  font-family: var(--brad-font-family, inherit);
-}
-
-.contract-detail-card__icon {
-  font-size: 20px;
-  color: var(--muted, #6b7280);
+.contract-detail-card__action-btn:active {
+  transform: translateY(1px);
 }
 
 .contract-detail-card__warning {
