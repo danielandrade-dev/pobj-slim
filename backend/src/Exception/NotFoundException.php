@@ -9,8 +9,8 @@ class NotFoundException extends AppException
 {
     public function __construct(
         string $message = 'Recurso não encontrado',
-        string $resource = null,
-        \Throwable $previous = null
+        ?string $resource = null,
+        ?\Throwable $previous = null
     ) {
         $details = [];
         if ($resource) {

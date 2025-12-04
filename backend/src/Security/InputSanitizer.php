@@ -58,7 +58,7 @@ class InputSanitizer
     }
 
     
-    public static function sanitizeInt($input, int $min = null, int $max = null): ?int
+    public static function sanitizeInt($input, ?int $min = null, ?int $max = null): ?int
     {
         if ($input === null) {
             return null;
@@ -83,7 +83,7 @@ class InputSanitizer
     }
 
     
-    public static function sanitizeFloat($input, float $min = null, float $max = null): ?float
+    public static function sanitizeFloat($input, ?float $min = null, ?float $max = null): ?float
     {
         if ($input === null) {
             return null;

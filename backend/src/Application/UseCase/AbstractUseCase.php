@@ -14,7 +14,7 @@ abstract class AbstractUseCase implements UseCaseInterface
         $this->repository = $repository;
     }
 
-    public function handle(FilterDTO $filters = null): array
+    public function handle(?FilterDTO $filters = null): array
     {
         return $this->repository->fetch($filters);
     }

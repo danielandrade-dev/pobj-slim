@@ -55,7 +55,7 @@ abstract class ControllerBase
     /**
      * Lança exceção de recurso não encontrado
      */
-    protected function throwNotFound(string $message = 'Recurso não encontrado', string $resource = null): void
+    protected function throwNotFound(string $message = 'Recurso não encontrado', ?string $resource = null): void
     {
         throw new NotFoundException($message, $resource);
     }

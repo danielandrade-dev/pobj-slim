@@ -16,7 +16,7 @@ class ApiKeyAuthenticator extends AbstractGuardAuthenticator
 {
     private $apiKey;
 
-    public function __construct(string $apiKey = null)
+    public function __construct(?string $apiKey = null)
     {
                 $this->apiKey = $apiKey ?? $_ENV['API_KEY'] ?? $_SERVER['API_KEY'] ?? null;
     }
@@ -78,7 +78,7 @@ class ApiKeyAuthenticator extends AbstractGuardAuthenticator
         ], 401);
     }
 
-    public function start(Request $request, AuthenticationException $authException = null)
+    public function start(Request $request, ?AuthenticationException $authException = null)
     {
         return new JsonResponse([
             'success' => false,
