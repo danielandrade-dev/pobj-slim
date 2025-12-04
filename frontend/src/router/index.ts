@@ -1,55 +1,47 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
-import Home from '../views/Home.vue'
-import Ranking from '../views/Ranking.vue'
-import Campanhas from '../views/Campanhas.vue'
-import Simuladores from '../views/Simuladores.vue'
-import Detalhes from '../views/Detalhes.vue'
-import VisaoExecutiva from '../views/VisaoExecutiva.vue'
-import Omega from '../views/Omega.vue'
-import NotFound from '../views/NotFound.vue'
 
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
     name: 'Home',
-    component: Home
+    component: () => import('../views/Home.vue')
   },
   {
     path: '/detalhes',
     name: 'Detalhes',
-    component: Detalhes,
+    component: () => import('../views/Detalhes.vue'),
     alias: ['/table']
   },
   {
     path: '/ranking',
     name: 'Ranking',
-    component: Ranking
+    component: () => import('../views/Ranking.vue')
   },
   {
     path: '/campanhas',
     name: 'Campanhas',
-    component: Campanhas
+    component: () => import('../views/Campanhas.vue')
   },
   {
     path: '/simuladores',
     name: 'Simuladores',
-    component: Simuladores
+    component: () => import('../views/Simuladores.vue')
   },
   {
     path: '/exec',
     name: 'VisaoExecutiva',
-    component: VisaoExecutiva
+    component: () => import('../views/VisaoExecutiva.vue')
   },
   {
     path: '/omega',
     name: 'Omega',
-    component: Omega
+    component: () => import('../views/Omega.vue')
   },
   {
     path: '/:pathMatch(.*)*',
     name: 'NotFound',
-    component: NotFound
+    component: () => import('../views/NotFound.vue')
   }
 ]
 
