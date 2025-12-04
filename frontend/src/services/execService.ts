@@ -47,8 +47,13 @@ export interface ExecHeatmapSection {
 
 export interface ExecHeatmap {
   units: ExecHeatmapUnit[]
-  sections: ExecHeatmapSection[]
-  data: Record<string, { real: number; meta: number }>
+  sectionsFamilia: ExecHeatmapSection[]
+  sectionsIndicador: ExecHeatmapSection[]
+  dataFamilia: Record<string, { real: number; meta: number }>
+  dataIndicador: Record<string, { real: number; meta: number }>
+  dataFamiliaMensal: Record<string, { real: number; meta: number }>
+  dataIndicadorMensal: Record<string, { real: number; meta: number }>
+  months: Array<{ key: string; label: string; year: number; month: number }>
 }
 
 export interface ExecData {

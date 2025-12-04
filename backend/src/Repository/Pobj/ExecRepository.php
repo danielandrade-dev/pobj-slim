@@ -10,6 +10,7 @@ use App\Entity\Pobj\DCalendario;
 use App\Entity\Pobj\DEstrutura;
 use App\Entity\Pobj\DProduto;
 use App\Entity\Pobj\Familia;
+use App\Entity\Pobj\Indicador;
 use App\Entity\Pobj\Regional;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -359,6 +360,7 @@ class ExecRepository extends ServiceEntityRepository
         $dProdutosTable = $this->getTableName(DProduto::class);
         $regionalTable = $this->getTableName(Regional::class);
         $familiaTable = $this->getTableName(Familia::class);
+        $indicadorTable = $this->getTableName(Indicador::class);
 
         $params = [];
         $whereClause = $this->buildWhereClause($filters, $params, false);
@@ -367,55 +369,100 @@ class ExecRepository extends ServiceEntityRepository
         $dataInicio = $filters ? $filters->getDataInicio() : null;
         $dataFim = $filters ? $filters->getDataFim() : null;
 
-        $dateFilterRealizados = '';
-        $dateFilterMeta = '';
-        
+        // Determina os meses a serem retornados (últimos 6 meses ou período especificado)
+        $months = [];
         if ($dataInicio && $dataFim) {
-            $dateFilterRealizados = " AND r.data_realizado >= :dataInicio AND r.data_realizado <= :dataFim";
-            $dateFilterMeta = " AND m.data_meta >= :dataInicio AND m.data_meta <= :dataFim";
-            $params['dataInicio'] = $dataInicio;
-            $params['dataFim'] = $dataFim;
+            $start = new \DateTime($dataInicio);
+            $end = new \DateTime($dataFim);
+            $current = clone $start;
+            while ($current <= $end) {
+                $months[] = [
+                    'key' => $current->format('Y-m'),
+                    'label' => $current->format('M Y'),
+                    'year' => (int)$current->format('Y'),
+                    'month' => (int)$current->format('m')
+                ];
+                $current->modify('+1 month');
+            }
+            if (count($months) > 6) {
+                $months = array_slice($months, -6);
+            }
         } else {
-            $currentYear = $today->format('Y');
-            $currentMonthNum = (int)$today->format('m');
-            $dateFilterRealizados = " AND YEAR(r.data_realizado) = :ano AND MONTH(r.data_realizado) = :mes";
-            $dateFilterMeta = " AND YEAR(m.data_meta) = :ano AND MONTH(m.data_meta) = :mes";
-            $params['ano'] = $currentYear;
-            $params['mes'] = $currentMonthNum;
+            for ($i = 5; $i >= 0; $i--) {
+                $date = clone $today;
+                $date->modify("-{$i} months");
+                $months[] = [
+                    'key' => $date->format('Y-m'),
+                    'label' => $date->format('M Y'),
+                    'year' => (int)$date->format('Y'),
+                    'month' => (int)$date->format('m')
+                ];
+            }
         }
 
+        // Query para dados por família (com dados mensais)
         $sql = "SELECT
                     CAST(reg.id AS CHAR) AS regional_id,
                     reg.nome AS regional_nome,
                     CAST(fam.id AS CHAR) AS familia_id,
                     fam.nm_familia AS familia_nome,
+                    CAST(ind.id AS CHAR) AS indicador_id,
+                    ind.nm_indicador AS indicador_nome,
+                    DATE_FORMAT(c.data, '%Y-%m') AS mes,
                     COALESCE(SUM(r.realizado), 0) AS realizado,
                     COALESCE(SUM(m.meta_mensal), 0) AS meta
                 FROM {$regionalTable} AS reg
                 INNER JOIN {$dEstruturaTable} AS est ON est.regional_id = reg.id
                 INNER JOIN {$fRealizadosTable} AS r ON r.funcional = est.funcional
+                INNER JOIN {$dCalendarioTable} AS c ON c.data = r.data_realizado
                 INNER JOIN {$dProdutosTable} AS prod ON prod.id = r.produto_id
                 INNER JOIN {$familiaTable} AS fam ON fam.id = prod.familia_id
+                INNER JOIN {$indicadorTable} AS ind ON ind.id = prod.indicador_id
                 LEFT JOIN {$fMetaTable} AS m ON m.produto_id = prod.id
                     AND m.funcional = est.funcional
-                WHERE reg.id IS NOT NULL {$whereClause}
-                GROUP BY reg.id, reg.nome, fam.id, fam.nm_familia
+                    AND m.data_meta = c.data
+                WHERE reg.id IS NOT NULL {$whereClause}";
+
+        if ($dataInicio && $dataFim) {
+            $sql .= " AND c.data >= :dataInicio AND c.data <= :dataFim";
+            $params['dataInicio'] = $dataInicio;
+            $params['dataFim'] = $dataFim;
+        } else {
+            $monthKeys = array_column($months, 'key');
+            $monthPlaceholders = [];
+            foreach ($monthKeys as $index => $key) {
+                $paramName = 'mes' . $index;
+                $monthPlaceholders[] = ':' . $paramName;
+                $params[$paramName] = $key;
+            }
+            $placeholders = implode(',', $monthPlaceholders);
+            $sql .= " AND DATE_FORMAT(c.data, '%Y-%m') IN ({$placeholders})";
+        }
+
+        $sql .= " GROUP BY reg.id, reg.nome, fam.id, fam.nm_familia, ind.id, ind.nm_indicador, DATE_FORMAT(c.data, '%Y-%m')
                 HAVING realizado > 0 OR meta > 0
-                ORDER BY reg.nome, fam.nm_familia";
+                ORDER BY reg.nome, fam.nm_familia, ind.nm_indicador, c.data";
 
         $conn = $this->getEntityManager()->getConnection();
         $result = $conn->executeQuery($sql, $params);
         
         // Processa resultados de forma mais eficiente em memória
         $units = [];
-        $sections = [];
-        $data = [];
+        $sectionsFamilia = [];
+        $sectionsIndicador = [];
+        $dataFamilia = [];
+        $dataIndicador = [];
+        $dataFamiliaMensal = [];
+        $dataIndicadorMensal = [];
 
         while ($row = $result->fetchAssociative()) {
             $regionalId = $row['regional_id'] ?? '';
             $regionalNome = $row['regional_nome'] ?? '';
             $familiaId = $row['familia_id'] ?? '';
             $familiaNome = $row['familia_nome'] ?? '';
+            $indicadorId = $row['indicador_id'] ?? '';
+            $indicadorNome = $row['indicador_nome'] ?? '';
+            $mes = $row['mes'] ?? '';
             $realizado = (float)($row['realizado'] ?? 0);
             $meta = (float)($row['meta'] ?? 0);
 
@@ -426,25 +473,77 @@ class ExecRepository extends ServiceEntityRepository
                 ];
             }
 
-            if (!isset($sections[$familiaId])) {
-                $sections[$familiaId] = [
+            // Seções por família
+            if (!isset($sectionsFamilia[$familiaId])) {
+                $sectionsFamilia[$familiaId] = [
                     'id' => $familiaId,
                     'label' => $familiaNome
                 ];
             }
 
-            $key = "{$regionalId}|{$familiaId}";
-            $data[$key] = [
-                'real' => $realizado,
-                'meta' => $meta
-            ];
+            // Seções por indicador
+            if (!isset($sectionsIndicador[$indicadorId])) {
+                $sectionsIndicador[$indicadorId] = [
+                    'id' => $indicadorId,
+                    'label' => $indicadorNome
+                ];
+            }
+
+            // Dados agregados por família (sem mês)
+            $keyFamilia = "{$regionalId}|{$familiaId}";
+            if (!isset($dataFamilia[$keyFamilia])) {
+                $dataFamilia[$keyFamilia] = [
+                    'real' => 0,
+                    'meta' => 0
+                ];
+            }
+            $dataFamilia[$keyFamilia]['real'] += $realizado;
+            $dataFamilia[$keyFamilia]['meta'] += $meta;
+
+            // Dados agregados por indicador (sem mês)
+            $keyIndicador = "{$regionalId}|{$indicadorId}";
+            if (!isset($dataIndicador[$keyIndicador])) {
+                $dataIndicador[$keyIndicador] = [
+                    'real' => 0,
+                    'meta' => 0
+                ];
+            }
+            $dataIndicador[$keyIndicador]['real'] += $realizado;
+            $dataIndicador[$keyIndicador]['meta'] += $meta;
+
+            // Dados mensais por família (para calcular variação)
+            $keyFamiliaMensal = "{$regionalId}|{$familiaId}|{$mes}";
+            if (!isset($dataFamiliaMensal[$keyFamiliaMensal])) {
+                $dataFamiliaMensal[$keyFamiliaMensal] = [
+                    'real' => 0,
+                    'meta' => 0
+                ];
+            }
+            $dataFamiliaMensal[$keyFamiliaMensal]['real'] += $realizado;
+            $dataFamiliaMensal[$keyFamiliaMensal]['meta'] += $meta;
+
+            // Dados mensais por indicador (para calcular variação)
+            $keyIndicadorMensal = "{$regionalId}|{$indicadorId}|{$mes}";
+            if (!isset($dataIndicadorMensal[$keyIndicadorMensal])) {
+                $dataIndicadorMensal[$keyIndicadorMensal] = [
+                    'real' => 0,
+                    'meta' => 0
+                ];
+            }
+            $dataIndicadorMensal[$keyIndicadorMensal]['real'] += $realizado;
+            $dataIndicadorMensal[$keyIndicadorMensal]['meta'] += $meta;
         }
         $result->free();
 
         return [
             'units' => array_values($units),
-            'sections' => array_values($sections),
-            'data' => $data
+            'sectionsFamilia' => array_values($sectionsFamilia),
+            'sectionsIndicador' => array_values($sectionsIndicador),
+            'dataFamilia' => $dataFamilia,
+            'dataIndicador' => $dataIndicador,
+            'dataFamiliaMensal' => $dataFamiliaMensal,
+            'dataIndicadorMensal' => $dataIndicadorMensal,
+            'months' => $months
         ];
     }
 

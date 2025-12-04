@@ -19,7 +19,7 @@ const atingimento = computed(() => {
 })
 
 const defasagem = computed(() => {
-  return props.kpis.real_mens - props.kpis.meta_mens
+  return props.kpis.meta_mens - props.kpis.real_mens
 })
 
 const forecast = computed(() => {
@@ -70,7 +70,7 @@ const moneyBadgeClass = (v: number): string => {
       <div class="kpi-card__value" :class="moneyBadgeClass(defasagem)" :title="formatBRL(defasagem)">
         {{ formatBRLReadable(defasagem) }}
       </div>
-      <div class="kpi-sub muted">Real – Meta (mês)</div>
+      <div class="kpi-sub muted">Meta – Real (mês)</div>
     </div>
 
     <div class="kpi-card">

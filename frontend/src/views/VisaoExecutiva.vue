@@ -41,8 +41,13 @@ const chartData = computed(() => execData.value?.chart || {
 
 const heatmap = computed(() => execData.value?.heatmap || {
   units: [],
-  sections: [],
-  data: {}
+  sectionsFamilia: [],
+  sectionsIndicador: [],
+  dataFamilia: {},
+  dataIndicador: {},
+  dataFamiliaMensal: {},
+  dataIndicadorMensal: {},
+  months: []
 })
 
 
