@@ -4,7 +4,7 @@ function parseNumber(value: number | string | null | undefined): number {
   return Number.isFinite(num) ? num : 0
 }
 
-function formatCurrency(value: number): string {
+function formatCurrencyValue(value: number): string {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
@@ -29,7 +29,7 @@ function formatDecimal(value: number, decimals = 2): string {
 
 export function formatBRL(value: number | string | null | undefined): string {
   const num = parseNumber(value)
-  return formatCurrency(num)
+  return formatCurrencyValue(num)
 }
 
 export function formatPoints(value: number | string | null | undefined, options?: { withUnit?: boolean }): string {
@@ -128,7 +128,7 @@ export function formatMetricFull(metric: string, value: number | string | null |
   const metricType = getMetricType(metric)
   
   if (metricType === 'currency') {
-    return formatCurrency(num)
+    return formatCurrencyValue(num)
   }
   if (metricType === 'percent') {
     return new Intl.NumberFormat('pt-BR', {
