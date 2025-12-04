@@ -1,57 +1,45 @@
+function removeTrailingSlash(url: string): string {
+  return url.replace(/\/$/, '')
+}
+
+function getWindowGlobal(key: string): string | undefined {
+  if (typeof window === 'undefined') return undefined
+  const value = (window as Record<string, unknown>)[key]
+  return value ? String(value).trim() : undefined
+}
+
 export function getApiBaseUrl(): string {
-  // 1. Prioridade máxima: variável global injetada pelo backend (SSR, Nginx, index.html)
-  if (typeof window !== 'undefined' && (window as any).API_HTTP_BASE) {
-    const base = String((window as any).API_HTTP_BASE).trim()
-    if (base) return base.replace(/\/$/, '')
-  }
+  const globalBase = getWindowGlobal('API_HTTP_BASE')
+  if (globalBase) return removeTrailingSlash(globalBase)
 
-  // 2. Prioridade do frontend (sempre funciona)
   const envUrl = import.meta.env.VITE_API_URL
-  if (envUrl) return envUrl.replace(/\/$/, '')
+  if (envUrl) return removeTrailingSlash(envUrl)
 
-  // 3. Ambiente de desenvolvimento (vite)
   if (import.meta.env.DEV && typeof window !== 'undefined') {
-    const host = window.location.hostname
-    const protocol = window.location.protocol
+    const { hostname, protocol, origin } = window.location
     const port = import.meta.env.VITE_API_PORT
+    const isIp = /^\d+\.\d+\.\d+\.\d+$/.test(hostname)
 
-    // Acesso por IP diretamente no browser
-    const isIp = /^\d+\.\d+\.\d+\.\d+$/.test(host)
-
-    if (isIp) {
-      if (port) return `${protocol}//${host}:${port}`.replace(/\/$/, '')
-      return window.location.origin.replace(/\/$/, '')
+    if (isIp && port) {
+      return removeTrailingSlash(`${protocol}//${hostname}:${port}`)
     }
 
-    // localhost → usar origin (proxy do Vite resolve)
-    return window.location.origin.replace(/\/$/, '')
+    return removeTrailingSlash(origin)
   }
 
-  // 4. Produção
   if (typeof window !== 'undefined') {
-    return window.location.origin.replace(/\/$/, '')
+    return removeTrailingSlash(window.location.origin)
   }
 
-  // 5. SSR/fallback
   return 'http://localhost:8081'
 }
 
-/**
- * Obtém a API Key para autenticação
- * Prioridade:
- * 1. Variável global injetada (window.API_KEY)
- * 2. Variável de ambiente VITE_API_KEY
- */
 export function getApiKey(): string | null {
-  if (typeof window !== 'undefined' && (window as any).API_KEY) {
-    const key = String((window as any).API_KEY).trim()
-    if (key) return key
-  }
+  const globalKey = getWindowGlobal('API_KEY')
+  if (globalKey) return globalKey
 
   const envKey = import.meta.env.VITE_API_KEY
-  if (envKey) return String(envKey).trim()
-
-  return null
+  return envKey ? String(envKey).trim() : null
 }
 
 export const API_BASE_URL = getApiBaseUrl()

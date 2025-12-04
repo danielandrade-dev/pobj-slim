@@ -1,37 +1,46 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, inject } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import Icon from './Icon.vue'
 
 const userMenuOpen = ref(false)
 const submenuOpen = ref<string | null>(null)
 const userboxRef = ref<HTMLElement | null>(null)
 
-const toggleUserMenu = (): void => {
+function toggleUserMenu(): void {
   userMenuOpen.value = !userMenuOpen.value
   if (!userMenuOpen.value) {
     submenuOpen.value = null
   }
 }
 
-const closeUserMenu = (): void => {
+function closeUserMenu(): void {
   userMenuOpen.value = false
   submenuOpen.value = null
 }
 
-const toggleSubmenu = (submenu: string): void => {
+function toggleSubmenu(submenu: string): void {
   submenuOpen.value = submenuOpen.value === submenu ? null : submenu
 }
 
-const handleClickOutside = (event: MouseEvent): void => {
-  if (userboxRef.value && !userboxRef.value.contains(event.target as Node)) {
+function handleClickOutside(event: MouseEvent): void {
+  if (userboxRef.value?.contains(event.target as Node)) return
+  closeUserMenu()
+}
+
+function handleEscape(event: KeyboardEvent): void {
+  if (event.key === 'Escape' && userMenuOpen.value) {
     closeUserMenu()
   }
 }
 
-const handleEscape = (event: KeyboardEvent): void => {
-  if (event.key === 'Escape' && userMenuOpen.value) {
-    closeUserMenu()
+function handleMenuAction(action: string): void {
+  if (action === 'omega') {
+    const basePath = window.location.pathname.replace(/\/[^/]*$/, '')
+    const omegaUrl = `${window.location.origin}${basePath}/omega`
+    window.open(omegaUrl, '_blank')
   }
+
+  userMenuOpen.value = false
 }
 
 onMounted(() => {
@@ -43,21 +52,6 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
   document.removeEventListener('keydown', handleEscape)
 })
-
-const handleMenuAction = async (action: string): Promise<void> => {
-  if (action === 'omega') {
-    // Abre o Omega em nova aba
-    const omegaUrl = `${window.location.origin}${window.location.pathname.replace(/\/[^/]*$/, '')}/omega`
-    window.open(omegaUrl, '_blank')
-    userMenuOpen.value = false
-    return
-  }
-
-  if (action === 'logout') {
-  }
-
-  userMenuOpen.value = false
-}
 </script>
 
 <template>

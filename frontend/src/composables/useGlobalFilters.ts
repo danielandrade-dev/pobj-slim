@@ -19,28 +19,28 @@ const filterState = ref<FilterState>({})
 const period = ref<Period>(getDefaultPeriod())
 const filterTrigger = ref<number>(0)
 
+const isEmptyValue = (value: string | undefined): boolean => {
+  return !value || value === '' || value === 'Todos' || value === 'Todas'
+}
+
 export function useGlobalFilters() {
-  const updateFilter = (key: keyof FilterState, value: string | undefined): void => {
-    if (value === '' || value === 'Todos' || value === 'Todas') {
-      filterState.value[key] = undefined
-    } else {
-      filterState.value[key] = value
-    }
+  function updateFilter(key: keyof FilterState, value: string | undefined): void {
+    filterState.value[key] = isEmptyValue(value) ? undefined : value
   }
 
-  const updatePeriod = (newPeriod: Period): void => {
+  function updatePeriod(newPeriod: Period): void {
     period.value = { ...newPeriod }
   }
 
-  const clearFilters = (): void => {
+  function clearFilters(): void {
     filterState.value = {}
   }
 
-  const clearFilter = (key: keyof FilterState): void => {
+  function clearFilter(key: keyof FilterState): void {
     filterState.value[key] = undefined
   }
 
-  const triggerFilter = (): void => {
+  function triggerFilter(): void {
     filterTrigger.value = Date.now()
   }
 

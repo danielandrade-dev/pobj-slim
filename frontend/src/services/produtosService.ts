@@ -4,25 +4,36 @@ import type { Produto, ProdutoFilters, ProdutoMensal } from '../types'
 
 export type { Produto, ProdutoFilters, ProdutoMensal } from '../types'
 
-export async function getProdutos(filters?: ProdutoFilters): Promise<Produto[] | null> {
+function buildFilterParams(filters?: ProdutoFilters): Record<string, string> {
+  if (!filters) return {}
+
   const params: Record<string, string> = {}
-  
-  if (filters) {
-    if (filters.segmento) params.segmento = filters.segmento
-    if (filters.diretoria) params.diretoria = filters.diretoria
-    if (filters.regional) params.regional = filters.regional
-    if (filters.agencia) params.agencia = filters.agencia
-    if (filters.gerenteGestao) params.gerenteGestao = filters.gerenteGestao
-    if (filters.gerente) params.gerente = filters.gerente
-    if (filters.familia) params.familia = filters.familia
-    if (filters.indicador) params.indicador = filters.indicador
-    if (filters.subindicador) params.subindicador = filters.subindicador
-    if (filters.dataInicio) params.dataInicio = filters.dataInicio
-    if (filters.dataFim) params.dataFim = filters.dataFim
-    if (filters.status) params.status = filters.status
-  }
-  
-  const response = await apiGet<Produto[]>(ApiRoutes.PRODUTOS, params)
+  const filterKeys: Array<keyof ProdutoFilters> = [
+    'segmento',
+    'diretoria',
+    'regional',
+    'agencia',
+    'gerenteGestao',
+    'gerente',
+    'familia',
+    'indicador',
+    'subindicador',
+    'dataInicio',
+    'dataFim',
+    'status'
+  ]
+
+  filterKeys.forEach((key) => {
+    const value = filters[key]
+    if (value) params[key] = value
+  })
+
+  return params
+}
+
+async function fetchProdutos<T>(route: string, filters?: ProdutoFilters): Promise<T[] | null> {
+  const params = buildFilterParams(filters)
+  const response = await apiGet<T[]>(route, params)
 
   if (response.success && response.data) {
     return response.data
@@ -32,31 +43,11 @@ export async function getProdutos(filters?: ProdutoFilters): Promise<Produto[] |
   return null
 }
 
+export async function getProdutos(filters?: ProdutoFilters): Promise<Produto[] | null> {
+  return fetchProdutos<Produto>(ApiRoutes.PRODUTOS, filters)
+}
+
 export async function getProdutosMensais(filters?: ProdutoFilters): Promise<ProdutoMensal[] | null> {
-  const params: Record<string, string> = {}
-  
-  if (filters) {
-    if (filters.segmento) params.segmento = filters.segmento
-    if (filters.diretoria) params.diretoria = filters.diretoria
-    if (filters.regional) params.regional = filters.regional
-    if (filters.agencia) params.agencia = filters.agencia
-    if (filters.gerenteGestao) params.gerenteGestao = filters.gerenteGestao
-    if (filters.gerente) params.gerente = filters.gerente
-    if (filters.familia) params.familia = filters.familia
-    if (filters.indicador) params.indicador = filters.indicador
-    if (filters.subindicador) params.subindicador = filters.subindicador
-    if (filters.dataInicio) params.dataInicio = filters.dataInicio
-    if (filters.dataFim) params.dataFim = filters.dataFim
-    if (filters.status) params.status = filters.status
-  }
-  
-  const response = await apiGet<ProdutoMensal[]>('/api/produtos/mensais', params)
-
-  if (response.success && response.data) {
-    return response.data
-  }
-
-  console.error('Erro ao buscar produtos mensais:', response.error)
-  return null
+  return fetchProdutos<ProdutoMensal>('/api/produtos/mensais', filters)
 }
 
