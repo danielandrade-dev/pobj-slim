@@ -1,34 +1,46 @@
-export function formatBRL(value: number | string | null | undefined): string {
-  if (value === null || value === undefined || value === '') return 'R$ 0,00'
+function parseNumber(value: number | string | null | undefined): number {
+  if (value === null || value === undefined || value === '') return 0
   const num = typeof value === 'string' ? parseFloat(value) : value
-  if (isNaN(num)) return 'R$ 0,00'
+  return Number.isFinite(num) ? num : 0
+}
+
+function formatCurrencyValue(value: number): string {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
-  }).format(num)
+  }).format(value)
+}
+
+function formatInteger(value: number): string {
+  return new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
+  }).format(Math.round(value))
+}
+
+function formatDecimal(value: number, decimals = 2): string {
+  return new Intl.NumberFormat('pt-BR', {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals
+  }).format(value)
+}
+
+export function formatBRL(value: number | string | null | undefined): string {
+  const num = parseNumber(value)
+  return formatCurrencyValue(num)
 }
 
 export function formatPoints(value: number | string | null | undefined, options?: { withUnit?: boolean }): string {
-  if (value === null || value === undefined || value === '') return options?.withUnit ? '0 pts' : '0'
-  const num = typeof value === 'string' ? parseFloat(value) : value
-  if (isNaN(num)) return options?.withUnit ? '0 pts' : '0'
-  const formatted = new Intl.NumberFormat('pt-BR', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(Math.round(num))
+  const num = parseNumber(value)
+  const formatted = formatInteger(num)
   return options?.withUnit ? `${formatted} pts` : formatted
 }
 
 export function formatPeso(value: number | string | null | undefined): string {
-  if (value === null || value === undefined || value === '') return '0'
-  const num = typeof value === 'string' ? parseFloat(value) : value
-  if (isNaN(num)) return '0'
-  return new Intl.NumberFormat('pt-BR', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  }).format(num)
+  const num = parseNumber(value)
+  return formatDecimal(num, 2)
 }
 
 const SUFFIX_RULES = [
@@ -41,14 +53,8 @@ const SUFFIX_RULES = [
 const CURRENCY_SYMBOL = 'R$'
 const CURRENCY_LITERAL = ' '
 
-function toNumber(value: number | string | null | undefined): number {
-  if (value === null || value === undefined || value === '') return 0
-  const n = typeof value === 'string' ? parseFloat(value) : value
-  return Number.isFinite(n) ? n : 0
-}
-
 export function formatNumberWithSuffix(value: number | string | null | undefined, options: { currency?: boolean } = {}): string {
-  const n = toNumber(value)
+  const n = parseNumber(value)
   if (!Number.isFinite(n)) {
     return options.currency ? formatBRL(0) : '0'
   }
@@ -56,95 +62,82 @@ export function formatNumberWithSuffix(value: number | string | null | undefined
   const abs = Math.abs(n)
   
   if (abs < 1000) {
-    return options.currency ? formatBRL(n) : new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 }).format(Math.round(n))
+    return options.currency ? formatBRL(n) : formatInteger(n)
   }
   
   const rule = SUFFIX_RULES.find(r => abs >= r.value)
   if (!rule) {
-    return options.currency ? formatBRL(n) : new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 }).format(Math.round(n))
+    return options.currency ? formatBRL(n) : formatInteger(n)
   }
   
   const absScaled = abs / rule.value
   const nearInteger = Math.abs(absScaled - Math.round(absScaled)) < 0.05
+  const digits = absScaled >= 100 ? 0 : nearInteger ? 0 : 1
   
-  let digits: number
-  if (absScaled >= 100) {
-    digits = 0
-  } else if (absScaled >= 10) {
-    digits = nearInteger ? 0 : 1
-  } else {
-    digits = nearInteger ? 0 : 1
-  }
-  
-  const numberFmt = new Intl.NumberFormat('pt-BR', {
+  const formatted = new Intl.NumberFormat('pt-BR', {
     minimumFractionDigits: digits,
     maximumFractionDigits: digits
-  })
+  }).format(absScaled)
   
-  const formatted = numberFmt.format(absScaled)
   const isSingular = Math.abs(absScaled - 1) < 0.05
   const label = isSingular ? rule.singular : rule.plural
+  const sign = n < 0 ? '-' : ''
   
   if (options.currency) {
-    const sign = n < 0 ? '-' : ''
     return `${sign}${CURRENCY_SYMBOL}${CURRENCY_LITERAL}${formatted} ${label}`
   }
   
-  const sign = n < 0 ? '-' : ''
   return `${sign}${formatted} ${label}`
 }
 
-export function formatByMetric(metric: string, value: number | string | null | undefined): string {
-  if (value === null || value === undefined || value === '') return 'N/A'
-  const num = typeof value === 'string' ? parseFloat(value) : value
-  if (isNaN(num)) return 'N/A'
-
+function getMetricType(metric: string): 'currency' | 'quantity' | 'percent' {
   const metricLower = metric?.toLowerCase() || 'valor'
   
-  switch (metricLower) {
-    case 'valor':
-    case 'brl':
-    case 'variavel':
-      return formatNumberWithSuffix(num, { currency: true })
-    case 'qtd':
-    case 'quantidade':
-      return formatNumberWithSuffix(num, { currency: false })
-    case 'perc':
-    case 'percentual':
-    case 'percent':
-      return new Intl.NumberFormat('pt-BR', { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(num / 100)
-    default:
-      return formatNumberWithSuffix(num, { currency: false })
+  if (['valor', 'brl', 'variavel'].includes(metricLower)) {
+    return 'currency'
   }
+  if (['perc', 'percentual', 'percent'].includes(metricLower)) {
+    return 'percent'
+  }
+  return 'quantity'
+}
+
+export function formatByMetric(metric: string, value: number | string | null | undefined): string {
+  const num = parseNumber(value)
+  if (!Number.isFinite(num)) return 'N/A'
+
+  const metricType = getMetricType(metric)
+  
+  if (metricType === 'currency') {
+    return formatNumberWithSuffix(num, { currency: true })
+  }
+  if (metricType === 'percent') {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'percent',
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1
+    }).format(num / 100)
+  }
+  return formatNumberWithSuffix(num, { currency: false })
 }
 
 export function formatMetricFull(metric: string, value: number | string | null | undefined): string {
-  if (value === null || value === undefined || value === '') return 'N/A'
-  const num = typeof value === 'string' ? parseFloat(value) : value
-  if (isNaN(num)) return 'N/A'
+  const num = parseNumber(value)
+  if (!Number.isFinite(num)) return 'N/A'
 
-  const metricLower = metric?.toLowerCase() || 'valor'
+  const metricType = getMetricType(metric)
   
-  switch (metricLower) {
-    case 'valor':
-    case 'brl':
-    case 'variavel':
-      return new Intl.NumberFormat('pt-BR', {
-        style: 'currency',
-        currency: 'BRL',
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }).format(num)
-    case 'qtd':
-    case 'quantidade':
-      return new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 }).format(num)
-    case 'perc':
-    case 'percentual':
-    case 'percent':
-      return new Intl.NumberFormat('pt-BR', { style: 'percent', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num / 100)
-    default:
-      return String(num)
+  if (metricType === 'currency') {
+    return formatCurrencyValue(num)
   }
+  if (metricType === 'percent') {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'percent',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(num / 100)
+  }
+  return formatDecimal(num, 2)
 }
 
 export function formatBRLReadable(value: number | string | null | undefined): string {
@@ -156,13 +149,8 @@ export function formatIntReadable(value: number | string | null | undefined): st
 }
 
 export function formatINT(value: number | string | null | undefined): string {
-  if (value === null || value === undefined || value === '') return '0'
-  const num = typeof value === 'string' ? parseFloat(value) : value
-  if (isNaN(num)) return '0'
-  return new Intl.NumberFormat('pt-BR', {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(Math.round(num))
+  const num = parseNumber(value)
+  return formatInteger(num)
 }
 
 export function formatCurrency(value: number | string | null | undefined): string {

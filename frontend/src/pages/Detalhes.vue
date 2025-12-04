@@ -2,16 +2,20 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import Icon from '../components/Icon.vue'
-import type { DetalhesItem } from '../services/detalhesService'
+import type { DetalhesItem } from '../api/modules/pobj.api'
 import { useGlobalFilters } from '../composables/useGlobalFilters'
 import { usePeriodManager } from '../composables/usePeriodManager'
 import { useDetalhesData } from '../composables/useDetalhesData'
-import { formatINT, formatCurrency, formatDate } from '../utils/formatUtils'
+import { useDetalhesTree } from '../composables/useDetalhesTree'
+import { formatINT } from '../utils/formatUtils'
 import TreeTableRow, { type TreeNode } from '../components/TreeTableRow.vue'
 import TableViewChips from '../components/TableViewChips.vue'
 import DetailViewBar, { type DetailView } from '../components/DetailViewBar.vue'
 import AppliedFiltersBar from '../components/AppliedFiltersBar.vue'
 import DetailColumnDesigner from '../components/DetailColumnDesigner.vue'
+import DetalhesToolbar from '../components/detalhes/DetalhesToolbar.vue'
+import DetalhesSearch from '../components/detalhes/DetalhesSearch.vue'
+import DetalhesCards from '../components/detalhes/DetalhesCards.vue'
 
 const router = useRouter()
 const { filterState } = useGlobalFilters()
@@ -28,6 +32,7 @@ const sortState = ref<{ id: string | null; direction: 'asc' | 'desc' | null }>({
   id: null,
   direction: null
 })
+
 const AVAILABLE_COLUMNS: string[] = [
   'realizado',
   'meta',
@@ -77,17 +82,7 @@ const detailViews = ref<DetailView[]>([
   }
 ])
 
-const LEVEL_HIERARCHY: Record<string, string[]> = {
-  diretoria: ['diretoria', 'regional', 'agencia', 'gerente', 'familia', 'indicador', 'subindicador', 'contrato'],
-  gerencia: ['regional', 'agencia', 'gerente', 'familia', 'indicador', 'subindicador', 'contrato'],
-  agencia: ['agencia', 'gerente', 'familia', 'indicador', 'subindicador', 'contrato'],
-  gGestao: ['gGestao', 'gerente', 'familia', 'indicador', 'subindicador', 'contrato'],
-  gerente: ['gerente', 'familia', 'indicador', 'subindicador', 'contrato'],
-  secao: ['familia', 'indicador', 'subindicador', 'contrato'],
-  familia: ['indicador', 'subindicador', 'contrato'],
-  prodsub: ['subindicador', 'contrato'],
-  contrato: ['contrato']
-}
+const { treeData: baseTreeData, calculateSummary } = useDetalhesTree(detalhesData, tableView, searchTerm)
 
 function getSortValue(node: TreeNode, columnId: string): number | string {
   if (columnId === '__label__') {
@@ -236,239 +231,16 @@ const contratosData = computed(() => {
 })
 
 const treeData = computed(() => {
-  if (!detalhesData.value.length || searchTerm.value.trim()) return []
-
-  const hierarchy: string[] = (LEVEL_HIERARCHY[tableView.value] as string[]) || LEVEL_HIERARCHY.diretoria
-
-  let result: TreeNode[] = []
-
-  if (tableView.value === 'contrato') {
-    const contratos = new Map<string, DetalhesItem[]>()
-    detalhesData.value.forEach(item => {
-      const key = item.id_contrato || item.registro_id || 'sem-contrato'
-      if (!contratos.has(key)) {
-        contratos.set(key, [])
-      }
-      contratos.get(key)!.push(item)
-    })
-
-    contratos.forEach((items, contratoId) => {
-      const firstItem = items[0]
-      if (!firstItem) return
-      result.push({
-        id: `contrato-${contratoId}`,
-        label: contratoId,
-        level: 'contrato' as const,
-        children: [],
-        data: items,
-        summary: calculateSummary(items),
-        detail: {
-          canal_venda: firstItem.canal_venda,
-          tipo_venda: firstItem.tipo_venda,
-          gerente: firstItem.gerente_nome,
-          gerente_gestao: firstItem.gerente_gestao_nome,
-          modalidade_pagamento: firstItem.modalidade_pagamento,
-          dt_vencimento: firstItem.dt_vencimento,
-          dt_cancelamento: firstItem.dt_cancelamento,
-          motivo_cancelamento: firstItem.motivo_cancelamento
-        }
-      })
-    })
-  } else {
-    const hierarchyArray: string[] = hierarchy || LEVEL_HIERARCHY.diretoria
-    result = buildTreeHierarchy(detalhesData.value, hierarchyArray, 0)
-  }
-
-  return sortNodes(result)
+  return sortNodes(baseTreeData.value)
 })
 
 const showCards = computed(() => searchTerm.value.trim().length > 0)
 
-function recalculateSummaryFromChildren(node: TreeNode): void {
-  // Primeiro, recalcula recursivamente todos os filhos
-  node.children.forEach(child => recalculateSummaryFromChildren(child))
-
-  // Se o nó tem filhos, recalcula pontos e peso somando dos filhos
-  if (node.children.length > 0) {
-    const pontosFromChildren = node.children.reduce((sum, child) => sum + (child.summary.pontos || 0), 0)
-    const pesoFromChildren = node.children.reduce((sum, child) => sum + (child.summary.peso || 0), 0)
-
-    // Atualiza pontos e peso no summary do nó pai
-    node.summary.pontos = pontosFromChildren
-    node.summary.peso = pesoFromChildren
-  }
-}
-
-function buildTreeHierarchy(items: DetalhesItem[], hierarchy: string[], level: number): TreeNode[] {
-  if (level >= hierarchy.length || items.length === 0) return []
-
-  const currentLevel = hierarchy[level]
-  const nextLevel = hierarchy[level + 1]
-
-  const groups = new Map<string, DetalhesItem[]>()
-
-  items.forEach(item => {
-    let key: string
-    let label: string
-
-    switch (currentLevel) {
-      case 'diretoria':
-        key = item.diretoria_id || 'sem-diretoria'
-        label = item.diretoria_nome || 'Sem diretoria'
-        break
-      case 'regional':
-        key = item.gerencia_id || 'sem-regional'
-        label = item.gerencia_nome || 'Sem regional'
-        break
-      case 'agencia':
-        key = item.agencia_id || 'sem-agencia'
-        label = item.agencia_nome || 'Sem agência'
-        break
-      case 'gGestao':
-        key = item.gerente_gestao_id || 'sem-gerente-gestao'
-        label = item.gerente_gestao_nome || 'Sem gerente de gestão'
-        break
-      case 'gerente':
-        key = item.gerente_id || 'sem-gerente'
-        label = item.gerente_nome || 'Sem gerente'
-        break
-      case 'familia':
-        key = item.familia_id || 'sem-familia'
-        label = item.familia_nome || 'Sem família'
-        break
-      case 'indicador':
-        key = item.id_indicador || 'sem-indicador'
-        label = item.ds_indicador || 'Sem indicador'
-        break
-      case 'subindicador':
-        key = item.id_subindicador || 'sem-subindicador'
-         
-        label = item.subindicador || 'Sem subindicador'
-        break
-      case 'contrato':
-        key = item.id_contrato || item.registro_id || 'sem-contrato'
-        // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        label = key
-        break
-      default:
-        key = 'unknown'
-    }
-
-    if (!groups.has(key)) {
-      groups.set(key, [])
-    }
-    groups.get(key)!.push(item)
-  })
-
-  const nodes: TreeNode[] = []
-
-  groups.forEach((groupItems, key) => {
-    const firstItem = groupItems[0]
-    if (!firstItem) return
-
-    let label = firstItem.diretoria_nome || 'Sem label'
-
-    switch (currentLevel) {
-      case 'diretoria':
-        label = firstItem.diretoria_nome || 'Sem diretoria'
-        break
-      case 'regional':
-        label = firstItem.gerencia_nome || 'Sem regional'
-        break
-      case 'agencia':
-        label = firstItem.agencia_nome || 'Sem agência'
-        break
-      case 'gGestao':
-        label = firstItem.gerente_gestao_nome || 'Sem gerente de gestão'
-        break
-      case 'gerente':
-        label = firstItem.gerente_nome || 'Sem gerente'
-        break
-      case 'familia':
-        label = firstItem.familia_nome || 'Sem família'
-        break
-      case 'indicador':
-        label = firstItem.ds_indicador || 'Sem indicador'
-        break
-      case 'subindicador':
-        label = firstItem.subindicador || 'Sem subindicador'
-        break
-      case 'contrato':
-        label = firstItem.id_contrato || firstItem.registro_id || 'Sem contrato'
-        break
-    }
-
-    const node: TreeNode = {
-      id: `${currentLevel}-${key}`,
-      label,
-      level: currentLevel as any,
-      children: nextLevel ? buildTreeHierarchy(groupItems, hierarchy, level + 1) : [],
-      data: groupItems,
-      summary: calculateSummary(groupItems)
-    }
-
-    if (currentLevel === 'contrato') {
-      node.detail = {
-        canal_venda: firstItem.canal_venda || undefined,
-        tipo_venda: firstItem.tipo_venda || undefined,
-        gerente: firstItem.gerente_nome || undefined,
-        modalidade_pagamento: firstItem.modalidade_pagamento || undefined,
-        dt_vencimento: firstItem.dt_vencimento || undefined,
-        dt_cancelamento: firstItem.dt_cancelamento || undefined,
-        motivo_cancelamento: firstItem.motivo_cancelamento || undefined
-      }
-    }
-
-    nodes.push(node)
-  })
-
-  // Recalcula pontos e peso dos nós pais baseado nos filhos
-  nodes.forEach(node => recalculateSummaryFromChildren(node))
-
-  return nodes
-}
-
-function calculateSummary(items: DetalhesItem[]) {
-  const valor_realizado = items.reduce((sum, item) => sum + (item.valor_realizado || 0), 0)
-  const valor_meta = items.reduce((sum, item) => sum + (item.valor_meta || item.meta_mensal || 0), 0)
-  const pontos = items.reduce((sum, item) => sum + (item.peso || 0), 0)
-  const peso = items.reduce((sum, item) => sum + (item.peso || 0), 0)
-
-  const diasTotais = 30
-  const diasDecorridos = new Date().getDate()
-  const diasRestantes = Math.max(1, diasTotais - diasDecorridos)
-
-  const meta_diaria = diasTotais > 0 ? (valor_meta / diasTotais) : 0
-  const referencia_hoje = diasDecorridos > 0 ? Math.min(valor_meta, meta_diaria * diasDecorridos) : 0
-  const meta_diaria_necessaria = diasRestantes > 0 ? Math.max(0, (valor_meta - valor_realizado) / diasRestantes) : 0
-  const projecao = diasDecorridos > 0 ? (valor_realizado / Math.max(diasDecorridos, 1)) * diasTotais : valor_realizado
-
-  const atingimento_v = valor_realizado - valor_meta
-  const atingimento_p = valor_meta > 0 ? (valor_realizado / valor_meta) * 100 : 0
-
-  const firstItem = items.length > 0 ? items[0] : null
-  const data = firstItem ? (firstItem.data || firstItem.competencia || '') : ''
-
-  return {
-    valor_realizado,
-    valor_meta,
-    atingimento_v,
-    atingimento_p,
-    meta_diaria,
-    referencia_hoje,
-    pontos,
-    meta_diaria_necessaria,
-    peso,
-    projecao,
-    data
-  }
-}
 
 const detailOpenRows = ref<Set<string>>(new Set())
 
 function handleAction(payload: { type: 'ticket' | 'opportunities', node: TreeNode }) {
   if (payload.type === 'ticket') {
-    // Abre o Omega em nova aba com dados pré-preenchidos
     const observation = buildTicketObservation(payload.node)
     const params = new URLSearchParams({
       openDrawer: 'true',
@@ -477,11 +249,9 @@ function handleAction(payload: { type: 'ticket' | 'opportunities', node: TreeNod
       queue: 'POBJ',
       observation
     })
-    // Usa o router para construir a URL corretamente
     const omegaRoute = router.resolve({ name: 'Omega', query: Object.fromEntries(params) })
     window.open(omegaRoute.href, '_blank')
   } else if (payload.type === 'opportunities') {
-    // TODO: Implementar abertura de oportunidades
     console.log('Abrir oportunidades para:', payload.node)
   }
 }
@@ -748,14 +518,7 @@ onMounted(() => {
               <p class="muted">Visualize os contratos em uma estrutura hierárquica</p>
             </div>
             <div class="card__actions">
-              <div class="search-box">
-                <input
-                  v-model="searchTerm"
-                  type="text"
-                  placeholder="Contrato (Ex.: CT-AAAA-999999)"
-                  class="input input--search"
-                />
-              </div>
+              <DetalhesSearch v-model="searchTerm" />
             </div>
           </header>
 
@@ -781,36 +544,11 @@ onMounted(() => {
             @view-change="handleDetailViewChange"
           />
 
-          <!-- Toolbar -->
-          <div class="table-toolbar-wrapper">
-            <div class="table-toolbar">
-              <button
-                type="button"
-                class="table-toolbar__btn"
-                @click="expandAll"
-              >
-                <span class="table-toolbar__icon"><Icon name="chevrons-down" :size="16" /></span>
-                <span class="table-toolbar__text">Expandir tudo</span>
-              </button>
-              <button
-                type="button"
-                class="table-toolbar__btn"
-                @click="collapseAll"
-              >
-                <span class="table-toolbar__icon"><Icon name="chevrons-up" :size="16" /></span>
-                <span class="table-toolbar__text">Recolher tudo</span>
-              </button>
-              <button
-                type="button"
-                class="table-toolbar__btn detail-view-manage"
-                title="Personalizar colunas da tabela"
-                @click="handleOpenColumnDesigner"
-              >
-                <span class="table-toolbar__icon"><Icon name="columns" :size="16" /></span>
-                <span class="table-toolbar__text">Personalizar colunas</span>
-              </button>
-            </div>
-          </div>
+          <DetalhesToolbar
+            @expand-all="expandAll"
+            @collapse-all="collapseAll"
+            @open-column-designer="handleOpenColumnDesigner"
+          />
 
           <template v-if="loading">
             <div class="detalhes-skeleton">
@@ -840,84 +578,7 @@ onMounted(() => {
             <p>Nenhum dado encontrado para os filtros selecionados.</p>
           </div>
 
-          <div v-else-if="showCards" class="contratos-grid">
-            <div
-              v-for="contrato in contratosData"
-              :key="contrato.id"
-              class="contrato-card"
-            >
-              <div class="contrato-card__header">
-                <h4 class="contrato-card__title">{{ contrato.contratoId }}</h4>
-                <div class="contrato-card__badge" :class="{
-                  'is-success': contrato.summary.atingimento_p >= 100,
-                  'is-warning': contrato.summary.atingimento_p >= 50 && contrato.summary.atingimento_p < 100,
-                  'is-danger': contrato.summary.atingimento_p < 50
-                }">
-                  {{ contrato.summary.atingimento_p.toFixed(1) }}%
-                </div>
-              </div>
-
-              <div class="contrato-card__body">
-                <div class="contrato-card__info">
-                  <div class="contrato-card__info-item">
-                    <span class="contrato-card__label">Gerente:</span>
-                    <span class="contrato-card__value">{{ contrato.detail.gerente || '—' }}</span>
-                  </div>
-                  <div v-if="contrato.detail.gerente_gestao" class="contrato-card__info-item">
-                    <span class="contrato-card__label">Gerente de gestão:</span>
-                    <span class="contrato-card__value">{{ contrato.detail.gerente_gestao }}</span>
-                  </div>
-                  <div class="contrato-card__info-item">
-                    <span class="contrato-card__label">Canal:</span>
-                    <span class="contrato-card__value">{{ contrato.detail.canal_venda || '—' }}</span>
-                  </div>
-                  <div class="contrato-card__info-item">
-                    <span class="contrato-card__label">Tipo:</span>
-                    <span class="contrato-card__value">{{ contrato.detail.tipo_venda || '—' }}</span>
-                  </div>
-                  <div class="contrato-card__info-item">
-                    <span class="contrato-card__label">Modalidade:</span>
-                    <span class="contrato-card__value">{{ contrato.detail.modalidade_pagamento || '—' }}</span>
-                  </div>
-                </div>
-
-                <div class="contrato-card__metrics">
-                  <div class="contrato-card__metric">
-                    <span class="contrato-card__metric-label">Realizado</span>
-                    <span class="contrato-card__metric-value">{{ formatCurrency(contrato.summary.valor_realizado) }}</span>
-                  </div>
-                  <div class="contrato-card__metric">
-                    <span class="contrato-card__metric-label">Meta</span>
-                    <span class="contrato-card__metric-value">{{ formatCurrency(contrato.summary.valor_meta) }}</span>
-                  </div>
-                  <div class="contrato-card__metric">
-                    <span class="contrato-card__metric-label">Pontos</span>
-                    <span class="contrato-card__metric-value">{{ formatINT(contrato.summary.pontos) }}</span>
-                  </div>
-                  <div class="contrato-card__metric">
-                    <span class="contrato-card__metric-label">Peso</span>
-                    <span class="contrato-card__metric-value">{{ formatINT(contrato.summary.peso) }}</span>
-                  </div>
-                </div>
-
-                <div v-if="contrato.detail.dt_vencimento" class="contrato-card__dates">
-                  <div class="contrato-card__date-item">
-                    <span class="contrato-card__date-label">Vencimento:</span>
-                    <span class="contrato-card__date-value">{{ formatDate(contrato.detail.dt_vencimento) }}</span>
-                  </div>
-                  <div v-if="contrato.detail.dt_cancelamento" class="contrato-card__date-item">
-                    <span class="contrato-card__date-label">Cancelamento:</span>
-                    <span class="contrato-card__date-value">{{ formatDate(contrato.detail.dt_cancelamento) }}</span>
-                  </div>
-                </div>
-
-                <div v-if="contrato.detail.motivo_cancelamento" class="contrato-card__cancelamento">
-                  <span class="contrato-card__cancelamento-label">Motivo:</span>
-                  <span class="contrato-card__cancelamento-value">{{ contrato.detail.motivo_cancelamento }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          <DetalhesCards v-else-if="showCards" :contratos="contratosData" />
 
           <div v-else class="table-wrapper">
             <table class="tree-table">
@@ -1427,27 +1088,6 @@ onMounted(() => {
 }
 
 @media (max-width: 900px) {
-  .table-toolbar {
-    justify-content: stretch;
-  }
-
-  .table-toolbar__btn {
-    flex: 1 1 calc(50% - 12px);
-    min-width: 0;
-  }
-
-  .search-box {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-}
-
-
-.detail-view-manage i {
-  margin-right: 6px;
-}
-
-@media (max-width: 900px) {
   .table-controls__main {
     flex-direction: column;
     align-items: stretch;
@@ -1461,15 +1101,6 @@ onMounted(() => {
     flex: 1 1 auto;
     min-width: 0;
     justify-content: flex-start;
-  }
-
-  .table-toolbar {
-    justify-content: stretch;
-  }
-
-  .table-toolbar__btn {
-    flex: 1 1 calc(50% - 12px);
-    min-width: 0;
   }
 }
 

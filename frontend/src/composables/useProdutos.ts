@@ -1,5 +1,5 @@
 import { ref, computed, watch, onMounted, type Ref } from 'vue'
-import { getProdutos, type Produto, type ProdutoFilters } from '../services/produtosService'
+import { getProdutos, type Produto, type ProdutoFilters } from '../api/modules/pobj.api'
 
 export interface ProdutoCard {
   id: string

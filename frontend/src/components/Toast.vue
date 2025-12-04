@@ -1,18 +1,16 @@
 <script setup lang="ts">
-import { computed, onMounted, h } from 'vue'
+import { computed, onMounted } from 'vue'
 import Icon from './Icon.vue'
 
 interface Props {
-  type?: 'success' | 'error' | 'info'
+  type?: 'success' | 'error' | 'info' | 'loading'
   message: string
   duration?: number
-  show?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   type: 'info',
-  duration: 3000,
-  show: true
+  duration: 3000
 })
 
 const emit = defineEmits<{
@@ -27,13 +25,15 @@ const iconName = computed(() => {
       return 'circle-check'
     case 'error':
       return 'alert-circle'
+    case 'loading':
+      return 'info-circle'
     default:
       return 'info-circle'
   }
 })
 
 onMounted(() => {
-  if (props.duration > 0) {
+  if (props.duration && props.duration > 0 && props.type !== 'loading') {
     setTimeout(() => {
       emit('close')
     }, props.duration)
@@ -42,12 +42,11 @@ onMounted(() => {
 </script>
 
 <template>
-  <Transition name="toast">
-    <div v-if="show" :class="toastClass" role="alert">
-      <Icon :name="iconName" :size="20" />
-      <span>{{ message }}</span>
-    </div>
-  </Transition>
+  <div :class="toastClass" role="alert" @click="emit('close')">
+    <Icon v-if="type !== 'loading'" :name="iconName" :size="20" />
+    <div v-else class="toast__spinner"></div>
+    <span>{{ message }}</span>
+  </div>
 </template>
 
 <style scoped>
@@ -91,9 +90,30 @@ onMounted(() => {
   color: #3b82f6;
 }
 
-.toast i {
+.toast--loading {
+  border-left: 4px solid #3b82f6;
+}
+
+.toast--loading .toast__spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+  flex-shrink: 0;
+}
+
+.toast i,
+.toast__spinner {
   font-size: 20px;
   flex-shrink: 0;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .toast span {
@@ -102,33 +122,9 @@ onMounted(() => {
   color: #1f2937;
 }
 
-.toast-enter-active {
-  transition: all 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
-}
-
-.toast-leave-active {
-  transition: all 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
-}
-
-.toast-enter-from {
-  opacity: 0;
-  transform: translateX(100%);
-}
-
-.toast-leave-to {
-  opacity: 0;
-  transform: translateX(100%);
-}
-
-@keyframes toast-slide-in {
-  from {
-    opacity: 0;
-    transform: translateX(100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
+.toast {
+  cursor: pointer;
+  pointer-events: auto;
 }
 </style>
 

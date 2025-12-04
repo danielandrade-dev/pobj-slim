@@ -1,21 +1,17 @@
 import { ref, readonly } from 'vue'
-import { getInit, type InitData } from '../services/initService'
+import { getInit, type InitData } from '../api/modules/pobj.api'
 
 const initCache = ref<InitData | null>(null)
 const isLoading = ref(false)
 let loadPromise: Promise<InitData | null> | null = null
 
 export function useInitCache() {
-  const loadInit = async (): Promise<InitData | null> => {
-    // Já temos no cache
+  async function loadInit(): Promise<InitData | null> {
     if (initCache.value) return initCache.value
-
-    // Já existe requisição em andamento
     if (loadPromise) return loadPromise
 
     isLoading.value = true
 
-    // Garante requisição única
     loadPromise = getInit()
       .then((data) => {
         if (data) initCache.value = data
@@ -29,7 +25,7 @@ export function useInitCache() {
     return loadPromise
   }
 
-  const clearCache = () => {
+  function clearCache(): void {
     initCache.value = null
     loadPromise = null
   }

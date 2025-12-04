@@ -1,5 +1,5 @@
 import type { OmegaTicket, OmegaHistoryEntry } from '../types/omega'
-import { apiPost } from '../services/api'
+import { apiPost } from '../api/http'
 import type { ApiResponse } from '../types'
 
 /**

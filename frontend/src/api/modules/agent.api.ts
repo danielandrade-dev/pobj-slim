@@ -1,5 +1,5 @@
-import { apiPost } from './api'
-import { ApiRoutes } from '../constants/apiRoutes'
+import { apiPost } from '../http'
+import { ApiRoutes } from '../routes'
 
 export interface AgentRequest {
   question: string
@@ -28,4 +28,3 @@ export async function sendMessage(request: AgentRequest): Promise<AgentResponse 
   console.error('Erro ao enviar mensagem para o agente:', response.error)
   return null
 }
-

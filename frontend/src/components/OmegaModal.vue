@@ -520,7 +520,7 @@ async function handleNewTicketSubmit(data: any) {
     }
     
     // Chama API para criar ticket
-    const { createOmegaTicket } = await import('../services/omegaService')
+    const { createOmegaTicket } = await import('../api/modules/omega.api')
     const response = await createOmegaTicket(newTicket)
     
     if (response.success && response.data) {

@@ -28,7 +28,7 @@ const searchTerm = ref('')
 const wrapperRef = ref<HTMLElement | null>(null)
 const inputRef = ref<HTMLInputElement | null>(null)
 
-const simplificarTexto = (text: string): string => {
+function simplificarTexto(text: string): string {
   if (!text) return ''
   return text
     .toLowerCase()
@@ -37,16 +37,16 @@ const simplificarTexto = (text: string): string => {
     .trim()
 }
 
-  const filteredOptions = computed(() => {
-    if (!searchTerm.value) {
-      return props.options.slice(0, 10)
-    }
-    
-    const term = simplificarTexto(searchTerm.value)
-    return props.options
-      .filter(opt => simplificarTexto(opt.nome).includes(term))
-      .slice(0, 12)
-  })
+const filteredOptions = computed(() => {
+  if (!searchTerm.value) {
+    return props.options.slice(0, 10)
+  }
+  
+  const term = simplificarTexto(searchTerm.value)
+  return props.options
+    .filter(opt => simplificarTexto(opt.nome).includes(term))
+    .slice(0, 12)
+})
 
 const selectedLabel = computed(() => {
   if (!props.modelValue) return props.placeholder
@@ -54,71 +54,75 @@ const selectedLabel = computed(() => {
   return selected?.nome || props.placeholder
 })
 
-const toggleDropdown = (): void => {
+function toggleDropdown(): void {
   if (props.disabled) return
   isOpen.value = !isOpen.value
   if (isOpen.value) {
     searchTerm.value = ''
-    setTimeout(() => {
-      inputRef.value?.focus()
-    }, 0)
+    setTimeout(() => inputRef.value?.focus(), 0)
   }
 }
 
-const selectOption = (option: FilterOption): void => {
+function selectOption(option: FilterOption): void {
   emit('update:modelValue', option.id)
   isOpen.value = false
   searchTerm.value = ''
 }
 
-const handleClickOutside = (event: MouseEvent): void => {
-  if (wrapperRef.value && !wrapperRef.value.contains(event.target as Node)) {
-    isOpen.value = false
-    searchTerm.value = ''
-  }
+function handleClickOutside(event: MouseEvent): void {
+  if (wrapperRef.value?.contains(event.target as Node)) return
+  isOpen.value = false
+  searchTerm.value = ''
 }
 
-const handleKeydown = (event: KeyboardEvent): void => {
+function focusOption(direction: 'next' | 'previous'): void {
+  const items = wrapperRef.value?.querySelectorAll('.select-search__item') as NodeListOf<HTMLElement>
+  if (!items?.length) return
+  
+  const currentIndex = Array.from(items).findIndex(item => item === document.activeElement)
+  const totalItems = items.length
+  
+  let targetIndex: number
+  if (direction === 'next') {
+    targetIndex = currentIndex < totalItems - 1 ? currentIndex + 1 : 0
+  } else {
+    targetIndex = currentIndex > 0 ? currentIndex - 1 : totalItems - 1
+  }
+  
+  items[targetIndex]?.focus()
+}
+
+function handleKeydown(event: KeyboardEvent): void {
   if (event.key === 'Escape') {
     isOpen.value = false
     searchTerm.value = ''
-  } else if (event.key === 'Enter' && filteredOptions.value.length > 0 && isOpen.value) {
+    return
+  }
+
+  if (event.key === 'Enter' && filteredOptions.value.length > 0 && isOpen.value) {
     event.preventDefault()
     const firstOption = filteredOptions.value[0]
-    if (firstOption) {
-      selectOption(firstOption)
-    }
-  } else if (['ArrowDown', 'ArrowUp', ' '].includes(event.key) && !isOpen.value) {
+    if (firstOption) selectOption(firstOption)
+    return
+  }
+
+  if (['ArrowDown', 'ArrowUp', ' '].includes(event.key) && !isOpen.value) {
     event.preventDefault()
     isOpen.value = true
-    setTimeout(() => {
-      inputRef.value?.focus()
-    }, 0)
-  } else if (event.key === 'ArrowDown' && isOpen.value) {
-    event.preventDefault()
-    focusNextOption()
-  } else if (event.key === 'ArrowUp' && isOpen.value) {
-    event.preventDefault()
-    focusPreviousOption()
+    setTimeout(() => inputRef.value?.focus(), 0)
+    return
   }
-}
 
-const focusNextOption = (): void => {
-  const items = wrapperRef.value?.querySelectorAll('.select-search__item') as NodeListOf<HTMLElement>
-  if (!items || items.length === 0) return
-  
-  const currentIndex = Array.from(items).findIndex(item => item === document.activeElement)
-  const nextIndex = currentIndex < items.length - 1 ? currentIndex + 1 : 0
-  items[nextIndex]?.focus()
-}
+  if (event.key === 'ArrowDown' && isOpen.value) {
+    event.preventDefault()
+    focusOption('next')
+    return
+  }
 
-const focusPreviousOption = (): void => {
-  const items = wrapperRef.value?.querySelectorAll('.select-search__item') as NodeListOf<HTMLElement>
-  if (!items || items.length === 0) return
-  
-  const currentIndex = Array.from(items).findIndex(item => item === document.activeElement)
-  const prevIndex = currentIndex > 0 ? currentIndex - 1 : items.length - 1
-  items[prevIndex]?.focus()
+  if (event.key === 'ArrowUp' && isOpen.value) {
+    event.preventDefault()
+    focusOption('previous')
+  }
 }
 
 onMounted(() => {

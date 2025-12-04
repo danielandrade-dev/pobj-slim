@@ -1,5 +1,5 @@
 import { ref, computed, type Ref } from 'vue'
-import type { InitData } from '../services/initService'
+import type { InitData } from '../api/modules/pobj.api'
 import type { FilterOption, HierarchySelection } from '../types'
 
 // Tipo que aceita InitData com arrays mutáveis ou readonly
@@ -18,49 +18,62 @@ type InitDataReadonly = {
 
 type InitDataCompatible = InitData | InitDataReadonly
 
-const normalizeId = (v: any): string =>
-  v == null || v === '' ? '' : String(v).trim()
+function normalizeId(value: unknown): string {
+  return value == null || value === '' ? '' : String(value).trim()
+}
 
-const formatIdNome = (id: string, nome: string) =>
-  !id && !nome ? '' : !id ? nome : !nome || nome === id ? id : `${id} - ${nome}`
+function formatIdNome(id: string, nome: string): string {
+  if (!id && !nome) return ''
+  if (!id) return nome
+  if (!nome || nome === id) return id
+  return `${id} - ${nome}`
+}
 
-const formatFuncionalNome = (funcional: string, nome: string) =>
-  !funcional && !nome
-    ? ''
-    : !funcional
-    ? nome
-    : !nome || nome === funcional
-    ? funcional
-    : `${funcional} - ${nome}`
+function formatFuncionalNome(funcional: string, nome: string): string {
+  if (!funcional && !nome) return ''
+  if (!funcional) return nome
+  if (!nome || nome === funcional) return funcional
+  return `${funcional} - ${nome}`
+}
 
-const normalizeOption = (item: any, type: string): FilterOption => {
+function getFieldValue(item: Record<string, unknown>, ...keys: string[]): unknown {
+  for (const key of keys) {
+    if (item[key] !== undefined && item[key] !== null) {
+      return item[key]
+    }
+  }
+  return undefined
+}
+
+function normalizeOption(item: Record<string, unknown>, type: string): FilterOption {
   const nome = String(item.nome ?? item.label ?? '').trim()
+  const isGestorType = type === 'ggestao' || type === 'gerente'
+  
   let id = ''
   let funcional: string | undefined
 
-  if (type === 'ggestao' || type === 'gerente') {
+  if (isGestorType) {
     funcional = normalizeId(item.funcional ?? '')
     id = normalizeId(item.id ?? '')
   } else {
     id = normalizeId(
-      item.id ??
-      item.codigo ??
-      item.id_diretoria ??
-      item.id_regional ??
-      item.id_agencia ??
-      ''
+      getFieldValue(item, 'id', 'codigo', 'id_diretoria', 'id_regional', 'id_agencia') ?? ''
     )
     funcional = item.funcional ? normalizeId(item.funcional) : undefined
   }
 
+  const displayNome = isGestorType
+    ? formatFuncionalNome(funcional || id, nome)
+    : formatIdNome(id, nome)
+
   return {
     id,
-    nome: (type === 'ggestao' || type === 'gerente') ? formatFuncionalNome(funcional || id, nome) : formatIdNome(id, nome),
-    id_segmento: normalizeId(item.segmento_id ?? item.id_segmento ?? item.idSegmento),
-    id_diretoria: normalizeId(item.diretoria_id ?? item.id_diretoria ?? item.idDiretoria),
-    id_regional: normalizeId(item.regional_id ?? item.id_regional ?? item.idRegional ?? item.gerencia_id ?? item.gerenciaId),
-    id_agencia: normalizeId(item.agencia_id ?? item.id_agencia ?? item.idAgencia),
-    id_gestor: normalizeId(item.id_gestor ?? item.idGestor ?? item.gerente_gestao_id ?? item.gerenteGestaoId),
+    nome: displayNome,
+    id_segmento: normalizeId(getFieldValue(item, 'segmento_id', 'id_segmento', 'idSegmento')),
+    id_diretoria: normalizeId(getFieldValue(item, 'diretoria_id', 'id_diretoria', 'idDiretoria')),
+    id_regional: normalizeId(getFieldValue(item, 'regional_id', 'id_regional', 'idRegional', 'gerencia_id', 'gerenciaId')),
+    id_agencia: normalizeId(getFieldValue(item, 'agencia_id', 'id_agencia', 'idAgencia')),
+    id_gestor: normalizeId(getFieldValue(item, 'id_gestor', 'idGestor', 'gerente_gestao_id', 'gerenteGestaoId')),
     funcional
   }
 }
@@ -88,69 +101,64 @@ export function useHierarchyFilters(estruturaData: Ref<InitDataCompatible | null
     }
   })
 
-  // Maps O(1)
   const maps = computed(() => {
     if (!normalized.value) return null
-    const idx = (arr: any[]) => Object.fromEntries((arr ?? []).map(i => [normalizeId(i.id), i]))
+    
+    function createIndex(arr: FilterOption[]): Record<string, FilterOption> {
+      return Object.fromEntries(arr.map(item => [normalizeId(item.id), item]))
+    }
+    
     return {
-      segmento: idx(normalized.value.segmentos),
-      diretoria: idx(normalized.value.diretorias),
-      gerencia: idx(normalized.value.regionais),
-      agencia: idx(normalized.value.agencias),
-      ggestao: idx(normalized.value.ggestoes),
-      gerente: idx(normalized.value.gerentes)
+      segmento: createIndex(normalized.value.segmentos),
+      diretoria: createIndex(normalized.value.diretorias),
+      gerencia: createIndex(normalized.value.regionais),
+      agencia: createIndex(normalized.value.agencias),
+      ggestao: createIndex(normalized.value.ggestoes),
+      gerente: createIndex(normalized.value.gerentes)
     }
   })
 
-  // Parent lookup (qual campo no CHILD aponta para o PAI)
   const parentKeyByChild: Record<keyof HierarchySelection, string | null> = {
     segmento: null,
-    diretoria: 'id_segmento', // diretoria -> segmento
-    gerencia: 'id_diretoria', // regional -> diretoria
-    agencia: 'id_regional',    // agencia -> regional (gerencia)
-    ggestao: 'id_agencia',     // ggestao -> agencia
-    gerente: 'id_gestor'       // gerente -> ggestao (id_gestor)
+    diretoria: 'id_segmento',
+    gerencia: 'id_diretoria',
+    agencia: 'id_regional',
+    ggestao: 'id_agencia',
+    gerente: 'id_gestor'
   }
 
-  // Parent field name (qual é o campo pai no state)
   const parentFieldByChild: Record<keyof HierarchySelection, keyof HierarchySelection | null> = {
     segmento: null,
     diretoria: 'segmento',
-    gerencia: 'diretoria', // regional -> diretoria
-    agencia: 'gerencia',   // agencia -> gerencia (regional)
+    gerencia: 'diretoria',
+    agencia: 'gerencia',
     ggestao: 'agencia',
     gerente: 'ggestao'
   }
 
-  function autoFillParent(childField: keyof HierarchySelection, childValue: string) {
+  function autoFillParent(childField: keyof HierarchySelection, childValue: string): void {
     if (!childValue) return
+    
     const parentField = parentFieldByChild[childField]
     const parentKey = parentKeyByChild[childField]
     if (!parentField || !parentKey) return
+    
     const childMeta = maps.value?.[childField]?.[normalizeId(childValue)]
     if (!childMeta) return
 
-    // O childMeta tem, por exemplo, childMeta['id_regional'] -> id do parent
-    const parentId = normalizeId((childMeta as any)[parentKey] ?? '')
+    const parentId = normalizeId((childMeta as Record<string, unknown>)[parentKey] ?? '')
     if (!parentId) return
 
-    // parent está indexado por id
     const parentMeta = maps.value?.[parentField]?.[parentId]
     if (!parentMeta) return
 
-    // seta o parent no state (usa o id da lista normalizada)
     state[parentField].value = parentMeta.id
-
-    console.debug('[hierarchy] autoFillParent:', { childField, childValue, parentField, parentId })
-
-    // sobe recursivamente
     autoFillParent(parentField, parentMeta.id)
   }
 
-  // limpa filhos a partir do field (ordem explícita)
   const stateOrder: (keyof HierarchySelection)[] = ['segmento', 'diretoria', 'gerencia', 'agencia', 'ggestao', 'gerente']
 
-  function clearChildrenFrom(field: keyof HierarchySelection) {
+  function clearChildrenFrom(field: keyof HierarchySelection): void {
     let clearing = false
     for (const k of stateOrder) {
       if (clearing) state[k].value = ''
@@ -158,15 +166,12 @@ export function useHierarchyFilters(estruturaData: Ref<InitDataCompatible | null
     }
   }
 
-  function onChange(field: keyof HierarchySelection, value: string) {
+  function onChange(field: keyof HierarchySelection, value: string): void {
     state[field].value = normalizeId(value)
     clearChildrenFrom(field)
-    // tenta preencher pais se possível
     autoFillParent(field, state[field].value)
   }
 
-  // Mantém todas as opções visíveis, sem filtrar
-  // A hierarquia é atualizada dinamicamente quando um item é selecionado
   const segmentos = computed(() => normalized.value?.segmentos ?? [])
   const diretorias = computed(() => normalized.value?.diretorias ?? [])
   const regionais = computed(() => normalized.value?.regionais ?? [])
@@ -174,7 +179,7 @@ export function useHierarchyFilters(estruturaData: Ref<InitDataCompatible | null
   const gerentesGestao = computed(() => normalized.value?.ggestoes ?? [])
   const gerentes = computed(() => normalized.value?.gerentes ?? [])
 
-  const clearAll = () => {
+  function clearAll(): void {
     for (const k of stateOrder) state[k].value = ''
   }
 

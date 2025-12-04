@@ -1,5 +1,5 @@
-import { apiGet } from './api'
-import { ApiRoutes } from '../constants/apiRoutes'
+import { apiGet } from '../http'
+import { ApiRoutes } from '../routes'
 
 export interface SimuladorProduct {
   id: string
@@ -28,20 +28,19 @@ export interface SimuladorFilters {
   dataFim?: string
 }
 
-export async function getSimuladorProducts(filters?: SimuladorFilters): Promise<SimuladorProduct[] | null> {
+function buildFilterParams(filters?: SimuladorFilters): Record<string, string> {
+  if (!filters) return {}
   const params: Record<string, string> = {}
-  
-  if (filters) {
-    if (filters.segmento) params.segmento = filters.segmento
-    if (filters.diretoria) params.diretoria = filters.diretoria
-    if (filters.regional) params.regional = filters.regional
-    if (filters.agencia) params.agencia = filters.agencia
-    if (filters.gerenteGestao) params.gerenteGestao = filters.gerenteGestao
-    if (filters.gerente) params.gerente = filters.gerente
-    if (filters.dataInicio) params.dataInicio = filters.dataInicio
-    if (filters.dataFim) params.dataFim = filters.dataFim
-  }
-  
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value) params[key] = value
+  })
+  return params
+}
+
+export async function getSimuladorProducts(
+  filters?: SimuladorFilters
+): Promise<SimuladorProduct[] | null> {
+  const params = buildFilterParams(filters)
   const response = await apiGet<SimuladorProduct[]>(ApiRoutes.SIMULADOR, params)
 
   if (response.success && response.data) {
@@ -51,4 +50,3 @@ export async function getSimuladorProducts(filters?: SimuladorFilters): Promise<
   console.error('Erro ao buscar produtos para simulador:', response.error)
   return null
 }
-

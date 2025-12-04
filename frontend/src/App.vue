@@ -1,10 +1,18 @@
 <script setup lang="ts">
-import { defineAsyncComponent, onMounted } from 'vue'
+import { defineAsyncComponent, onMounted, computed } from 'vue'
 import Header from './components/Header.vue'
 import Footer from './components/Footer.vue'
 import ChatWidget from './components/ChatWidget.vue'
+import ToastContainer from './components/ToastContainer.vue'
 import { useRoute, useRouter } from 'vue-router'
 
+interface OmegaDetail {
+  openDrawer?: boolean
+  intent?: string
+  preferredQueue?: string
+  queue?: string
+  observation?: string
+}
 
 onMounted(async () => {
   await Promise.all([
@@ -16,37 +24,37 @@ onMounted(async () => {
 
 const route = useRoute()
 const router = useRouter()
+const isOmegaRoute = computed(() => route.name === 'Omega')
+
 const Filters = defineAsyncComponent(() => import('./components/Filters.vue'))
 const TabsNavigation = defineAsyncComponent(() => import('./components/TabsNavigation.vue'))
 
-// Função para abrir Omega em nova aba
-const openOmegaInNewTab = (detail?: { openDrawer?: boolean; intent?: string; preferredQueue?: string; queue?: string; observation?: string }): void => {
+function openOmegaInNewTab(detail?: OmegaDetail): void {
   if (typeof window === 'undefined') return
-  
+
   const query: Record<string, string> = {}
-  if (detail?.openDrawer || detail?.intent === 'new-ticket') {
+  const shouldOpenDrawer = detail?.openDrawer || detail?.intent === 'new-ticket'
+
+  if (shouldOpenDrawer) {
     query.openDrawer = 'true'
     query.intent = 'new-ticket'
-    if (detail.preferredQueue || detail.queue) {
-      query.preferredQueue = detail.preferredQueue || detail.queue || 'POBJ'
-      query.queue = detail.preferredQueue || detail.queue || 'POBJ'
-    }
-    if (detail.observation) {
+    const queue = detail?.preferredQueue || detail?.queue || 'POBJ'
+    query.preferredQueue = queue
+    query.queue = queue
+    if (detail?.observation) {
       query.observation = detail.observation
     }
   }
-  
+
   const omegaRoute = router.resolve({ name: 'Omega', query })
   window.open(omegaRoute.href, '_blank')
 }
 
-// Registra funções globais para compatibilidade
 if (typeof window !== 'undefined') {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const globalAny = window as any
-  globalAny.__openOmegaFromVue = openOmegaInNewTab
-  globalAny.openOmegaModule = openOmegaInNewTab
-  globalAny.openOmega = openOmegaInNewTab
+  const globalWindow = window as Window & Record<string, unknown>
+  globalWindow.__openOmegaFromVue = openOmegaInNewTab
+  globalWindow.openOmegaModule = openOmegaInNewTab
+  globalWindow.openOmega = openOmegaInNewTab
 }
 </script>
 
@@ -57,24 +65,22 @@ if (typeof window !== 'undefined') {
     
     <Header />
     <main id="main-content" class="main-content" role="main" aria-label="Conteúdo principal">
-      <div class="main-container" :class="{ 'is-omega': route.name === 'Omega' }">
-        <Filters v-if="route.name !== 'Omega'" />
-        <TabsNavigation v-if="route.name !== 'Omega'" />
+      <div class="main-container" :class="{ 'is-omega': isOmegaRoute }">
+        <Filters v-if="!isOmegaRoute" />
+        <TabsNavigation v-if="!isOmegaRoute" />
         
-        <div class="view-content" :class="{ 'is-omega': route.name === 'Omega' }">
+        <div class="view-content" :class="{ 'is-omega': isOmegaRoute }">
           <router-view v-slot="{ Component }">
-            <Transition
-              name="page"
-              mode="out-in"
-            >
+            <Transition name="page" mode="out-in">
               <component :is="Component" :key="route.path" />
             </Transition>
           </router-view>
         </div>
       </div>
     </main>
-    <Footer v-if="route.name !== 'Omega'" />
-    <ChatWidget v-if="route.name !== 'Omega'" />
+    <Footer v-if="!isOmegaRoute" />
+    <ChatWidget v-if="!isOmegaRoute" />
+    <ToastContainer />
   </div>
 </template>
 
@@ -103,7 +109,6 @@ body {
   font-family: "Bradesco", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
 }
 
-/* Garantir que SVGs dos ícones sejam exibidos */
 svg {
   display: inline-block !important;
   vertical-align: middle;
@@ -135,7 +140,7 @@ body {
 .main-content {
   flex: 1;
   width: 100%;
-  padding-top: 66px; /* Altura do header fixo */
+  padding-top: 66px;
 }
 
 

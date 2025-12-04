@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { getSimuladorProducts, type SimuladorProduct } from '../services/simuladorService'
+import { getSimuladorProducts, type SimuladorProduct } from '../api/modules/simulador.api'
 import { formatPoints, formatByMetric, formatBRLReadable } from '../utils/formatUtils'
 import SelectInput from '../components/SelectInput.vue'
 import type { FilterOption } from '../types'

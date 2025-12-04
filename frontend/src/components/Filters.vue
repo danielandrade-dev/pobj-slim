@@ -83,106 +83,110 @@ const hasSubindicadores = computed(() => {
   return subindicadores.value.length > 0
 })
 
-const findItemMeta = (id: string, items: FilterOption[]): FilterOption | null => {
-  if (!id) return null
-  const normalizedId = String(id).trim()
-  return items.find(item => String(item.id).trim() === normalizedId) || null
+function normalizeId(id: unknown): string {
+  return String(id || '').trim()
 }
 
-const handleFamiliaChange = (value: string): void => {
+function findItemMeta(id: string, items: FilterOption[]): FilterOption | null {
+  if (!id) return null
+  const normalizedId = normalizeId(id)
+  return items.find(item => normalizeId(item.id) === normalizedId) || null
+}
+
+function clearDependentFilters(): void {
+  selectedIndicador.value = ''
+  selectedSubindicador.value = ''
+}
+
+function syncFamiliaFromIndicador(indicadorId: string): void {
+  const indicadorMeta = findItemMeta(indicadorId, indicadores.value)
+  if (!indicadorMeta?.id_familia) return
+
+  const familiaId = normalizeId(indicadorMeta.id_familia)
+  const familiaExists = familias.value.some(fam => normalizeId(fam.id) === familiaId)
+  if (familiaExists) {
+    selectedFamilia.value = familiaId
+  }
+}
+
+function handleFamiliaChange(value: string): void {
   selectedFamilia.value = value
+  
   if (!value) {
-    selectedIndicador.value = ''
-    selectedSubindicador.value = ''
-  } else {
-    // Limpa o indicador se ele não pertence à família selecionada
-    if (selectedIndicador.value) {
-      const indicadorMeta = findItemMeta(selectedIndicador.value, indicadores.value)
-      const familiaId = String(value).trim()
-      const indicadorFamiliaId = indicadorMeta?.id_familia ? String(indicadorMeta.id_familia).trim() : ''
-      if (indicadorFamiliaId !== familiaId) {
-        selectedIndicador.value = ''
-        selectedSubindicador.value = ''
-      }
+    clearDependentFilters()
+    return
+  }
+
+  if (selectedIndicador.value) {
+    const indicadorMeta = findItemMeta(selectedIndicador.value, indicadores.value)
+    const familiaId = normalizeId(value)
+    const indicadorFamiliaId = normalizeId(indicadorMeta?.id_familia)
+    
+    if (indicadorFamiliaId !== familiaId) {
+      clearDependentFilters()
     }
   }
 }
 
-const handleIndicadorChange = (value: string): void => {
+function handleIndicadorChange(value: string): void {
   selectedIndicador.value = value
   selectedSubindicador.value = ''
 
   if (value) {
-    const indicadorMeta = findItemMeta(value, indicadores.value)
-    if (indicadorMeta?.id_familia) {
-      const familiaId = String(indicadorMeta.id_familia).trim()
-      const familiaExists = familias.value.some(fam => String(fam.id).trim() === familiaId)
-      if (familiaExists) {
-        selectedFamilia.value = familiaId
-      }
-    }
-  } else {
-    selectedIndicador.value = ''
-    selectedSubindicador.value = ''
+    syncFamiliaFromIndicador(value)
   }
 }
 
-const handleSubindicadorChange = (value: string): void => {
+function handleSubindicadorChange(value: string): void {
   selectedSubindicador.value = value
-  if (value) {
-    const subindicadorMeta = findItemMeta(value, allSubindicadores.value)
+  
+  if (!value) return
 
-    if (subindicadorMeta?.id_indicador) {
-      const indicadorId = String(subindicadorMeta.id_indicador).trim()
+  const subindicadorMeta = findItemMeta(value, allSubindicadores.value)
+  if (!subindicadorMeta?.id_indicador) return
 
-      const indicadorExists = indicadores.value.some(ind => {
-        const indId = String(ind.id).trim()
-        return indId === indicadorId
-      })
-
-      if (indicadorExists) {
-        selectedIndicador.value = indicadorId
-
-        const indicadorMeta = findItemMeta(indicadorId, indicadores.value)
-        if (indicadorMeta?.id_familia) {
-          const familiaId = String(indicadorMeta.id_familia).trim()
-
-          const familiaExists = familias.value.some(fam => {
-            const famId = String(fam.id).trim()
-            return famId === familiaId
-          })
-
-          if (familiaExists) {
-            selectedFamilia.value = familiaId
-          }
-        }
-      }
-    }
-  } else {
-    selectedSubindicador.value = ''
+  const indicadorId = normalizeId(subindicadorMeta.id_indicador)
+  const indicadorExists = indicadores.value.some(ind => normalizeId(ind.id) === indicadorId)
+  
+  if (indicadorExists) {
+    selectedIndicador.value = indicadorId
+    syncFamiliaFromIndicador(indicadorId)
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const normalizeOption = (item: any): FilterOption => {
-  const id = String(item.id || item.codigo || item.id_diretoria || item.id_regional || item.id_agencia || item.funcional || item.subId || item.subindicadorId || '').trim()
-  const label = String(item.label || item.nome || id).trim()
+function getFieldValue(item: Record<string, unknown>, ...keys: string[]): unknown {
+  for (const key of keys) {
+    if (item[key] !== undefined && item[key] !== null) {
+      return item[key]
+    }
+  }
+  return undefined
+}
 
-  const idFamilia = item.id_familia ?? item.idFamilia ?? item.familia_id ?? item.familiaId
-  const idIndicador = item.id_indicador ?? item.idIndicador ?? item.indicador_id ?? item.indicadorId ?? item.produtoId ?? item.produto_id
+function normalizeOption(item: Record<string, unknown>): FilterOption {
+  const idKeys = ['id', 'codigo', 'id_diretoria', 'id_regional', 'id_agencia', 'funcional', 'subId', 'subindicadorId']
+  const labelKeys = ['label', 'nome']
+  const familiaKeys = ['id_familia', 'idFamilia', 'familia_id', 'familiaId']
+  const indicadorKeys = ['id_indicador', 'idIndicador', 'indicador_id', 'indicadorId', 'produtoId', 'produto_id']
+
+  const id = normalizeId(getFieldValue(item, ...idKeys) || '')
+  const nome = normalizeId(getFieldValue(item, ...labelKeys) || id)
+  const idFamilia = getFieldValue(item, ...familiaKeys)
+  const idIndicador = getFieldValue(item, ...indicadorKeys)
 
   return {
     id,
-    nome: label,
-    id_familia: idFamilia ? String(idFamilia).trim() : undefined,
-    id_indicador: idIndicador ? String(idIndicador).trim() : undefined
+    nome,
+    id_familia: idFamilia ? normalizeId(idFamilia) : undefined,
+    id_indicador: idIndicador ? normalizeId(idIndicador) : undefined
   }
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const buildOptions = (data: any[]): FilterOption[] => {
+function buildOptions(data: unknown[]): FilterOption[] {
   if (!Array.isArray(data)) return []
-  return data.map(normalizeOption).filter(opt => opt.id)
+  return data
+    .map(item => normalizeOption(item as Record<string, unknown>))
+    .filter(opt => opt.id)
 }
 
 const loadEstrutura = async (): Promise<void> => {

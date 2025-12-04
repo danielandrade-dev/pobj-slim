@@ -1,7 +1,7 @@
 import { ref, computed, watch, type Ref } from 'vue'
-import { getVariavel, type Variavel, type VariavelFilters } from '../services/variavelService'
+import { getVariavel, type Variavel, type VariavelFilters } from '../api/modules/pobj.api'
 
-export type { VariavelFilters } from '../services/variavelService'
+export type { VariavelFilters } from '../api/modules/pobj.api'
 
 export interface VariavelSummary {
   varPossivel: number | null
