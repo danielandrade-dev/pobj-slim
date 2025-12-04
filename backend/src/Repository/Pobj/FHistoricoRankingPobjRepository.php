@@ -83,49 +83,11 @@ class FHistoricoRankingPobjRepository extends ServiceEntityRepository
         $whereClause = '';
 
         if ($filters) {
-            // Filtros de estrutura (aplica apenas o mais específico da hierarquia)
-            $gerente = $filters->getGerente();
-            $gerenteGestao = $filters->getGerenteGestao();
-            $agencia = $filters->getAgencia();
-            $regional = $filters->getRegional();
-            $diretoria = $filters->getDiretoria();
-            $segmento = $filters->getSegmento();
-
-            // Se tiver gerente, filtra apenas por funcional
-            if ($gerente !== null && $gerente !== '') {
-                $whereClause .= " AND est.funcional = :gerenteFuncional";
-                $params['gerenteFuncional'] = $gerente;
-            } elseif ($gerenteGestao !== null && $gerenteGestao !== '') {
-                // Se tiver gerente gestão, filtra por todos os gerentes da mesma estrutura
-                $whereClause .= " AND EXISTS (
-                    SELECT 1 FROM {$estruturaTable} AS ggestao 
-                    WHERE ggestao.funcional = :gerenteGestaoFuncional
-                    AND ggestao.cargo_id = :cargoGerenteGestao
-                    AND ggestao.segmento_id = est.segmento_id
-                    AND ggestao.diretoria_id = est.diretoria_id
-                    AND ggestao.regional_id = est.regional_id
-                    AND ggestao.agencia_id = est.agencia_id
-                )";
-                $params['gerenteGestaoFuncional'] = $gerenteGestao;
-                $params['cargoGerenteGestao'] = Cargo::GERENTE_GESTAO;
-            } else {
-                // Aplica apenas o filtro mais específico da hierarquia de estrutura
-                if ($agencia !== null && $agencia !== '') {
-                    $whereClause .= " AND est.agencia_id = :agencia";
-                    $params['agencia'] = $agencia;
-                } elseif ($regional !== null && $regional !== '') {
-                    $whereClause .= " AND est.regional_id = :regional";
-                    $params['regional'] = $regional;
-                } elseif ($diretoria !== null && $diretoria !== '') {
-                    $whereClause .= " AND est.diretoria_id = :diretoria";
-                    $params['diretoria'] = $diretoria;
-                } elseif ($segmento !== null && $segmento !== '') {
-                    $whereClause .= " AND est.segmento_id = :segmento";
-                    $params['segmento'] = $segmento;
-                }
-            }
-
-            // Filtros de data
+            // Apenas filtros de data são aplicados na query
+            // Os filtros de estrutura (segmento, diretoria, regional, agencia, gerenteGestao, gerente)
+            // não são aplicados aqui para que todos os participantes do ranking sejam retornados.
+            // O mascaramento de nomes é feito no UseCase baseado nos filtros.
+            
             $dataInicio = $filters->getDataInicio();
             $dataFim = $filters->getDataFim();
 
@@ -168,6 +130,11 @@ class FHistoricoRankingPobjRepository extends ServiceEntityRepository
                         ELSE NULL
                     END AS gerente_gestao_id,
                     CASE 
+                        WHEN est.cargo_id = :cargoGerente THEN CAST(ggestao.id AS CHAR)
+                        WHEN est.cargo_id = :cargoGerenteGestao THEN CAST(est.id AS CHAR)
+                        ELSE NULL
+                    END AS gerente_gestao_id_num,
+                    CASE 
                         WHEN est.cargo_id = :cargoGerente THEN ggestao.nome
                         WHEN est.cargo_id = :cargoGerenteGestao THEN est.nome
                         ELSE NULL
@@ -203,7 +170,7 @@ class FHistoricoRankingPobjRepository extends ServiceEntityRepository
                 ) AS ggestao
                     ON ggestao.agencia_id = est.agencia_id
                 WHERE 1=1 {$whereClause}
-                GROUP BY est.funcional, seg.id, dir.id, reg.id, ag.id, est.cargo_id, ggestao.funcional, ggestao.nome";
+                GROUP BY est.funcional, seg.id, dir.id, reg.id, ag.id, est.cargo_id, ggestao.funcional, ggestao.nome, ggestao.id, est.id";
 
         // Query principal com ranking calculado baseado no realizado_mensal
         // Usa variáveis MySQL para calcular o ranking considerando empates
@@ -238,6 +205,7 @@ class FHistoricoRankingPobjRepository extends ServiceEntityRepository
                 'agencia_id' => $row['agencia_id'] ?? null,
                 'agencia_nome' => $row['agencia_nome'] ?? null,
                 'gerente_gestao_id' => $row['gerente_gestao_id'] ?? null,
+                'gerente_gestao_id_num' => $row['gerente_gestao_id_num'] ?? null,
                 'gerente_gestao_nome' => $row['gerente_gestao_nome'] ?? null,
                 'gerente_id' => $row['gerente_id'] ?? null,
                 'gerente_nome' => $row['gerente_nome'] ?? null,
@@ -250,6 +218,45 @@ class FHistoricoRankingPobjRepository extends ServiceEntityRepository
         $result->free();
 
         return $formatted;
+    }
+
+    /**
+     * Converte ID para funcional se necessário
+     * Se o valor for numérico (ID), busca o funcional na tabela d_estrutura
+     * Se o valor for string (funcional), retorna o próprio valor
+     * 
+     * @param mixed $idOrFuncional ID ou funcional
+     * @param int $cargoId ID do cargo (GERENTE ou GERENTE_GESTAO)
+     * @return string|null Funcional encontrado ou null se não encontrar
+     */
+    private function getFuncionalFromIdOrFuncional($idOrFuncional, int $cargoId): ?string
+    {
+        if ($idOrFuncional === null || $idOrFuncional === '') {
+            return null;
+        }
+
+        // Se não for numérico, assume que já é um funcional
+        if (!is_numeric($idOrFuncional)) {
+            return (string)$idOrFuncional;
+        }
+
+        // Se for numérico, busca o funcional na tabela d_estrutura
+        $dEstruturaTable = $this->getTableName(DEstrutura::class);
+        $conn = $this->getEntityManager()->getConnection();
+        
+        $sql = "SELECT funcional FROM {$dEstruturaTable} 
+                WHERE id = :id AND cargo_id = :cargoId 
+                LIMIT 1";
+        
+        $result = $conn->executeQuery($sql, [
+            'id' => (int)$idOrFuncional,
+            'cargoId' => $cargoId
+        ]);
+        
+        $row = $result->fetchAssociative();
+        $result->free();
+        
+        return $row ? ($row['funcional'] ?? null) : null;
     }
 }
 

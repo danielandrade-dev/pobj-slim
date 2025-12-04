@@ -3,8 +3,6 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { getRanking, type RankingItem, type RankingFilters } from '../services/rankingService'
 import { useGlobalFilters } from '../composables/useGlobalFilters'
 import { formatINT } from '../utils/formatUtils'
-import SelectInput from '../components/SelectInput.vue'
-import type { FilterOption } from '../types'
 
 const { filterState, period, filterTrigger } = useGlobalFilters()
 
@@ -49,8 +47,44 @@ const rankingFilters = computed<RankingFilters>(() => {
   return filters
 })
 
-// Nível selecionado manualmente pelo usuário
-const selectedLevel = ref<string>('gerenteGestao')
+// Determina o nível automaticamente baseado nos filtros aplicados
+// Hierarquia: gerente > gerenteGestao > agencia > regional > diretoria > segmento
+const selectedLevel = computed<string>(() => {
+  // Verifica na ordem da hierarquia (do mais específico para o menos específico)
+  if (filterState.value.gerente && filterState.value.gerente.toLowerCase() !== 'todos') {
+    return 'gerente'
+  }
+  if (filterState.value.ggestao && filterState.value.ggestao.toLowerCase() !== 'todos') {
+    return 'gerenteGestao'
+  }
+  if (filterState.value.agencia && filterState.value.agencia.toLowerCase() !== 'todas') {
+    return 'agencia'
+  }
+  if (filterState.value.gerencia && filterState.value.gerencia.toLowerCase() !== 'todas') {
+    return 'gerencia'
+  }
+  if (filterState.value.diretoria && filterState.value.diretoria.toLowerCase() !== 'todas') {
+    return 'diretoria'
+  }
+  if (filterState.value.segmento && filterState.value.segmento.toLowerCase() !== 'todos') {
+    return 'segmento'
+  }
+  // Padrão: gerenteGestao quando nenhum filtro está aplicado
+  return 'gerenteGestao'
+})
+
+// Label do nível atual para exibição
+const levelLabel = computed<string>(() => {
+  const labels: Record<string, string> = {
+    'segmento': 'Segmento',
+    'diretoria': 'Diretoria',
+    'gerencia': 'Regional',
+    'agencia': 'Agência',
+    'gerenteGestao': 'Gerente de gestão',
+    'gerente': 'Gerente'
+  }
+  return labels[selectedLevel.value] || 'Gerente de gestão'
+})
 
 const loadRanking = async () => {
   loading.value = true
@@ -76,24 +110,10 @@ onMounted(() => {
   loadRanking()
 })
 
-// Observa mudanças nos filtros e no nível selecionado
-watch([filterState, selectedLevel, filterTrigger], () => {
+// Observa mudanças nos filtros e no trigger
+watch([filterState, filterTrigger], () => {
   loadRanking()
 }, { deep: true })
-
-// Opções de nível para o select
-const levelOptions = computed<FilterOption[]>(() => [
-  { id: 'segmento', nome: 'Segmento' },
-  { id: 'diretoria', nome: 'Diretoria' },
-  { id: 'gerencia', nome: 'Regional' },
-  { id: 'agencia', nome: 'Agência' },
-  { id: 'gerenteGestao', nome: 'Gerente de gestão' },
-  { id: 'gerente', nome: 'Gerente' }
-])
-
-const handleLevelChange = (value: string): void => {
-  selectedLevel.value = value
-}
 
 // Os dados já vêm processados do backend (agrupados e com displayLabel)
 const groupedRanking = computed(() => {
@@ -174,17 +194,9 @@ const formatPoints = (value: number | null | undefined): string => {
 
             <div class="rk-summary" id="rk-summary">
               <div class="rk-badges">
-                <div class="rk-badge rk-badge--level">
-                  <strong>Nível:</strong>
-                  <SelectInput
-                    id="rk-level-select"
-                    :model-value="selectedLevel"
-                    :options="levelOptions"
-                    placeholder="Selecione o nível"
-                    label="Nível de agrupamento"
-                    @update:model-value="handleLevelChange"
-                  />
-                </div>
+                <span class="rk-badge">
+                  <strong>Nível de agrupamento:</strong> {{ levelLabel }}
+                </span>
                 <span class="rk-badge">
                   <strong>Quantidade de participantes:</strong> {{ formatINT(groupedRanking.length) }}
                 </span>

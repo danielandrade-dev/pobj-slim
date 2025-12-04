@@ -57,11 +57,21 @@ class RankingUseCase
         foreach ($rawData as $item) {
             $key = $item[$keyField] ?? 'unknown';
             $label = $item[$labelField] ?? $key ?? '—';
+            
+            // Para gerenteGestao, também armazena o ID numérico para comparação
+            $idNum = null;
+            if ($nivel === 'gerenteGestao' && isset($item['gerente_gestao_id_num'])) {
+                $idNum = $item['gerente_gestao_id_num'];
+            } elseif ($nivel === 'gerente' && isset($item['gerente_id'])) {
+                // Para gerente, o ID pode estar em outro campo se necessário
+                $idNum = $item['gerente_id'];
+            }
 
             if (!isset($groups[$key])) {
                 $groups[$key] = [
                     'unidade' => $key,
                     'label' => $label,
+                    'id_num' => $idNum, // ID numérico para comparação
                     'pontos' => 0,
                     'count' => 0,
                 ];
@@ -109,7 +119,9 @@ class RankingUseCase
 
         // Se há filtro aplicado, mostra apenas o item que corresponde ao filtro
         if ($hasSelection && $selectionForLevel) {
-            $matches = $this->matchesSelection($selectionForLevel, $item['unidade'], $item['label']);
+            // Compara com unidade (funcional), label (nome) e id_num (ID numérico)
+            $idNum = $item['id_num'] ?? null;
+            $matches = $this->matchesSelection($selectionForLevel, $item['unidade'], $item['label'], $idNum);
             return !$matches; // Mascara se não corresponder ao filtro
         }
 
@@ -157,7 +169,7 @@ class RankingUseCase
     /**
      * Verifica se um valor corresponde à seleção
      */
-    private function matchesSelection(string $filterValue, ?string $candidate1, ?string $candidate2): bool
+    private function matchesSelection(string $filterValue, ?string $candidate1, ?string $candidate2, ?string $candidateIdNum = null): bool
     {
         if ($this->isDefaultSelection($filterValue)) {
             return true;
@@ -165,7 +177,15 @@ class RankingUseCase
 
         $normalizedFilter = strtolower(trim($filterValue));
         
-        $candidates = array_filter([$candidate1, $candidate2]);
+        // Se o filtro for numérico, compara com ID numérico primeiro
+        if (is_numeric($filterValue) && $candidateIdNum !== null) {
+            $normalizedIdNum = strtolower(trim($candidateIdNum));
+            if ($normalizedIdNum === $normalizedFilter) {
+                return true;
+            }
+        }
+        
+        $candidates = array_filter([$candidate1, $candidate2, $candidateIdNum]);
         foreach ($candidates as $candidate) {
             if (!$candidate) {
                 continue;

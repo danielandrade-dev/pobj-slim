@@ -3,6 +3,8 @@
 namespace App\Repository\Specification;
 
 use App\Domain\DTO\FilterDTO;
+use App\Domain\Enum\Cargo;
+use App\Entity\Pobj\DEstrutura;
 use Doctrine\ORM\QueryBuilder;
 
 /**
@@ -34,11 +36,19 @@ class FilterSpecification extends CompositeSpecification
         
         // Aplica apenas o filtro mais específico da hierarquia
         if ($gerente !== null && $gerente !== '') {
-            $qb->andWhere("{$alias}.funcional = :gerenteFuncional")
-               ->setParameter('gerenteFuncional', $gerente);
+            // Converte ID para funcional se necessário
+            $gerenteFuncional = $this->getFuncionalFromIdOrFuncional($qb, $gerente, Cargo::GERENTE);
+            if ($gerenteFuncional) {
+                $qb->andWhere("{$alias}.funcional = :gerenteFuncional")
+                   ->setParameter('gerenteFuncional', $gerenteFuncional);
+            }
         } elseif ($gerenteGestao !== null && $gerenteGestao !== '') {
-            $qb->andWhere("{$alias}.funcional = :gerenteGestaoFuncional")
-               ->setParameter('gerenteGestaoFuncional', $gerenteGestao);
+            // Converte ID para funcional se necessário
+            $gerenteGestaoFuncional = $this->getFuncionalFromIdOrFuncional($qb, $gerenteGestao, Cargo::GERENTE_GESTAO);
+            if ($gerenteGestaoFuncional) {
+                $qb->andWhere("{$alias}.funcional = :gerenteGestaoFuncional")
+                   ->setParameter('gerenteGestaoFuncional', $gerenteGestaoFuncional);
+            }
         } elseif ($agencia !== null && $agencia !== '') {
             $qb->andWhere("{$alias}.agencia = :agenciaId")
                ->setParameter('agenciaId', $agencia);
@@ -89,6 +99,48 @@ class FilterSpecification extends CompositeSpecification
     public function isSatisfiedBy(): bool
     {
         return $this->filters !== null && $this->filters->hasAnyFilter();
+    }
+
+    /**
+     * Converte ID para funcional se necessário
+     * Se o valor for numérico (ID), busca o funcional na tabela d_estrutura
+     * Se o valor for string (funcional), retorna o próprio valor
+     * 
+     * @param QueryBuilder $qb QueryBuilder para obter EntityManager
+     * @param mixed $idOrFuncional ID ou funcional
+     * @param int $cargoId ID do cargo (GERENTE ou GERENTE_GESTAO)
+     * @return string|null Funcional encontrado ou null se não encontrar
+     */
+    private function getFuncionalFromIdOrFuncional(QueryBuilder $qb, $idOrFuncional, int $cargoId): ?string
+    {
+        if ($idOrFuncional === null || $idOrFuncional === '') {
+            return null;
+        }
+
+        // Se não for numérico, assume que já é um funcional
+        if (!is_numeric($idOrFuncional)) {
+            return (string)$idOrFuncional;
+        }
+
+        // Se for numérico, busca o funcional na tabela d_estrutura
+        $em = $qb->getEntityManager();
+        $metadata = $em->getClassMetadata(DEstrutura::class);
+        $dEstruturaTable = $metadata->getTableName();
+        $conn = $em->getConnection();
+        
+        $sql = "SELECT funcional FROM {$dEstruturaTable} 
+                WHERE id = :id AND cargo_id = :cargoId 
+                LIMIT 1";
+        
+        $result = $conn->executeQuery($sql, [
+            'id' => (int)$idOrFuncional,
+            'cargoId' => $cargoId
+        ]);
+        
+        $row = $result->fetchAssociative();
+        $result->free();
+        
+        return $row ? ($row['funcional'] ?? null) : null;
     }
 }
 

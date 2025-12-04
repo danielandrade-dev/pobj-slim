@@ -79,7 +79,6 @@
     </div>
 
     <div 
-      v-if="hasVariavelData"
       class="kpi-pill"
     >
       <div class="kpi-strip__main">
@@ -154,10 +153,6 @@ const pctIndicadores = computed(() => {
 const pctPontos = computed(() => {
   if (summary.value.pontosPossiveis === 0) return 0
   return (summary.value.pontosAtingidos / summary.value.pontosPossiveis) * 100
-})
-
-const hasVariavelData = computed(() => {
-  return summary.value.varPossivel != null || summary.value.varAtingido != null
 })
 
 const pctVariavel = computed(() => {

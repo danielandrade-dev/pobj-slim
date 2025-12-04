@@ -3,6 +3,7 @@
 namespace App\Repository\Pobj;
 
 use App\Domain\DTO\FilterDTO;
+use App\Domain\Enum\Cargo;
 use App\Entity\Pobj\DProduto;
 use App\Entity\Pobj\FVariavel;
 use App\Entity\Pobj\DCalendario;
@@ -128,21 +129,29 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
             $gerenteGestao = $filters->getGerenteGestao();
             
             if ($gerente !== null && $gerente !== '') {
-                // Se tem gerente, filtra apenas por funcional (gerente) - evita join com estrutura
-                $metaFilter .= " AND m.funcional = :gerenteFuncionalMeta";
-                $realizadosFilter .= " AND r.funcional = :gerenteFuncionalRealizados";
-                $pontosFilter .= " AND p.funcional = :gerenteFuncionalPontos";
-                $params['gerenteFuncionalMeta'] = $gerente;
-                $params['gerenteFuncionalRealizados'] = $gerente;
-                $params['gerenteFuncionalPontos'] = $gerente;
+                // Converte ID para funcional se necessário
+                $gerenteFuncional = $this->getFuncionalFromIdOrFuncional($gerente, Cargo::GERENTE);
+                if ($gerenteFuncional) {
+                    // Se tem gerente, filtra apenas por funcional (gerente) - evita join com estrutura
+                    $metaFilter .= " AND m.funcional = :gerenteFuncionalMeta";
+                    $realizadosFilter .= " AND r.funcional = :gerenteFuncionalRealizados";
+                    $pontosFilter .= " AND p.funcional = :gerenteFuncionalPontos";
+                    $params['gerenteFuncionalMeta'] = $gerenteFuncional;
+                    $params['gerenteFuncionalRealizados'] = $gerenteFuncional;
+                    $params['gerenteFuncionalPontos'] = $gerenteFuncional;
+                }
             } elseif ($gerenteGestao !== null && $gerenteGestao !== '') {
-                // Se tem gerente gestão, filtra apenas por funcional (gerente gestão) - evita join com estrutura
-                $metaFilter .= " AND m.funcional = :gerenteGestaoFuncionalMeta";
-                $realizadosFilter .= " AND r.funcional = :gerenteGestaoFuncionalRealizados";
-                $pontosFilter .= " AND p.funcional = :gerenteGestaoFuncionalPontos";
-                $params['gerenteGestaoFuncionalMeta'] = $gerenteGestao;
-                $params['gerenteGestaoFuncionalRealizados'] = $gerenteGestao;
-                $params['gerenteGestaoFuncionalPontos'] = $gerenteGestao;
+                // Converte ID para funcional se necessário
+                $gerenteGestaoFuncional = $this->getFuncionalFromIdOrFuncional($gerenteGestao, Cargo::GERENTE_GESTAO);
+                if ($gerenteGestaoFuncional) {
+                    // Se tem gerente gestão, filtra apenas por funcional (gerente gestão) - evita join com estrutura
+                    $metaFilter .= " AND m.funcional = :gerenteGestaoFuncionalMeta";
+                    $realizadosFilter .= " AND r.funcional = :gerenteGestaoFuncionalRealizados";
+                    $pontosFilter .= " AND p.funcional = :gerenteGestaoFuncionalPontos";
+                    $params['gerenteGestaoFuncionalMeta'] = $gerenteGestaoFuncional;
+                    $params['gerenteGestaoFuncionalRealizados'] = $gerenteGestaoFuncional;
+                    $params['gerenteGestaoFuncionalPontos'] = $gerenteGestaoFuncional;
+                }
             } else {
                 // Filtros de estrutura (só aplica se não houver gerente/gerenteGestao)
                 // Com prefixos e sufixos diferentes para cada subconsulta
@@ -309,21 +318,29 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
             $gerenteGestao = $filters->getGerenteGestao();
             
             if ($gerente !== null && $gerente !== '') {
-                // Se tem gerente, filtra apenas por funcional (gerente) - evita join com estrutura
-                $metaFilter .= " AND m.funcional = :gerenteFuncionalMeta";
-                $realizadosFilter .= " AND r.funcional = :gerenteFuncionalRealizados";
-                $pontosFilter .= " AND p.funcional = :gerenteFuncionalPontos";
-                $params['gerenteFuncionalMeta'] = $gerente;
-                $params['gerenteFuncionalRealizados'] = $gerente;
-                $params['gerenteFuncionalPontos'] = $gerente;
+                // Converte ID para funcional se necessário
+                $gerenteFuncional = $this->getFuncionalFromIdOrFuncional($gerente, Cargo::GERENTE);
+                if ($gerenteFuncional) {
+                    // Se tem gerente, filtra apenas por funcional (gerente) - evita join com estrutura
+                    $metaFilter .= " AND m.funcional = :gerenteFuncionalMeta";
+                    $realizadosFilter .= " AND r.funcional = :gerenteFuncionalRealizados";
+                    $pontosFilter .= " AND p.funcional = :gerenteFuncionalPontos";
+                    $params['gerenteFuncionalMeta'] = $gerenteFuncional;
+                    $params['gerenteFuncionalRealizados'] = $gerenteFuncional;
+                    $params['gerenteFuncionalPontos'] = $gerenteFuncional;
+                }
             } elseif ($gerenteGestao !== null && $gerenteGestao !== '') {
-                // Se tem gerente gestão, filtra apenas por funcional (gerente gestão) - evita join com estrutura
-                $metaFilter .= " AND m.funcional = :gerenteGestaoFuncionalMeta";
-                $realizadosFilter .= " AND r.funcional = :gerenteGestaoFuncionalRealizados";
-                $pontosFilter .= " AND p.funcional = :gerenteGestaoFuncionalPontos";
-                $params['gerenteGestaoFuncionalMeta'] = $gerenteGestao;
-                $params['gerenteGestaoFuncionalRealizados'] = $gerenteGestao;
-                $params['gerenteGestaoFuncionalPontos'] = $gerenteGestao;
+                // Converte ID para funcional se necessário
+                $gerenteGestaoFuncional = $this->getFuncionalFromIdOrFuncional($gerenteGestao, Cargo::GERENTE_GESTAO);
+                if ($gerenteGestaoFuncional) {
+                    // Se tem gerente gestão, filtra apenas por funcional (gerente gestão) - evita join com estrutura
+                    $metaFilter .= " AND m.funcional = :gerenteGestaoFuncionalMeta";
+                    $realizadosFilter .= " AND r.funcional = :gerenteGestaoFuncionalRealizados";
+                    $pontosFilter .= " AND p.funcional = :gerenteGestaoFuncionalPontos";
+                    $params['gerenteGestaoFuncionalMeta'] = $gerenteGestaoFuncional;
+                    $params['gerenteGestaoFuncionalRealizados'] = $gerenteGestaoFuncional;
+                    $params['gerenteGestaoFuncionalPontos'] = $gerenteGestaoFuncional;
+                }
             } else {
                 // Filtros de estrutura (só aplica se não houver gerente/gerenteGestao)
                 // Com prefixos e sufixos diferentes para cada subconsulta
@@ -505,13 +522,21 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
             // Filtro de gerente (funcional) - aplica apenas se fornecido
             // Se tiver gerente, não aplica outros filtros de estrutura
             if ($gerente !== null && $gerente !== '') {
-                $whereClause .= " AND v.funcional = :gerenteFuncional";
-                $params['gerenteFuncional'] = $gerente;
+                // Converte ID para funcional se necessário
+                $gerenteFuncional = $this->getFuncionalFromIdOrFuncional($gerente, Cargo::GERENTE);
+                if ($gerenteFuncional) {
+                    $whereClause .= " AND v.funcional = :gerenteFuncional";
+                    $params['gerenteFuncional'] = $gerenteFuncional;
+                }
             } elseif ($gerenteGestao !== null && $gerenteGestao !== '') {
-                // Filtro de gerente gestão (funcional) - aplica apenas se fornecido
-                // Se tiver gerente gestão, não aplica outros filtros de estrutura
-                $whereClause .= " AND v.funcional = :gerenteGestaoFuncional";
-                $params['gerenteGestaoFuncional'] = $gerenteGestao;
+                // Converte ID para funcional se necessário
+                $gerenteGestaoFuncional = $this->getFuncionalFromIdOrFuncional($gerenteGestao, Cargo::GERENTE_GESTAO);
+                if ($gerenteGestaoFuncional) {
+                    // Filtro de gerente gestão (funcional) - aplica apenas se fornecido
+                    // Se tiver gerente gestão, não aplica outros filtros de estrutura
+                    $whereClause .= " AND v.funcional = :gerenteGestaoFuncional";
+                    $params['gerenteGestaoFuncional'] = $gerenteGestaoFuncional;
+                }
             }
         }
 
@@ -1204,6 +1229,45 @@ class ResumoRepository extends ServiceEntityRepository implements ResumoReposito
                ($filters->getRegional() !== null && $filters->getRegional() !== '') ||
                ($filters->getDiretoria() !== null && $filters->getDiretoria() !== '') ||
                ($filters->getSegmento() !== null && $filters->getSegmento() !== '');
+    }
+
+    /**
+     * Converte ID para funcional se necessário
+     * Se o valor for numérico (ID), busca o funcional na tabela d_estrutura
+     * Se o valor for string (funcional), retorna o próprio valor
+     * 
+     * @param mixed $idOrFuncional ID ou funcional
+     * @param int $cargoId ID do cargo (GERENTE ou GERENTE_GESTAO)
+     * @return string|null Funcional encontrado ou null se não encontrar
+     */
+    private function getFuncionalFromIdOrFuncional($idOrFuncional, int $cargoId): ?string
+    {
+        if ($idOrFuncional === null || $idOrFuncional === '') {
+            return null;
+        }
+
+        // Se não for numérico, assume que já é um funcional
+        if (!is_numeric($idOrFuncional)) {
+            return (string)$idOrFuncional;
+        }
+
+        // Se for numérico, busca o funcional na tabela d_estrutura
+        $dEstruturaTable = $this->getTableName(DEstrutura::class);
+        $conn = $this->getEntityManager()->getConnection();
+        
+        $sql = "SELECT funcional FROM {$dEstruturaTable} 
+                WHERE id = :id AND cargo_id = :cargoId 
+                LIMIT 1";
+        
+        $result = $conn->executeQuery($sql, [
+            'id' => (int)$idOrFuncional,
+            'cargoId' => $cargoId
+        ]);
+        
+        $row = $result->fetchAssociative();
+        $result->free();
+        
+        return $row ? ($row['funcional'] ?? null) : null;
     }
 }
 

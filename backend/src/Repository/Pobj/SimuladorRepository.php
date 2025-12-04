@@ -180,21 +180,29 @@ class SimuladorRepository extends ServiceEntityRepository
 
         // Se tiver gerente, filtra apenas por funcional
         if ($gerente !== null && $gerente !== '') {
-            $whereClause .= " AND est.funcional = :gerenteFuncional";
-            $params['gerenteFuncional'] = $gerente;
+            // Converte ID para funcional se necessário
+            $gerenteFuncional = $this->getFuncionalFromIdOrFuncional($gerente, Cargo::GERENTE);
+            if ($gerenteFuncional) {
+                $whereClause .= " AND est.funcional = :gerenteFuncional";
+                $params['gerenteFuncional'] = $gerenteFuncional;
+            }
         } elseif ($gerenteGestao !== null && $gerenteGestao !== '') {
-            // Se tiver gerente gestão, filtra por todos os gerentes da mesma estrutura
-            $whereClause .= " AND EXISTS (
-                SELECT 1 FROM {$estruturaTable} AS ggestao 
-                WHERE ggestao.funcional = :gerenteGestaoFuncional
-                AND ggestao.cargo_id = :cargoGerenteGestao
-                AND ggestao.segmento_id = est.segmento_id
-                AND ggestao.diretoria_id = est.diretoria_id
-                AND ggestao.regional_id = est.regional_id
-                AND ggestao.agencia_id = est.agencia_id
-            )";
-            $params['gerenteGestaoFuncional'] = $gerenteGestao;
-            $params['cargoGerenteGestao'] = Cargo::GERENTE_GESTAO;
+            // Converte ID para funcional se necessário
+            $gerenteGestaoFuncional = $this->getFuncionalFromIdOrFuncional($gerenteGestao, Cargo::GERENTE_GESTAO);
+            if ($gerenteGestaoFuncional) {
+                // Se tiver gerente gestão, filtra por todos os gerentes da mesma estrutura
+                $whereClause .= " AND EXISTS (
+                    SELECT 1 FROM {$estruturaTable} AS ggestao 
+                    WHERE ggestao.funcional = :gerenteGestaoFuncional
+                    AND ggestao.cargo_id = :cargoGerenteGestao
+                    AND ggestao.segmento_id = est.segmento_id
+                    AND ggestao.diretoria_id = est.diretoria_id
+                    AND ggestao.regional_id = est.regional_id
+                    AND ggestao.agencia_id = est.agencia_id
+                )";
+                $params['gerenteGestaoFuncional'] = $gerenteGestaoFuncional;
+                $params['cargoGerenteGestao'] = Cargo::GERENTE_GESTAO;
+            }
         } else {
             // Aplica apenas o filtro mais específico da hierarquia de estrutura
             if ($agencia !== null && $agencia !== '') {
@@ -213,6 +221,45 @@ class SimuladorRepository extends ServiceEntityRepository
         }
 
         return $whereClause;
+    }
+
+    /**
+     * Converte ID para funcional se necessário
+     * Se o valor for numérico (ID), busca o funcional na tabela d_estrutura
+     * Se o valor for string (funcional), retorna o próprio valor
+     * 
+     * @param mixed $idOrFuncional ID ou funcional
+     * @param int $cargoId ID do cargo (GERENTE ou GERENTE_GESTAO)
+     * @return string|null Funcional encontrado ou null se não encontrar
+     */
+    private function getFuncionalFromIdOrFuncional($idOrFuncional, int $cargoId): ?string
+    {
+        if ($idOrFuncional === null || $idOrFuncional === '') {
+            return null;
+        }
+
+        // Se não for numérico, assume que já é um funcional
+        if (!is_numeric($idOrFuncional)) {
+            return (string)$idOrFuncional;
+        }
+
+        // Se for numérico, busca o funcional na tabela d_estrutura
+        $dEstruturaTable = $this->getTableName(DEstrutura::class);
+        $conn = $this->getEntityManager()->getConnection();
+        
+        $sql = "SELECT funcional FROM {$dEstruturaTable} 
+                WHERE id = :id AND cargo_id = :cargoId 
+                LIMIT 1";
+        
+        $result = $conn->executeQuery($sql, [
+            'id' => (int)$idOrFuncional,
+            'cargoId' => $cargoId
+        ]);
+        
+        $row = $result->fetchAssociative();
+        $result->free();
+        
+        return $row ? ($row['funcional'] ?? null) : null;
     }
 }
 

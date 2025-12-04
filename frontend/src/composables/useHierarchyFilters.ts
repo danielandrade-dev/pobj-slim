@@ -165,26 +165,14 @@ export function useHierarchyFilters(estruturaData: Ref<InitDataCompatible | null
     autoFillParent(field, state[field].value)
   }
 
-  // helpers para filtros
-  const filterBy = (arr: FilterOption[] | undefined, key: string, value: string) =>
-    (!arr) ? [] : (!value ? arr : arr.filter(i => normalizeId((i as any)[key]) === normalizeId(value)))
-
+  // Mantém todas as opções visíveis, sem filtrar
+  // A hierarquia é atualizada dinamicamente quando um item é selecionado
   const segmentos = computed(() => normalized.value?.segmentos ?? [])
-  const diretorias = computed(() =>
-    filterBy(normalized.value?.diretorias, 'id_segmento', state.segmento.value)
-  )
-  const regionais = computed(() =>
-    filterBy(normalized.value?.regionais, 'id_diretoria', state.diretoria.value)
-  )
-  const agencias = computed(() =>
-    filterBy(normalized.value?.agencias, 'id_regional', state.gerencia.value)
-  )
-  const gerentesGestao = computed(() =>
-    filterBy(normalized.value?.ggestoes, 'id_agencia', state.agencia.value)
-  )
-  const gerentes = computed(() =>
-    filterBy(normalized.value?.gerentes, 'id_gestor', state.ggestao.value)
-  )
+  const diretorias = computed(() => normalized.value?.diretorias ?? [])
+  const regionais = computed(() => normalized.value?.regionais ?? [])
+  const agencias = computed(() => normalized.value?.agencias ?? [])
+  const gerentesGestao = computed(() => normalized.value?.ggestoes ?? [])
+  const gerentes = computed(() => normalized.value?.gerentes ?? [])
 
   const clearAll = () => {
     for (const k of stateOrder) state[k].value = ''
