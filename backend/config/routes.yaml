@@ -1,0 +1,2 @@
+# Rotas são carregadas via annotations dos controllers
+# Ver: config/routes/annotations.yaml

@@ -1,0 +1,25 @@
+nelmio_api_doc:
+    documentation:
+        info:
+            title: POBJ API
+            description: API RESTful para o sistema POBJ (Plano de Objetivos)
+            version: 1.0.0
+            contact:
+                name: Suporte POBJ
+        servers:
+            - url: http://localhost:8081
+              description: Servidor de desenvolvimento
+            - url: https://api.exemplo.com
+              description: Servidor de produção
+        components:
+            securitySchemes:
+                ApiKeyAuth:
+                    type: apiKey
+                    in: header
+                    name: X-API-Key
+                    description: API Key única do projeto
+        security:
+            - ApiKeyAuth: []
+    areas: # to filter documented areas
+        path_patterns:
+            - ^/api(?!/doc$) # Accepts routes under /api except /api/doc
