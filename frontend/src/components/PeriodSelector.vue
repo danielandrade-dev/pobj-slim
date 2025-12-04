@@ -84,6 +84,23 @@ const openDatePopover = (anchor: HTMLElement): void => {
     pop.style.top = `${top}px`
     pop.style.left = `${left}px`
     pop.style.visibility = 'visible'
+
+    // Adiciona os listeners apenas após o popover estar visível
+    // Isso evita que o modal seja fechado antes de aparecer
+    setTimeout(() => {
+      const outside = (ev: MouseEvent): void => {
+        const target = ev.target as HTMLElement
+        if (target === pop || pop.contains(target) || target === anchor || anchor.contains(target)) return
+        closeDatePopover()
+      }
+
+      const esc = (ev: KeyboardEvent): void => {
+        if (ev.key === 'Escape') closeDatePopover()
+      }
+
+      document.addEventListener('mousedown', outside, { once: true })
+      document.addEventListener('keydown', esc, { once: true })
+    }, 0)
   })
 
   pop.querySelector('#btn-cancelar')?.addEventListener('click', closeDatePopover)
@@ -102,19 +119,6 @@ const openDatePopover = (anchor: HTMLElement): void => {
     emit('update:modelValue', { start: s, end: e })
     closeDatePopover()
   })
-
-  const outside = (ev: MouseEvent): void => {
-    const target = ev.target as HTMLElement
-    if (target === pop || pop.contains(target) || target === anchor) return
-    closeDatePopover()
-  }
-
-  const esc = (ev: KeyboardEvent): void => {
-    if (ev.key === 'Escape') closeDatePopover()
-  }
-
-  document.addEventListener('mousedown', outside, { once: true })
-  document.addEventListener('keydown', esc, { once: true })
 
   datePopover.value = pop
 }

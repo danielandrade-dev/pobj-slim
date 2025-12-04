@@ -154,7 +154,8 @@ class FHistoricoRankingPobjRepository extends ServiceEntityRepository
                 LEFT JOIN {$agenciaTable} AS ag
                     ON ag.id = est.agencia_id
                 LEFT JOIN (
-                    SELECT 
+                    SELECT
+                        g1.id,
                         g1.agencia_id,
                         g1.funcional,
                         g1.nome
