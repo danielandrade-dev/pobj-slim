@@ -4,7 +4,7 @@ namespace App\Repository\Pobj;
 
 use App\Domain\DTO\FilterDTO;
 use App\Domain\Enum\Cargo;
-use App\Entity\Pobj\FHistoricoRankingPobj;
+use App\Entity\Pobj\FPontos;
 use App\Entity\Pobj\DEstrutura;
 use App\Entity\Pobj\DCalendario;
 use App\Entity\Pobj\Segmento;
@@ -18,7 +18,7 @@ class FHistoricoRankingPobjRepository extends ServiceEntityRepository
 {
     public function __construct(ManagerRegistry $registry)
     {
-        parent::__construct($registry, FHistoricoRankingPobj::class);
+        parent::__construct($registry, FPontos::class);
     }
 
     /**
@@ -32,26 +32,34 @@ class FHistoricoRankingPobjRepository extends ServiceEntityRepository
     }
 
     /**
-     * Lista todo o histórico ordenado por ranking
+     * Lista todo o histórico ordenado por ranking (agora usando f_pontos)
      */
     public function findAllOrderedByRanking(): array
     {
-        return $this->createQueryBuilder('h')
-                    ->orderBy('h.ranking', 'ASC')
-                    ->addOrderBy('h.realizado', 'DESC')
-                    ->getQuery()
-                    ->getResult();
+        $fPontosTable = $this->getTableName(FPontos::class);
+        $conn = $this->getEntityManager()->getConnection();
+        
+        $sql = "SELECT 
+                    funcional,
+                    SUM(realizado) as total_pontos
+                FROM {$fPontosTable}
+                GROUP BY funcional
+                ORDER BY total_pontos DESC";
+        
+        $result = $conn->executeQuery($sql);
+        return $result->fetchAllAssociative();
     }
 
     /**
      * Busca dados de ranking com filtros e informações de estrutura
+     * Agora usa f_pontos ao invés de f_historico_ranking_pobj
      */
     public function findRankingWithFilters(?FilterDTO $filters = null): array
     {
         // Primeiro, verifica se há dados na tabela
-        $rankingTable = $this->getTableName(FHistoricoRankingPobj::class);
+        $fPontosTable = $this->getTableName(FPontos::class);
         $conn = $this->getEntityManager()->getConnection();
-        $countResult = $conn->executeQuery("SELECT COUNT(*) as total FROM {$rankingTable}");
+        $countResult = $conn->executeQuery("SELECT COUNT(*) as total FROM {$fPontosTable}");
         $count = $countResult->fetchOne();
         
         // Se não houver dados, retorna vazio
@@ -59,7 +67,7 @@ class FHistoricoRankingPobjRepository extends ServiceEntityRepository
             return [];
         }
         
-        $rankingTable = $this->getTableName(FHistoricoRankingPobj::class);
+        $fPontosTable = $this->getTableName(FPontos::class);
         $estruturaTable = $this->getTableName(DEstrutura::class);
         $calendarioTable = $this->getTableName(DCalendario::class);
         $segmentoTable = $this->getTableName(Segmento::class);
@@ -122,19 +130,20 @@ class FHistoricoRankingPobjRepository extends ServiceEntityRepository
             $dataFim = $filters->getDataFim();
 
             if ($dataInicio !== null && $dataInicio !== '') {
-                $whereClause .= " AND h.data >= :dataInicio";
+                $whereClause .= " AND p.data_realizado >= :dataInicio";
                 $params['dataInicio'] = $dataInicio;
             }
 
             if ($dataFim !== null && $dataFim !== '') {
-                $whereClause .= " AND h.data <= :dataFim";
+                $whereClause .= " AND p.data_realizado <= :dataFim";
                 $params['dataFim'] = $dataFim;
             }
         }
 
-        $sql = "SELECT
-                    h.data AS data,
-                    DATE_FORMAT(h.data, '%Y-%m') AS competencia,
+        // Primeiro, cria uma subquery com os dados agregados
+        $subquery = "SELECT
+                    MAX(p.data_realizado) AS data,
+                    DATE_FORMAT(MAX(p.data_realizado), '%Y-%m') AS competencia,
                     CAST(seg.id AS CHAR) AS segmento_id,
                     seg.nome AS segmento,
                     CAST(dir.id AS CHAR) AS diretoria_id,
@@ -163,13 +172,12 @@ class FHistoricoRankingPobjRepository extends ServiceEntityRepository
                         WHEN est.cargo_id = :cargoGerenteGestao THEN est.nome
                         ELSE NULL
                     END AS gerente_gestao_nome,
-                    h.ranking AS rank,
-                    h.realizado AS realizado_mensal,
-                    NULL AS meta_mensal,
-                    NULL AS pontos
-                FROM {$rankingTable} AS h
+                    SUM(p.realizado) AS realizado_mensal,
+                    SUM(p.meta) AS meta_mensal,
+                    SUM(p.realizado) AS pontos
+                FROM {$fPontosTable} AS p
                 INNER JOIN {$estruturaTable} AS est
-                    ON est.funcional = h.funcional
+                    ON est.funcional = p.funcional
                 LEFT JOIN {$segmentoTable} AS seg
                     ON seg.id = est.segmento_id
                 LEFT JOIN {$diretoriaTable} AS dir
@@ -195,7 +203,22 @@ class FHistoricoRankingPobjRepository extends ServiceEntityRepository
                 ) AS ggestao
                     ON ggestao.agencia_id = est.agencia_id
                 WHERE 1=1 {$whereClause}
-                ORDER BY h.ranking ASC, h.realizado DESC, h.data DESC";
+                GROUP BY est.funcional, seg.id, dir.id, reg.id, ag.id, est.cargo_id, ggestao.funcional, ggestao.nome";
+
+        // Query principal com ranking calculado baseado no realizado_mensal
+        // Usa variáveis MySQL para calcular o ranking considerando empates
+        $sql = "SELECT 
+                    ranked.*,
+                    @rank := CASE 
+                        WHEN @prev_realizado = ranked.realizado_mensal THEN @rank
+                        ELSE @rank + 1
+                    END AS ranking_mensal,
+                    @prev_realizado := ranked.realizado_mensal AS _prev
+                FROM (
+                    {$subquery}
+                ) AS ranked
+                CROSS JOIN (SELECT @rank := 0, @prev_realizado := NULL) AS r
+                ORDER BY ranked.realizado_mensal DESC, ranked.pontos DESC";
 
         $conn = $this->getEntityManager()->getConnection();
         $result = $conn->executeQuery($sql, $params);
@@ -218,7 +241,7 @@ class FHistoricoRankingPobjRepository extends ServiceEntityRepository
                 'gerente_gestao_nome' => $row['gerente_gestao_nome'] ?? null,
                 'gerente_id' => $row['gerente_id'] ?? null,
                 'gerente_nome' => $row['gerente_nome'] ?? null,
-                'rank' => $row['rank'] !== null ? (int)$row['rank'] : null,
+                'rank' => $row['ranking_mensal'] !== null ? (int)$row['ranking_mensal'] : null, // Ranking baseado no realizado_mensal
                 'realizado_mensal' => $row['realizado_mensal'] !== null ? (float)$row['realizado_mensal'] : null,
                 'meta_mensal' => $row['meta_mensal'] !== null ? (float)$row['meta_mensal'] : null,
                 'pontos' => $row['pontos'] !== null ? (float)$row['pontos'] : null,

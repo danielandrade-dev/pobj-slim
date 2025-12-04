@@ -45,8 +45,8 @@ class FilterDTO
      */
     public function get(string $key, $default = null)
     {
-        // Para dataInicio e dataFim, não adiciona 'Id' no final
-        if ($key === 'dataInicio' || $key === 'dataFim') {
+        // Para dataInicio, dataFim e nivel, não adiciona 'Id' no final
+        if ($key === 'dataInicio' || $key === 'dataFim' || $key === 'nivel') {
             if (isset($this->filters[$key])) {
                 return $this->filters[$key];
             }

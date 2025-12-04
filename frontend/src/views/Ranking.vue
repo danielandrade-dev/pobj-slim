@@ -6,33 +6,39 @@ import { formatINT } from '../utils/formatUtils'
 import SelectInput from '../components/SelectInput.vue'
 import type { FilterOption } from '../types'
 
-const { filterState, period } = useGlobalFilters()
+const { filterState, period, filterTrigger } = useGlobalFilters()
 
 const rankingData = ref<RankingItem[]>([])
 const loading = ref(false)
 const error = ref<string | null>(null)
 
+// Função auxiliar para sanitizar valores de filtro
+const sanitizeFilterValue = (value?: string): string | undefined => {
+  if (!value) return undefined
+  const trimmed = value.trim()
+  if (!trimmed) return undefined
+  const lower = trimmed.toLowerCase()
+  if (lower === 'todos' || lower === 'todas' || lower === '') return undefined
+  return trimmed
+}
+
 const rankingFilters = computed<RankingFilters>(() => {
   const filters: RankingFilters = {}
   
-  if (filterState.value.segmento && filterState.value.segmento.toLowerCase() !== 'todos') {
-    filters.segmento = filterState.value.segmento
-  }
-  if (filterState.value.diretoria && filterState.value.diretoria.toLowerCase() !== 'todas') {
-    filters.diretoria = filterState.value.diretoria
-  }
-  if (filterState.value.gerencia && filterState.value.gerencia.toLowerCase() !== 'todas') {
-    filters.regional = filterState.value.gerencia
-  }
-  if (filterState.value.agencia && filterState.value.agencia.toLowerCase() !== 'todas') {
-    filters.agencia = filterState.value.agencia
-  }
-  if (filterState.value.ggestao && filterState.value.ggestao.toLowerCase() !== 'todos') {
-    filters.gerenteGestao = filterState.value.ggestao
-  }
-  if (filterState.value.gerente && filterState.value.gerente.toLowerCase() !== 'todos') {
-    filters.gerente = filterState.value.gerente
-  }
+  const segmento = sanitizeFilterValue(filterState.value.segmento)
+  const diretoria = sanitizeFilterValue(filterState.value.diretoria)
+  const regional = sanitizeFilterValue(filterState.value.gerencia)
+  const agencia = sanitizeFilterValue(filterState.value.agencia)
+  const gerenteGestao = sanitizeFilterValue(filterState.value.ggestao)
+  const gerente = sanitizeFilterValue(filterState.value.gerente)
+  
+  if (segmento) filters.segmento = segmento
+  if (diretoria) filters.diretoria = diretoria
+  if (regional) filters.regional = regional
+  if (agencia) filters.agencia = agencia
+  if (gerenteGestao) filters.gerenteGestao = gerenteGestao
+  if (gerente) filters.gerente = gerente
+  
   if (period.value?.start) {
     filters.dataInicio = period.value.start
   }
@@ -43,12 +49,15 @@ const rankingFilters = computed<RankingFilters>(() => {
   return filters
 })
 
+// Nível selecionado manualmente pelo usuário
+const selectedLevel = ref<string>('gerenteGestao')
+
 const loadRanking = async () => {
   loading.value = true
   error.value = null
 
   try {
-    const data = await getRanking(rankingFilters.value)
+    const data = await getRanking(rankingFilters.value, selectedLevel.value)
     if (data) {
       rankingData.value = data
     } else {
@@ -67,65 +76,10 @@ onMounted(() => {
   loadRanking()
 })
 
-watch([filterState], () => {
+// Observa mudanças nos filtros e no nível selecionado
+watch([filterState, selectedLevel, filterTrigger], () => {
   loadRanking()
 }, { deep: true })
-
-const RANKING_KEY_FIELDS: Record<string, string> = {
-  segmento: 'segmento_id',
-  diretoria: 'diretoria_id',
-  gerencia: 'gerencia_id',
-  agencia: 'agencia_id',
-  gerenteGestao: 'gerente_gestao_id',
-  gerente: 'gerente_id'
-}
-
-const RANKING_LABEL_FIELDS: Record<string, string> = {
-  segmento: 'segmento',
-  diretoria: 'diretoria_nome',
-  gerencia: 'gerencia_nome',
-  agencia: 'agencia_nome',
-  gerenteGestao: 'gerente_gestao_nome',
-  gerente: 'gerente_nome'
-}
-
-const isDefaultSelection = (val: string | null | undefined): boolean => {
-  if (!val) return true
-  const normalized = val.toLowerCase().trim()
-  return normalized === 'todos' || normalized === 'todas' || normalized === ''
-}
-
-const getRankingSelectionForLevel = (level: string): string | null => {
-  const fs = filterState.value
-  switch (level) {
-    case 'segmento':
-      return fs.segmento || null
-    case 'diretoria':
-      return fs.diretoria || null
-    case 'gerencia':
-      return fs.gerencia || null
-    case 'agencia':
-      return fs.agencia || null
-    case 'gerenteGestao':
-      return fs.ggestao || null
-    case 'gerente':
-      return fs.gerente || null
-    default:
-      return null
-  }
-}
-
-const levelNames: Record<string, string> = {
-  segmento: 'Segmento',
-  diretoria: 'Diretoria',
-  gerencia: 'Regional',
-  agencia: 'Agência',
-  gerente: 'Gerente',
-  gerenteGestao: 'Gerente de gestão'
-}
-
-// Nível selecionado manualmente pelo usuário
-const selectedLevel = ref<string>('gerenteGestao')
 
 // Opções de nível para o select
 const levelOptions = computed<FilterOption[]>(() => [
@@ -137,122 +91,13 @@ const levelOptions = computed<FilterOption[]>(() => [
   { id: 'gerente', nome: 'Gerente' }
 ])
 
-// Usa o nível selecionado manualmente pelo usuário
-const rankingLevel = computed(() => {
-  return selectedLevel.value || 'gerenteGestao'
-})
-
 const handleLevelChange = (value: string): void => {
   selectedLevel.value = value
 }
 
-const simplificarTexto = (text: string): string => {
-  return text.toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\s+/g, '')
-    .trim()
-}
-
-const matchesSelection = (filterValue: string, ...candidates: (string | null | undefined)[]): boolean => {
-  if (isDefaultSelection(filterValue)) return true
-  const normalizedFilter = filterValue.toLowerCase().trim()
-  return candidates.some(candidate => {
-    if (!candidate) return false
-    return candidate.toString().toLowerCase().trim() === normalizedFilter ||
-           simplificarTexto(candidate.toString()) === simplificarTexto(filterValue)
-  })
-}
-
+// Os dados já vêm processados do backend (agrupados e com displayLabel)
 const groupedRanking = computed(() => {
-  const level = rankingLevel.value
-  const keyField = RANKING_KEY_FIELDS[level] || 'gerente_gestao_id'
-  const labelField = RANKING_LABEL_FIELDS[level] || 'gerente_gestao_nome'
-
-  const selectionForLevel = getRankingSelectionForLevel(level)
-  const hasSelectionForLevel = !!selectionForLevel && !isDefaultSelection(selectionForLevel)
-
-  // Quando há um filtro aplicado, mostra ranking do mesmo nível (mesmo grupo)
-  // Se não há filtro, mostra ranking do nível padrão
-  let targetLevel = level
-  let targetKeyField = keyField
-  let targetLabelField = labelField
-
-  // Se há seleção no nível atual, mantém o ranking no mesmo nível para mostrar o grupo
-  // Não avança para o próximo nível
-  if (hasSelectionForLevel) {
-    // Mantém o mesmo nível para mostrar todos do grupo
-    targetLevel = level
-    targetKeyField = keyField
-    targetLabelField = labelField
-  }
-
-  // Filtra os dados para pegar apenas os itens do mesmo grupo
-  let filteredData = rankingData.value
-  if (hasSelectionForLevel && selectionForLevel) {
-    // Encontra o item selecionado para identificar o grupo
-    const selectedItem = rankingData.value.find(item => {
-      const itemKey = (item as unknown as Record<string, string>)[keyField]
-      const itemLabel = (item as any)[labelField]
-      return matchesSelection(selectionForLevel, itemKey, itemLabel)
-    })
-
-    if (selectedItem) {
-      // Identifica o grupo baseado no nível pai
-      const parentLevelHierarchy: Record<string, string> = {
-        segmento: null as any,
-        diretoria: 'segmento_id',
-        gerencia: 'diretoria_id',
-        agencia: 'gerencia_id',
-        gerenteGestao: 'agencia_id',
-        gerente: 'gerente_gestao_id'
-      }
-
-      const parentKeyField = parentLevelHierarchy[level]
-      if (parentKeyField) {
-        const parentKey = (selectedItem as any)[parentKeyField]
-        // Filtra todos os itens que pertencem ao mesmo grupo (mesmo pai)
-        filteredData = rankingData.value.filter(item => {
-          const itemParentKey = (item as any)[parentKeyField]
-          return itemParentKey === parentKey
-        })
-      } else {
-        // Se não há nível pai (segmento), mostra todos
-        filteredData = rankingData.value
-      }
-    }
-  }
-
-  // Agrupa por nível alvo
-  const groups = new Map<string, {
-    unidade: string
-    label: string
-    pontos: number
-    count: number
-  }>()
-
-  filteredData.forEach(item => {
-    const key = (item as any)[targetKeyField] || 'unknown'
-    const label = (item as any)[targetLabelField] || key || '—'
-
-    if (!groups.has(key)) {
-      groups.set(key, {
-        unidade: key,
-        label,
-        pontos: 0,
-        count: 0
-      })
-    }
-
-    const group = groups.get(key)!
-    // Soma o realizado da f-pontos (usando pontos ou realizado_mensal como fallback)
-    const pontos = item.pontos || item.realizado_mensal || 0
-    group.pontos += pontos
-    group.count += 1
-  })
-
-  return Array.from(groups.values())
-    .sort((a, b) => b.pontos - a.pontos)
+  return rankingData.value
 })
 
 const formatPoints = (value: number | null | undefined): string => {
@@ -261,25 +106,6 @@ const formatPoints = (value: number | null | undefined): string => {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
   }).format(value)
-}
-
-const shouldMaskName = (item: any, index: number): boolean => {
-  const level = rankingLevel.value
-  const selectionForLevel = getRankingSelectionForLevel(level)
-  const hasSelectionForLevel = !!selectionForLevel && !isDefaultSelection(selectionForLevel)
-
-  // Se não há filtro aplicado, mascara todos exceto o primeiro
-  if (!hasSelectionForLevel) {
-    return index !== 0
-  }
-
-  // Se há filtro aplicado, mostra apenas o item que corresponde ao filtro
-  if (hasSelectionForLevel && selectionForLevel) {
-    const matches = matchesSelection(selectionForLevel, item.unidade, item.label)
-    return !matches // Mascara se não corresponder ao filtro
-  }
-
-  return true
 }
 </script>
 
@@ -381,9 +207,9 @@ const shouldMaskName = (item: any, index: number): boolean => {
                     class="rk-row"
                     :class="{ 'rk-row--top': index === 0 }"
                   >
-                    <td class="pos-col">{{ formatINT(index + 1) }}</td>
+                    <td class="pos-col">{{ formatINT(item.position ?? index + 1) }}</td>
                     <td class="unit-col rk-name">
-                      {{ shouldMaskName(item, index) ? '*****' : item.label }}
+                      {{ item.displayLabel ?? item.label ?? '—' }}
                     </td>
                     <td class="points-col">{{ formatPoints(item.pontos) }}</td>
                   </tr>

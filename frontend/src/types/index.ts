@@ -200,8 +200,8 @@ export interface ProdutoMensal {
 }
 
 export interface RankingItem {
-  data: string
-  competencia: string
+  data?: string
+  competencia?: string
   segmento?: string
   segmento_id?: string
   diretoria_id?: string
@@ -215,10 +215,16 @@ export interface RankingItem {
   gerente_id?: string
   gerente_nome?: string
   participantes?: number
-  rank: number
+  rank?: number
   pontos?: number
   realizado_mensal?: number
   meta_mensal?: number
+  // Campos processados pelo backend
+  unidade?: string
+  label?: string
+  displayLabel?: string
+  count?: number
+  position?: number
 }
 
 export interface RankingFilters {

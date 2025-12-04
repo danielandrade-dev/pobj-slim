@@ -59,6 +59,13 @@ class RankingController extends ControllerBase
      *         required=false,
      *         @OA\Schema(type="integer", example=20)
      *     ),
+     *     @OA\Parameter(
+     *         name="nivel",
+     *         in="query",
+     *         description="Nível de agrupamento (segmento, diretoria, gerencia, agencia, gerenteGestao, gerente)",
+     *         required=false,
+     *         @OA\Schema(type="string", example="gerenteGestao")
+     *     ),
      *
      *     @OA\Response(
      *         response=200,

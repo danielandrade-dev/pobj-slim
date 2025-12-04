@@ -41,7 +41,18 @@ function buildFiltersFromState(state?: FilterState, period?: Period): ResumoFilt
     const familia = sanitizeValue(state.familia)
     const indicador = sanitizeValue(state.indicador)
     const subindicador = sanitizeValue(state.subindicador)
-    const status = state.status && state.status !== 'todos' ? state.status : undefined
+    
+    // Mapeia status do frontend para o formato do backend
+    // Frontend: 'atingidos' | 'nao' | 'todos'
+    // Backend: '01' (Atingido) | '02' (Não Atingido) | '03' ou undefined (Todos)
+    let status: string | undefined = undefined
+    if (state.status && state.status !== 'todos') {
+      if (state.status === 'atingidos') {
+        status = '01'
+      } else if (state.status === 'nao') {
+        status = '02'
+      }
+    }
 
     if (segmento) filters.segmento = segmento
     if (diretoria) filters.diretoria = diretoria

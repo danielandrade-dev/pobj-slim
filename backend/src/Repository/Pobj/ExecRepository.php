@@ -266,7 +266,13 @@ class ExecRepository extends ServiceEntityRepository
         }
 
         $monthKeys = array_column($months, 'key');
-        $placeholders = implode(',', array_fill(0, count($monthKeys), '?'));
+        $monthPlaceholders = [];
+        foreach ($monthKeys as $index => $key) {
+            $paramName = 'mes' . $index;
+            $monthPlaceholders[] = ':' . $paramName;
+            $params[$paramName] = $key;
+        }
+        $placeholders = implode(',', $monthPlaceholders);
         
         $sql = "SELECT
                     DATE_FORMAT(c.data, '%Y-%m') AS mes,
@@ -291,10 +297,6 @@ class ExecRepository extends ServiceEntityRepository
                     {$whereClause}
                 GROUP BY DATE_FORMAT(c.data, '%Y-%m'), fam.id, fam.nm_familia
                 ORDER BY fam.nm_familia, c.data";
-
-        foreach ($monthKeys as $key) {
-            $params[] = $key;
-        }
 
         $conn = $this->getEntityManager()->getConnection();
         $result = $conn->executeQuery($sql, $params);

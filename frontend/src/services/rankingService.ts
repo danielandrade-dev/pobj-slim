@@ -4,7 +4,7 @@ import type { RankingFilters, RankingItem } from '../types'
 
 export type { RankingFilters, RankingItem } from '../types'
 
-export async function getRanking(filters?: RankingFilters): Promise<RankingItem[] | null> {
+export async function getRanking(filters?: RankingFilters, nivel?: string): Promise<RankingItem[] | null> {
   const params: Record<string, string> = {}
   
   if (filters) {
@@ -18,6 +18,11 @@ export async function getRanking(filters?: RankingFilters): Promise<RankingItem[
     if (filters.dataFim) params.dataFim = filters.dataFim
   }
   
+  // Adiciona o nível de agrupamento
+  if (nivel) {
+    params.nivel = nivel
+  }
+  
   const response = await apiGet<RankingItem[]>(ApiRoutes.RANKING, params)
 
   if (response.success && response.data) {
@@ -27,4 +32,3 @@ export async function getRanking(filters?: RankingFilters): Promise<RankingItem[
   console.error('Erro ao buscar ranking:', response.error)
   return null
 }
-

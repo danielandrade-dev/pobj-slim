@@ -11,7 +11,6 @@ class Tables
     const F_REALIZADOS = 'f_realizados';
     const F_VARIAVEL = 'f_variavel';
     const F_LEADS_PROPENSOS = 'f_leads_propensos';
-    const F_HISTORICO_RANKING_POBJ = 'f_historico_ranking_pobj';
 
     // Tabelas de dimensão (d_*)
     const D_ESTRUTURA = 'd_estrutura';
@@ -35,7 +34,6 @@ class Tables
             self::F_REALIZADOS,
             self::F_VARIAVEL,
             self::F_LEADS_PROPENSOS,
-            self::F_HISTORICO_RANKING_POBJ,
             self::D_ESTRUTURA,
             self::D_PRODUTOS,
             self::D_STATUS_INDICADORES,
