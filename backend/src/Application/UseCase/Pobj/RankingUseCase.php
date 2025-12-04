@@ -3,6 +3,7 @@
 namespace App\Application\UseCase\Pobj;
 
 use App\Domain\DTO\FilterDTO;
+use App\Domain\Enum\Cargo;
 use App\Repository\Pobj\FHistoricoRankingPobjRepository;
 
 class RankingUseCase
@@ -51,11 +52,11 @@ class RankingUseCase
             $key = $item[$keyField] ?? 'unknown';
             $label = $item[$labelField] ?? $key ?? '—';
             
-                        $idNum = null;
+            $idNum = null;
             if ($nivel === 'gerenteGestao' && isset($item['gerente_gestao_id_num'])) {
-                $idNum = $item['gerente_gestao_id_num'];
+                $idNum = (string)$item['gerente_gestao_id_num'];
             } elseif ($nivel === 'gerente' && isset($item['gerente_id'])) {
-                                $idNum = $item['gerente_id'];
+                $idNum = (string)$item['gerente_id'];
             }
 
             if (!isset($groups[$key])) {
@@ -130,7 +131,17 @@ class RankingUseCase
             return null;
         }
 
-        return $filters->get($filterKey);
+        $filterValue = $filters->get($filterKey);
+        
+        // Se o nível for "gerente" e o filtro for numérico, converte ID para funcional
+        if ($nivel === 'gerente' && $filterValue && is_numeric($filterValue)) {
+            $funcional = $this->repository->getFuncionalFromIdOrFuncional($filterValue, Cargo::GERENTE);
+            if ($funcional) {
+                return $funcional;
+            }
+        }
+        
+        return $filterValue;
     }
 
     
@@ -152,24 +163,32 @@ class RankingUseCase
 
         $normalizedFilter = strtolower(trim($filterValue));
         
-                if (is_numeric($filterValue) && $candidateIdNum !== null) {
-            $normalizedIdNum = strtolower(trim($candidateIdNum));
+        // Comparação numérica: se o filtro for numérico, compara com ID numérico
+        if (is_numeric($filterValue) && $candidateIdNum !== null) {
+            $normalizedIdNum = strtolower(trim((string)$candidateIdNum));
             if ($normalizedIdNum === $normalizedFilter) {
+                return true;
+            }
+            // Também compara diretamente os valores numéricos
+            if ((string)$candidateIdNum === (string)$filterValue) {
                 return true;
             }
         }
         
+        // Comparação com todos os candidatos (ID, nome, ID numérico)
         $candidates = array_filter([$candidate1, $candidate2, $candidateIdNum]);
         foreach ($candidates as $candidate) {
             if (!$candidate) {
                 continue;
             }
-            $normalizedCandidate = strtolower(trim($candidate));
+            // Comparação exata (case-insensitive)
+            $normalizedCandidate = strtolower(trim((string)$candidate));
             if ($normalizedCandidate === $normalizedFilter) {
                 return true;
             }
-                        $simplifiedFilter = $this->simplifyText($filterValue);
-            $simplifiedCandidate = $this->simplifyText($candidate);
+            // Comparação simplificada (remove acentos e caracteres especiais)
+            $simplifiedFilter = $this->simplifyText($filterValue);
+            $simplifiedCandidate = $this->simplifyText((string)$candidate);
             if ($simplifiedCandidate === $simplifiedFilter) {
                 return true;
             }

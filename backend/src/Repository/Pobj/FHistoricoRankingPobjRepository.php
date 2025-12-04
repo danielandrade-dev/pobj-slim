@@ -203,7 +203,7 @@ class FHistoricoRankingPobjRepository extends ServiceEntityRepository
     }
 
     
-    private function getFuncionalFromIdOrFuncional($idOrFuncional, int $cargoId): ?string
+    public function getFuncionalFromIdOrFuncional($idOrFuncional, int $cargoId): ?string
     {
         if ($idOrFuncional === null || $idOrFuncional === '') {
             return null;
