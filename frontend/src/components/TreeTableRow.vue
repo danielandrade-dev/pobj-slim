@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import Icon from './Icon.vue'
 import { formatINT, formatDate, formatBRL, formatBRLReadable, formatIntReadable } from '../utils/formatUtils'
 
-export interface TreeNode {
+export type TreeNode = {
   id: string
   label: string
   level: 'segmento' | 'diretoria' | 'regional' | 'agencia' | 'gGestao' | 'gerente' | 'familia' | 'indicador' | 'subindicador' | 'contrato'
@@ -35,7 +35,7 @@ export interface TreeNode {
   }
 }
 
-interface Props {
+type Props = {
   node: TreeNode
   level: number
   expanded: boolean

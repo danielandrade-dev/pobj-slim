@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { formatBRLReadable, formatBRL } from '../../utils/formatUtils'
 
-interface KPIs {
+type KPIs = {
   real_mens: number
   meta_mens: number
   real_acum: number

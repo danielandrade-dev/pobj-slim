@@ -1,4 +1,4 @@
-export interface FilterOption {
+export type FilterOption = {
   id: string
   nome: string
   id_segmento?: string
@@ -11,7 +11,7 @@ export interface FilterOption {
   id_indicador?: string
 }
 
-export interface HierarchySelection {
+export type HierarchySelection = {
   segmento: string
   diretoria: string
   gerencia: string
@@ -20,7 +20,7 @@ export interface HierarchySelection {
   gerente: string
 }
 
-export interface InitData {
+export type InitData = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   segmentos: any[]
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,17 +43,17 @@ export interface InitData {
   status_indicadores: any[]
 }
 
-export interface SegmentoItem {
+export type SegmentoItem = {
   id: string | number
   nome: string
 }
 
-export interface Period {
+export type Period = {
   start: string
   end: string
 }
 
-export interface BusinessSnapshot {
+export type BusinessSnapshot = {
   total: number
   elapsed: number
   remaining: number
@@ -62,7 +62,7 @@ export interface BusinessSnapshot {
   today: string
 }
 
-export interface CalendarioItem {
+export type CalendarioItem = {
   data: string
   competencia: string
   ano: string
@@ -78,14 +78,14 @@ export interface CalendarioItem {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface ApiResponse<T = any> {
+export type ApiResponse<T = any> = {
   success: boolean
   data?: T
   error?: string
   message?: string
 }
 
-export interface DetalhesItem {
+export type DetalhesItem = {
   registro_id?: string
   id_contrato?: string
   data?: string
@@ -124,7 +124,7 @@ export interface DetalhesItem {
   status_id?: number
 }
 
-export interface DetalhesFilters {
+export type DetalhesFilters = {
   segmento?: string
   diretoria?: string
   regional?: string
@@ -138,7 +138,7 @@ export interface DetalhesFilters {
   dataFim?: string
 }
 
-export interface Produto {
+export type Produto = {
   id: string
   id_familia: string
   familia: string
@@ -159,7 +159,7 @@ export interface Produto {
   ultima_atualizacao?: string
 }
 
-export interface ProdutoFilters {
+export type ProdutoFilters = {
   segmento?: string
   diretoria?: string
   regional?: string
@@ -174,7 +174,7 @@ export interface ProdutoFilters {
   status?: string
 }
 
-export interface ProdutoMensal {
+export type ProdutoMensal = {
   id: string
   id_indicador: string
   indicador: string
@@ -199,7 +199,7 @@ export interface ProdutoMensal {
   }>
 }
 
-export interface RankingItem {
+export type RankingItem = {
   data?: string
   competencia?: string
   segmento?: string
@@ -227,7 +227,7 @@ export interface RankingItem {
   position?: number
 }
 
-export interface RankingFilters {
+export type RankingFilters = {
   segmento?: string
   diretoria?: string
   regional?: string
@@ -238,7 +238,7 @@ export interface RankingFilters {
   dataFim?: string
 }
 
-export interface Variavel {
+export type Variavel = {
   id?: string
   registro_id?: string
   funcional: string
@@ -258,14 +258,14 @@ export interface Variavel {
   competencia?: string
 }
 
-export interface ResumoPayload {
+export type ResumoPayload = {
   cards: Produto[]
   classifiedCards: ProdutoMensal[]
   variableCard: Variavel[]
   businessSnapshot: BusinessSnapshot
 }
 
-export interface VariavelFilters {
+export type VariavelFilters = {
   segmento?: string
   diretoria?: string
   regional?: string
@@ -276,7 +276,7 @@ export interface VariavelFilters {
   dataFim?: string
 }
 
-export interface ButtonProps {
+export type ButtonProps = {
   variant?: 'primary' | 'secondary' | 'info' | 'link'
   icon?: string
   label?: string
@@ -285,7 +285,7 @@ export interface ButtonProps {
 
 export type ViewType = 'cards' | 'table' | 'ranking' | 'exec' | 'simuladores' | 'campanhas'
 
-export interface TabConfig {
+export type TabConfig = {
   id: ViewType
   label: string
   icon: string

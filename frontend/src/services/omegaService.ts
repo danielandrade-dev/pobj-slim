@@ -13,7 +13,7 @@ import type {
 } from '../types/omega'
 
 // Tipos para dados brutos da API
-interface ApiUser {
+type ApiUser = {
   id: string
   nome: string
   funcional: string
@@ -30,7 +30,7 @@ interface ApiUser {
   outros?: boolean
 }
 
-interface ApiTicket {
+type ApiTicket = {
   id: string
   subject: string
   company: string
@@ -58,7 +58,7 @@ interface ApiTicket {
   attachment?: string | null
 }
 
-interface ApiStatus {
+type ApiStatus = {
   id: string
   label: string
   tone: string
@@ -67,7 +67,7 @@ interface ApiStatus {
   departamento_id: string
 }
 
-interface ApiInitData {
+type ApiInitData = {
   structure?: OmegaStructure[]
   statuses?: ApiStatus[]
   users?: ApiUser[]

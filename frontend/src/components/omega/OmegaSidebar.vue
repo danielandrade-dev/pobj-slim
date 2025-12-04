@@ -3,7 +3,7 @@ import { computed, watch } from 'vue'
 import Icon from '../Icon.vue'
 import type { useOmega } from '../../composables/useOmega'
 
-interface Props {
+type Props = {
   omega: ReturnType<typeof useOmega>
   collapsed: boolean
 }

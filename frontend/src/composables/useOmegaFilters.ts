@@ -1,7 +1,7 @@
 import { ref, type Ref } from 'vue'
 import type { OmegaTicket } from '../types/omega'
 
-export interface OmegaFilters {
+export type OmegaFilters = {
   id: string
   requester: string
   type: string

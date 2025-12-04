@@ -1,14 +1,14 @@
 import { apiGet } from './api'
 import { ApiRoutes } from '../constants/apiRoutes'
 
-export interface ExecKPIs {
+export type ExecKPIs = {
   real_mens: number
   meta_mens: number
   real_acum: number
   meta_acum: number
 }
 
-export interface ExecRankingItem {
+export type ExecRankingItem = {
   key: string
   label: string
   real_mens: number
@@ -16,36 +16,36 @@ export interface ExecRankingItem {
   p_mens: number
 }
 
-export interface ExecStatus {
+export type ExecStatus = {
   hit: Array<{ key: string; label: string; p_mens: number }>
   quase: Array<{ key: string; label: string; p_mens: number }>
   longe: Array<{ key: string; label: string; gap: number }>
 }
 
-export interface ExecChartSeries {
+export type ExecChartSeries = {
   id: string
   label: string
   values: (number | null)[]
   color: string
 }
 
-export interface ExecChartData {
+export type ExecChartData = {
   keys: string[]
   labels: string[]
   series: ExecChartSeries[]
 }
 
-export interface ExecHeatmapUnit {
+export type ExecHeatmapUnit = {
   value: string
   label: string
 }
 
-export interface ExecHeatmapSection {
+export type ExecHeatmapSection = {
   id: string
   label: string
 }
 
-export interface ExecHeatmap {
+export type ExecHeatmap = {
   units: ExecHeatmapUnit[]
   sectionsFamilia: ExecHeatmapSection[]
   sectionsIndicador: ExecHeatmapSection[]
@@ -56,7 +56,7 @@ export interface ExecHeatmap {
   months: Array<{ key: string; label: string; year: number; month: number }>
 }
 
-export interface ExecData {
+export type ExecData = {
   kpis: ExecKPIs
   ranking: ExecRankingItem[]
   status: ExecStatus
@@ -64,7 +64,7 @@ export interface ExecData {
   heatmap: ExecHeatmap
 }
 
-export interface ExecFilters {
+export type ExecFilters = {
   segmento?: string
   diretoria?: string
   regional?: string

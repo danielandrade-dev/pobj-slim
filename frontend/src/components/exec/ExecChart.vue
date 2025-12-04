@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue'
 
-interface ChartSeries {
+type ChartSeries = {
   id: string
   label: string
   color: string
   values: (number | null)[]
 }
 
-interface ChartData {
+type ChartData = {
   keys: string[]
   labels: string[]
   series: ChartSeries[]

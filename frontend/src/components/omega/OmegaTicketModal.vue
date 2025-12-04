@@ -5,7 +5,7 @@ import type { OmegaTicket, OmegaUser } from '../../types/omega'
 import type { useOmega } from '../../composables/useOmega'
 import { createOmegaNotification, createPobjNotification } from '../../composables/useOmegaNotifications'
 
-interface Props {
+type Props = {
   omega: ReturnType<typeof useOmega>
   open: boolean
   ticketId: string | null

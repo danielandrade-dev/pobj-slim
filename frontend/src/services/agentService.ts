@@ -1,12 +1,12 @@
 import { apiPost } from './api'
 import { ApiRoutes } from '../constants/apiRoutes'
 
-export interface AgentRequest {
+export type AgentRequest = {
   question: string
   user_name?: string
 }
 
-export interface AgentResponse {
+export type AgentResponse = {
   answer: string
   sources?: Array<{
     rank: number

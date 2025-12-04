@@ -209,7 +209,7 @@ function buildObservationFromDetail(detail: any): string {
 }
 
 // Sistema de toast reativo
-interface Toast {
+type Toast = {
   id: string
   message: string
   tone: 'success' | 'info' | 'warning' | 'danger'

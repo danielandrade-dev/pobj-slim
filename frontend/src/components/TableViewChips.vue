@@ -1,5 +1,5 @@
 <script setup lang="ts">
-export interface TableView {
+export type TableView = {
   id: string
   label: string
   key: string

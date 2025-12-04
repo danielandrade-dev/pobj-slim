@@ -5,7 +5,7 @@ import type { useOmega } from '../../composables/useOmega'
 import type { useOmegaFilters } from '../../composables/useOmegaFilters'
 import type { useOmegaBulk } from '../../composables/useOmegaBulk'
 
-interface Props {
+type Props = {
   omega: ReturnType<typeof useOmega>
   filters: ReturnType<typeof useOmegaFilters>
   bulk: ReturnType<typeof useOmegaBulk>

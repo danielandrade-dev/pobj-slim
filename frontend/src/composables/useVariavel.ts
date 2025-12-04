@@ -3,7 +3,7 @@ import { getVariavel, type Variavel, type VariavelFilters } from '../services/va
 
 export type { VariavelFilters } from '../services/variavelService'
 
-export interface VariavelSummary {
+export type VariavelSummary = {
   varPossivel: number | null
   varAtingido: number | null
   hasData: boolean

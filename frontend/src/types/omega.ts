@@ -6,14 +6,14 @@ export type OmegaStatusTone = 'neutral' | 'info' | 'progress' | 'success' | 'war
 
 export type OmegaPriority = 'baixa' | 'media' | 'alta' | 'critica'
 
-export interface OmegaRoleLabel {
+export type OmegaRoleLabel = {
   usuario: string
   analista: string
   supervisor: string
   admin: string
 }
 
-export interface OmegaNavItem {
+export type OmegaNavItem = {
   id: string
   label: string
   icon: string
@@ -21,7 +21,7 @@ export interface OmegaNavItem {
   children?: OmegaNavItem[]
 }
 
-export interface OmegaStatus {
+export type OmegaStatus = {
   id: string
   label: string
   tone: OmegaStatusTone
@@ -30,13 +30,13 @@ export interface OmegaStatus {
   departmentId: string
 }
 
-export interface OmegaPriorityMeta {
+export type OmegaPriorityMeta = {
   label: string
   tone: string
   icon: string
 }
 
-export interface OmegaUser {
+export type OmegaUser = {
   id: string
   name: string
   role: OmegaRole
@@ -51,7 +51,7 @@ export interface OmegaUser {
   teamId: string | null
 }
 
-export interface OmegaTicket {
+export type OmegaTicket = {
   id: string
   subject: string
   company: string
@@ -77,7 +77,7 @@ export interface OmegaTicket {
   flow?: OmegaFlow | null
 }
 
-export interface OmegaTicketContext {
+export type OmegaTicketContext = {
   diretoria: string
   gerencia: string
   agencia: string
@@ -88,7 +88,7 @@ export interface OmegaTicketContext {
   prodsub: string
 }
 
-export interface OmegaHistoryEntry {
+export type OmegaHistoryEntry = {
   date?: string | null | undefined
   actorId?: string | null | undefined
   action?: string | null | undefined
@@ -97,7 +97,7 @@ export interface OmegaHistoryEntry {
   attachments?: Array<{ id: string; name: string }>
 }
 
-export interface OmegaFlow {
+export type OmegaFlow = {
   type: string
   targetManager?: {
     name: string
@@ -117,7 +117,7 @@ export interface OmegaFlow {
   }>
 }
 
-export interface OmegaStructure {
+export type OmegaStructure = {
   departamento: string
   departamento_id?: string
   tipo: string
@@ -125,7 +125,7 @@ export interface OmegaStructure {
   ordem_tipo?: number
 }
 
-export interface OmegaMesuRecord {
+export type OmegaMesuRecord = {
   segment: string
   segmentId: string
   diretoria: string
@@ -142,7 +142,7 @@ export interface OmegaMesuRecord {
   managerContactId?: string
 }
 
-export interface OmegaInitData {
+export type OmegaInitData = {
   structure?: OmegaStructure[]
   statuses?: OmegaStatus[]
   users?: OmegaUser[]
@@ -150,7 +150,7 @@ export interface OmegaInitData {
   mesu?: OmegaMesuRecord[]
 }
 
-export interface OmegaFilters {
+export type OmegaFilters = {
   id: string
   departments: string[]
   type: string
@@ -161,7 +161,7 @@ export interface OmegaFilters {
   priority: string
 }
 
-export interface OmegaState {
+export type OmegaState = {
   currentUserId: string | null
   view: OmegaView
   search: string

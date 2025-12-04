@@ -6,7 +6,7 @@ import Icon from '../Icon.vue'
 import type { FilterOption } from '../../types'
 import type { useOmega } from '../../composables/useOmega'
 
-interface Props {
+type Props = {
   omega: ReturnType<typeof useOmega>
   open: boolean
   initialData?: {
@@ -25,7 +25,7 @@ const emit = defineEmits<{
   'submit': [data: NewTicketData]
 }>()
 
-interface NewTicketData {
+type NewTicketData = {
   department: string
   type: string
   observation: string
@@ -38,7 +38,7 @@ interface NewTicketData {
   }
 }
 
-interface Attachment {
+type Attachment = {
   id: string
   name: string
   size: number | null

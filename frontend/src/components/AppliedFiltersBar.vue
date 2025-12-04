@@ -5,7 +5,7 @@ import { useGlobalFilters, type FilterState } from '../composables/useGlobalFilt
 
 const { filterState, clearFilter } = useGlobalFilters()
 
-interface AppliedFilter {
+type AppliedFilter = {
   key: string
   label: string
   value: string

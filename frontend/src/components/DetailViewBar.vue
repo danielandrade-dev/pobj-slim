@@ -1,6 +1,6 @@
 <script setup lang="ts">
 
-export interface DetailView {
+export type DetailView = {
   id: string
   name: string
   columns: string[]

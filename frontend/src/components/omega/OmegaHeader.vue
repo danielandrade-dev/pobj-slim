@@ -5,7 +5,7 @@ import Icon from '../Icon.vue'
 import type { FilterOption } from '../../types'
 import type { useOmega } from '../../composables/useOmega'
 
-interface Props {
+type Props = {
   omega: ReturnType<typeof useOmega>
   showClose?: boolean
 }

@@ -1,6 +1,6 @@
 import { onMounted, onUnmounted, nextTick } from 'vue'
 
-interface SelectSearchData {
+type SelectSearchData = {
   select: HTMLSelectElement
   input: HTMLInputElement
   panel: HTMLElement

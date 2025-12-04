@@ -3,7 +3,7 @@ import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { sendMessage } from '../services/agentService'
 import Icon from './Icon.vue'
 
-interface Message {
+type Message = {
   role: 'user' | 'bot'
   text: string
   isTyping?: boolean

@@ -2,7 +2,7 @@
 import { computed, onMounted, h } from 'vue'
 import Icon from './Icon.vue'
 
-interface Props {
+type Props = {
   type?: 'success' | 'error' | 'info'
   message: string
   duration?: number

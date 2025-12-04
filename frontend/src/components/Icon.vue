@@ -69,7 +69,7 @@ import {
   IconDownload
 } from '@tabler/icons-vue'
 
-interface Props {
+type Props = {
   name: string
   size?: number | string
   class?: string | Record<string, boolean> | Array<string | Record<string, boolean>>

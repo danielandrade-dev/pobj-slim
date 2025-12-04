@@ -7,7 +7,7 @@ import type { useOmega } from '../../composables/useOmega'
 import { apiPost, apiGet } from '../../services/api'
 import type { ApiResponse } from '../../types'
 
-interface Props {
+type Props = {
   omega: ReturnType<typeof useOmega>
   open: boolean
 }

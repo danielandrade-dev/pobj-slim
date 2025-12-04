@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 
-export interface ColumnMeta {
+export type ColumnMeta = {
   id: string
   label: string
 }
@@ -19,7 +19,7 @@ const DETAIL_COLUMNS: ColumnMeta[] = [
   { id: 'data', label: 'Data' }
 ]
 
-interface DetailView {
+type DetailView = {
   id: string
   name: string
   columns: string[]

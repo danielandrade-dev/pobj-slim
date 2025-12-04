@@ -8,7 +8,7 @@ import type { FilterOption } from '../types'
 import type { useOmega } from '../composables/useOmega'
 import type { useOmegaFilters } from '../composables/useOmegaFilters'
 
-interface Props {
+type Props = {
   omega: ReturnType<typeof useOmega>
   filters: ReturnType<typeof useOmegaFilters>
   open: boolean

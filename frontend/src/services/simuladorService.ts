@@ -1,7 +1,7 @@
 import { apiGet } from './api'
 import { ApiRoutes } from '../constants/apiRoutes'
 
-export interface SimuladorProduct {
+export type SimuladorProduct = {
   id: string
   label: string
   sectionId: string
@@ -17,7 +17,7 @@ export interface SimuladorProduct {
   ultimaAtualizacao: string | null
 }
 
-export interface SimuladorFilters {
+export type SimuladorFilters = {
   segmento?: string
   diretoria?: string
   regional?: string

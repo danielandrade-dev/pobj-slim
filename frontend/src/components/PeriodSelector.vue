@@ -4,7 +4,7 @@ import Icon from './Icon.vue'
 import { getDefaultPeriod, formatBRDate } from '../services/calendarioService'
 import { useCalendarioCache } from '../composables/useCalendarioCache'
 
-interface Props {
+type Props = {
   modelValue?: { start: string; end: string }
 }
 

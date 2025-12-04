@@ -16,11 +16,11 @@ import OmegaTicketModal from './omega/OmegaTicketModal.vue'
 import OmegaTeamManager from './omega/OmegaTeamManager.vue'
 import '../assets/omega.css'
 
-interface Props {
+type Props = {
   modelValue?: boolean
 }
 
-interface Emits {
+type Emits = {
   (e: 'update:modelValue', value: boolean): void
   (e: 'close'): void
 }
@@ -353,7 +353,7 @@ function clearFormFeedback(root: HTMLElement) {
 }
 
 // Sistema de toast reativo
-interface Toast {
+type Toast = {
   id: string
   message: string
   tone: 'success' | 'info' | 'warning' | 'danger'

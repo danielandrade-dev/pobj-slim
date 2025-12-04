@@ -3,7 +3,7 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import Icon from './Icon.vue'
 import type { FilterOption } from '../types'
 
-interface Props {
+type Props = {
   modelValue: string | null
   options: FilterOption[]
   placeholder?: string

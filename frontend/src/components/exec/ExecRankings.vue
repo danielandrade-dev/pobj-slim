@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { formatBRLReadable, formatBRL } from '../../utils/formatUtils'
 
-interface RankingItem {
+type RankingItem = {
   key: string
   label: string
   p_mens: number

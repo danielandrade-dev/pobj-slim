@@ -2,7 +2,7 @@ import { ref, computed } from 'vue'
 import type { Period } from '../types'
 import { getDefaultPeriod } from '../services/calendarioService'
 
-export interface FilterState {
+export type FilterState = {
   segmento?: string
   diretoria?: string
   gerencia?: string

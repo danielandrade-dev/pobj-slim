@@ -2,7 +2,7 @@ import { ref, computed } from 'vue'
 import { useGlobalFilters } from './useGlobalFilters'
 import { useResumoData } from './useResumoData'
 
-export interface BusinessSnapshot {
+export type BusinessSnapshot = {
   total: number
   elapsed: number
   remaining: number

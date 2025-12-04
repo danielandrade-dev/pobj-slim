@@ -1,20 +1,20 @@
 <script setup lang="ts">
 import { formatBRLReadable } from '../../utils/formatUtils'
 
-interface StatusItem {
+type StatusItem = {
   key: string
   label: string
   p_mens: number
   gap?: number
 }
 
-interface StatusItemLonge {
+type StatusItemLonge = {
   key: string
   label: string
   gap: number
 }
 
-interface Status {
+type Status = {
   hit: StatusItem[]
   quase: StatusItem[]
   longe: StatusItemLonge[]
