@@ -73,10 +73,37 @@ function buildHeaders(customHeaders?: Record<string, string>): Record<string, st
 
 async function handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}`)
+    const errorText = await response.text()
+    let errorMessage = `HTTP ${response.status}`
+    
+    try {
+      const errorData = JSON.parse(errorText)
+      if (errorData?.data?.error) {
+        errorMessage = errorData.data.error
+      } else if (errorData?.error) {
+        errorMessage = errorData.error
+      } else if (errorData?.message) {
+        errorMessage = errorData.message
+      }
+    } catch {
+      if (errorText) {
+        errorMessage = errorText.substring(0, 200)
+      }
+    }
+    
+    throw new Error(errorMessage)
   }
 
   const data = await response.json()
+  
+  if (data.success === false && data.data?.error) {
+    return {
+      success: false,
+      error: data.data.error,
+      data: data.data
+    }
+  }
+  
   return data.success !== undefined ? data : { success: true, data }
 }
 

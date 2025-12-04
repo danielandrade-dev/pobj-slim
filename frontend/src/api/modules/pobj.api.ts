@@ -138,10 +138,21 @@ export async function getRanking(
   const params = buildFilterParams(filters)
   if (nivel) params.nivel = nivel
   const response = await apiGet<RankingItem[]>(ApiRoutes.RANKING, params)
+  
   if (response.success && response.data) {
     return response.data
   }
-  console.error('Erro ao buscar ranking:', response.error)
+  
+  const errorMessage = response.error || 'Erro desconhecido ao buscar ranking'
+  console.error('Erro ao buscar ranking:', errorMessage)
+  
+  if (typeof response.data === 'object' && response.data !== null && 'error' in response.data) {
+    const backendError = (response.data as { error?: string }).error
+    if (backendError?.includes('Column not found') || backendError?.includes('Unknown column')) {
+      console.error('Erro SQL no backend:', backendError)
+    }
+  }
+  
   return null
 }
 

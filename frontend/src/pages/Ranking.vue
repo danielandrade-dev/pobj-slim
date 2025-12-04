@@ -94,12 +94,15 @@ const loadRanking = async () => {
     const data = await getRanking(rankingFilters.value, selectedLevel.value)
     if (data) {
       rankingData.value = data
+      error.value = null
     } else {
-      error.value = 'Não foi possível carregar os dados de ranking'
+      error.value = 'Não foi possível carregar os dados de ranking. Verifique os filtros selecionados ou tente novamente.'
       rankingData.value = []
     }
   } catch (err) {
-    error.value = err instanceof Error ? err.message : 'Erro ao carregar ranking'
+    const errorMsg = err instanceof Error ? err.message : 'Erro desconhecido'
+    error.value = `Erro ao carregar ranking: ${errorMsg}`
+    console.error('Erro ao carregar ranking:', err)
     rankingData.value = []
   } finally {
     loading.value = false
