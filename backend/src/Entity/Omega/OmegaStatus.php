@@ -37,8 +37,12 @@ class OmegaStatus
     private $ordem;
 
     /**
-     * @ORM\ManyToOne(targetEntity="App\Entity\Omega\OmegaDepartamento")
-     * @ORM\JoinColumn(name="departamento_id", referencedColumnName="departamento_id", nullable=true)
+     * @ORM\Column(name="departamento_id", type="string", length=30, nullable=true)
+     */
+    private $departamentoId;
+
+    /**
+     * Relacionamento não mapeado - carregado manualmente quando necessário
      */
     private $departamento;
 
@@ -97,6 +101,17 @@ class OmegaStatus
         return $this;
     }
 
+    public function getDepartamentoId(): ?string
+    {
+        return $this->departamentoId;
+    }
+
+    public function setDepartamentoId(?string $departamentoId): self
+    {
+        $this->departamentoId = $departamentoId;
+        return $this;
+    }
+
     public function getDepartamento(): ?OmegaDepartamento
     {
         return $this->departamento;
@@ -105,6 +120,9 @@ class OmegaStatus
     public function setDepartamento(?OmegaDepartamento $departamento): self
     {
         $this->departamento = $departamento;
+        if ($departamento) {
+            $this->departamentoId = $departamento->getNomeId();
+        }
         return $this;
     }
 }

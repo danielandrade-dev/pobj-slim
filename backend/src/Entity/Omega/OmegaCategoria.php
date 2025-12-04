@@ -6,9 +6,9 @@ use Doctrine\ORM\Mapping as ORM;
 
 /**
  * @ORM\Entity
- * @ORM\Table(name="omega_departamentos")
+ * @ORM\Table(name="omega_categorias")
  */
-class OmegaDepartamento
+class OmegaCategoria
 {
     /**
      * @ORM\Id
@@ -18,14 +18,15 @@ class OmegaDepartamento
     private $id;
 
     /**
-     * @ORM\Column(type="string", length=120, unique=true)
+     * @ORM\ManyToOne(targetEntity="App\Entity\Omega\OmegaDepartamento")
+     * @ORM\JoinColumn(name="departamento_id", referencedColumnName="id", nullable=false, onDelete="CASCADE")
      */
-    private $nome;
+    private $departamento;
 
     /**
-     * @ORM\Column(type="string", length=30, unique=true)
+     * @ORM\Column(type="string", length=120)
      */
-    private $nomeId;
+    private $nome;
 
     /**
      * @ORM\Column(type="integer", nullable=true)
@@ -47,6 +48,17 @@ class OmegaDepartamento
         return $this->id;
     }
 
+    public function getDepartamento(): ?OmegaDepartamento
+    {
+        return $this->departamento;
+    }
+
+    public function setDepartamento(?OmegaDepartamento $departamento): self
+    {
+        $this->departamento = $departamento;
+        return $this;
+    }
+
     public function getNome(): ?string
     {
         return $this->nome;
@@ -55,17 +67,6 @@ class OmegaDepartamento
     public function setNome(string $nome): self
     {
         $this->nome = $nome;
-        return $this;
-    }
-
-    public function getNomeId(): ?string
-    {
-        return $this->nomeId;
-    }
-
-    public function setNomeId(string $nomeId): self
-    {
-        $this->nomeId = $nomeId;
         return $this;
     }
 
@@ -102,3 +103,4 @@ class OmegaDepartamento
         return $this;
     }
 }
+

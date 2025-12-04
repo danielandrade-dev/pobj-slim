@@ -19,24 +19,33 @@ class OmegaDepartamentoRepository extends ServiceEntityRepository
     public function findByNome(string $nome): ?OmegaDepartamento
     {
         return $this->createQueryBuilder('d')
-                    ->andWhere('d.departamento = :nome')
+                    ->andWhere('d.nome = :nome')
                     ->setParameter('nome', $nome)
                     ->getQuery()
                     ->getOneOrNullResult();
     }
 
     /**
-     * Lista todos os departamentos ordenados por departamento
+     * Busca departamento por nome_id
+     */
+    public function findByNomeId(string $nomeId): ?OmegaDepartamento
+    {
+        return $this->createQueryBuilder('d')
+                    ->andWhere('d.nomeId = :nomeId')
+                    ->setParameter('nomeId', $nomeId)
+                    ->getQuery()
+                    ->getOneOrNullResult();
+    }
+
+    /**
+     * Lista todos os departamentos ordenados
      */
     public function findAllOrderedByNome(): array
     {
         return $this->createQueryBuilder('d')
-                    ->orderBy('d.ordemDepartamento', 'ASC')
-                    ->addOrderBy('d.departamento', 'ASC')
-                    ->addOrderBy('d.ordemTipo', 'ASC')
-                    ->addOrderBy('d.tipo', 'ASC')
+                    ->orderBy('d.ordem', 'ASC')
+                    ->addOrderBy('d.nome', 'ASC')
                     ->getQuery()
                     ->getResult();
     }
 }
-

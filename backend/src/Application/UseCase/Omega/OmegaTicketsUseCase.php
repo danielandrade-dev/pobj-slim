@@ -120,7 +120,12 @@ class OmegaTicketsUseCase
         
         // Team (departamento)
         if (isset($data['teamId']) && $data['teamId']) {
-            $team = $this->departamentoRepository->find($data['teamId']);
+            // teamId pode ser um ID numérico ou um nome_id (string)
+            if (is_numeric($data['teamId'])) {
+                $team = $this->departamentoRepository->find($data['teamId']);
+            } else {
+                $team = $this->departamentoRepository->findByNomeId($data['teamId']);
+            }
             $ticket->setTeam($team);
         } elseif (isset($data['queue']) && $data['queue']) {
             $team = $this->departamentoRepository->findByNome($data['queue']);
@@ -230,7 +235,16 @@ class OmegaTicketsUseCase
         }
         
         if (isset($data['teamId'])) {
-            $team = $data['teamId'] ? $this->departamentoRepository->find($data['teamId']) : null;
+            if ($data['teamId']) {
+                // teamId pode ser um ID numérico ou um nome_id (string)
+                if (is_numeric($data['teamId'])) {
+                    $team = $this->departamentoRepository->find($data['teamId']);
+                } else {
+                    $team = $this->departamentoRepository->findByNomeId($data['teamId']);
+                }
+            } else {
+                $team = null;
+            }
             $ticket->setTeam($team);
         }
         
@@ -313,7 +327,7 @@ class OmegaTicketsUseCase
             'due_date' => $ticket->getDueDate() ? $ticket->getDueDate()->format('Y-m-d\TH:i:s\Z') : null,
             'requester_id' => $requester ? $requester->getId() : null,
             'owner_id' => $owner ? $owner->getId() : null,
-            'team_id' => $team ? $team->getDepartamentoId() : null,
+            'team_id' => $team ? $team->getNomeId() : null,
             'history' => $ticket->getHistory(),
             'diretoria' => $ticket->getDiretoria(),
             'gerencia' => $ticket->getGerencia(),

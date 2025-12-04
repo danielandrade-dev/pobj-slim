@@ -96,7 +96,7 @@ class OmegaChamado
 
     /**
      * @ORM\ManyToOne(targetEntity="App\Entity\Omega\OmegaDepartamento")
-     * @ORM\JoinColumn(name="team_id", referencedColumnName="departamento_id", nullable=true)
+     * @ORM\JoinColumn(name="team_id", referencedColumnName="nome_id", nullable=true)
      */
     private $team;
 
