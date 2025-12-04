@@ -93,12 +93,8 @@ function filtersEqual(f1: ResumoFilters, f2: ResumoFilters): boolean {
   return true
 }
 
-async function fetchResumo(filters: ResumoFilters, force = false): Promise<void> {
-  // Se não for forçado e os filtros são iguais, não busca novamente
-  if (!force && lastFilters.value && filtersEqual(lastFilters.value, filters)) {
-    return
-  }
-  
+async function fetchResumo(filters: ResumoFilters): Promise<void> {
+  // Evita requisições duplicadas simultâneas
   if (resumoLoading.value) {
     return
   }
@@ -108,6 +104,7 @@ async function fetchResumo(filters: ResumoFilters, force = false): Promise<void>
   resumoError.value = null
 
   try {
+    // Sempre busca dados frescos do servidor
     const data = await getResumo(filters)
     if (data) {
       resumoPayload.value = data
@@ -137,10 +134,10 @@ export function useResumoData(
       async () => {
         // Aguarda o próximo tick para garantir que as atualizações reativas foram aplicadas
         await nextTick()
-        // Força a busca mesmo se os filtros forem iguais (quando o usuário clica em Filtrar)
+        // Sempre busca dados frescos do servidor
         // Usa os valores globais para garantir que está lendo o estado mais recente
         const filters = buildFiltersFromState(globalFilterState.value, globalPeriod.value)
-        fetchResumo(filters, true)
+        fetchResumo(filters)
       },
       { immediate: true }
     )
@@ -148,7 +145,7 @@ export function useResumoData(
 
   const loadResumo = async () => {
     const filters = lastFilters.value ?? buildFiltersFromState(filterState.value, period.value)
-    await fetchResumo(filters, true)
+    await fetchResumo(filters)
   }
 
   return {

@@ -91,11 +91,7 @@ let initPromise: Promise<OmegaInitData | null> | null = null
 
 export function useOmega() {
   const loadInit = async (): Promise<OmegaInitData | null> => {
-    
-    if (initData.value) {
-      return initData.value
-    }
-
+    // Já existe requisição em andamento, aguarda ela
     if (initPromise) {
       return initPromise
     }
@@ -103,6 +99,7 @@ export function useOmega() {
     isLoading.value = true
     error.value = null
 
+    // Sempre busca dados frescos do servidor
     initPromise = getOmegaInit()
       .then((data) => {
         if (data) {
@@ -149,14 +146,11 @@ export function useOmega() {
   }
 
   const loadUsers = async (): Promise<OmegaUser[] | null> => {
-    if (users.value.length > 0) {
-      return users.value
-    }
-
     isLoading.value = true
     error.value = null
 
     try {
+      // Sempre busca dados frescos do servidor
       const data = await getOmegaUsers()
       if (data) {
         users.value = data
@@ -196,14 +190,11 @@ export function useOmega() {
   }
 
   const loadStatuses = async (): Promise<OmegaStatus[] | null> => {
-    if (statuses.value.length > 0) {
-      return statuses.value
-    }
-
     isLoading.value = true
     error.value = null
 
     try {
+      // Sempre busca dados frescos do servidor
       const data = await getOmegaStatuses()
       if (data) {
         statuses.value = data.length > 0 ? data : OMEGA_DEFAULT_STATUSES
@@ -222,14 +213,11 @@ export function useOmega() {
   }
 
   const loadStructure = async (): Promise<OmegaStructure[] | null> => {
-    if (structure.value.length > 0) {
-      return structure.value
-    }
-
     isLoading.value = true
     error.value = null
 
     try {
+      // Sempre busca dados frescos do servidor
       const data = await getOmegaStructure()
       if (data) {
         structure.value = data
@@ -246,14 +234,11 @@ export function useOmega() {
   }
 
   const loadMesu = async (): Promise<OmegaMesuRecord[] | null> => {
-    if (mesu.value.length > 0) {
-      return mesu.value
-    }
-
     isLoading.value = true
     error.value = null
 
     try {
+      // Sempre busca dados frescos do servidor
       const data = await getOmegaMesu()
       if (data) {
         mesu.value = data
@@ -343,17 +328,6 @@ export function useOmega() {
     currentView.value = view
   }
 
-  const clearCache = (): void => {
-    initData.value = null
-    users.value = []
-    tickets.value = []
-    statuses.value = []
-    structure.value = []
-    mesu.value = []
-    currentUserId.value = null
-    currentView.value = 'my'
-  }
-
   const canUserReply = (ticket: OmegaTicket): boolean => {
     // Status finais não permitem réplica do usuário
     return !isFinalStatus(ticket.status)
@@ -384,7 +358,6 @@ export function useOmega() {
     getPriorityMeta,
     setCurrentUserId,
     setCurrentView,
-    clearCache,
     canUserReply,
     isFinalStatus,
     constants: {

@@ -296,7 +296,6 @@ function handleClearFilters() {
 }
 
 function handleRefresh() {
-  omega.clearCache()
   omega.loadInit().then(() => {
     renderOmegaData()
   })
@@ -579,8 +578,7 @@ function handleFullscreenToggle() {
 function refreshTicketList(button: HTMLElement) {
   setButtonLoading(button, true)
   
-  // Limpa cache e recarrega
-  omega.clearCache()
+  // Recarrega dados frescos do servidor
   omega.loadInit()
     .then(() => {
       renderOmegaData()

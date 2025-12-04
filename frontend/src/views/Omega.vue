@@ -188,7 +188,6 @@ function handleClearFilters() {
 }
 
 function handleRefresh() {
-  omega.clearCache()
   omega.loadInit().then(() => {
     renderOmegaData()
   })

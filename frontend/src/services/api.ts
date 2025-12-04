@@ -43,7 +43,8 @@ export async function apiGet<T>(
 
     const response = await fetch(url, {
       method: 'GET',
-      headers: buildHeaders()
+      headers: buildHeaders(),
+      cache: 'no-store'
     })
 
     if (!response.ok) {
@@ -76,7 +77,8 @@ export async function apiPost<T>(
       headers: buildHeaders({
         'Content-Type': 'application/json'
       }),
-      body: body ? JSON.stringify(body) : undefined
+      body: body ? JSON.stringify(body) : undefined,
+      cache: 'no-store'
     })
 
     if (!response.ok) {
@@ -112,7 +114,8 @@ export async function apiPut<T>(
       headers: buildHeaders({
         'Content-Type': 'application/json'
       }),
-      body: body ? JSON.stringify(body) : undefined
+      body: body ? JSON.stringify(body) : undefined,
+      cache: 'no-store'
     })
 
     if (!response.ok) {
@@ -144,7 +147,8 @@ export async function apiDelete<T>(
 
     const response = await fetch(url, {
       method: 'DELETE',
-      headers: buildHeaders()
+      headers: buildHeaders(),
+      cache: 'no-store'
     })
 
     if (!response.ok) {

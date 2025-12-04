@@ -72,10 +72,7 @@ function filtersEqual(f1: DetalhesFilters, f2: DetalhesFilters): boolean {
 }
 
 async function fetchDetalhes(filters: DetalhesFilters): Promise<void> {
-  if (lastFilters.value && filtersEqual(lastFilters.value, filters)) {
-    return
-  }
-  
+  // Evita requisições duplicadas simultâneas
   if (detalhesLoading.value) {
     return
   }
@@ -85,6 +82,7 @@ async function fetchDetalhes(filters: DetalhesFilters): Promise<void> {
   detalhesError.value = null
 
   try {
+    // Sempre busca dados frescos do servidor
     const data = await getDetalhes(filters)
     if (data) {
       detalhesPayload.value = data

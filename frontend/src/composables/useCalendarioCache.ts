@@ -1,46 +1,38 @@
 import { ref } from 'vue'
 import { getCalendario, type CalendarioItem } from '../services/calendarioService'
 
-const calendarioCache = ref<CalendarioItem[]>([])
+const calendarioData = ref<CalendarioItem[]>([])
 const isLoading = ref(false)
-const loadPromise = ref<Promise<CalendarioItem[] | null> | null>(null)
+let loadPromise: Promise<CalendarioItem[] | null> | null = null
 
 export function useCalendarioCache() {
   const loadCalendario = async (): Promise<CalendarioItem[] | null> => {
-    if (calendarioCache.value.length > 0) {
-      return calendarioCache.value
-    }
-
-    if (loadPromise.value) {
-      return loadPromise.value
+    // Já existe requisição em andamento, aguarda ela
+    if (loadPromise) {
+      return loadPromise
     }
 
     isLoading.value = true
-    loadPromise.value = getCalendario()
+    // Sempre busca dados frescos do servidor
+    loadPromise = getCalendario()
       .then((data) => {
         if (data) {
-          calendarioCache.value = data
+          calendarioData.value = data
         }
         return data
       })
       .finally(() => {
         isLoading.value = false
-        loadPromise.value = null
+        loadPromise = null
       })
 
-    return loadPromise.value
-  }
-
-  const clearCache = (): void => {
-    calendarioCache.value = []
-    loadPromise.value = null
+    return loadPromise
   }
 
   return {
-    calendarioData: calendarioCache,
+    calendarioData,
     isLoading,
-    loadCalendario,
-    clearCache
+    loadCalendario
   }
 }
 
