@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick } from 'vue'
-import { sendMessage } from '../services/agentService'
+import { sendMessage } from '../api/modules/agent.api'
 
 interface Message {
   role: 'user' | 'bot'

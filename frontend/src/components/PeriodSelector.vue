@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted } from 'vue'
 import Icon from './Icon.vue'
-import { getDefaultPeriod, formatBRDate } from '../services/calendarioService'
+import { getDefaultPeriod, formatBRDate } from '../api/modules/pobj.api'
 import { useCalendarioCache } from '../composables/useCalendarioCache'
 
 interface Props {

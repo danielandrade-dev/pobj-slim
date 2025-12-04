@@ -1,6 +1,6 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { getDefaultPeriod, formatBRDate } from '../services/calendarioService'
+import { getDefaultPeriod, formatBRDate } from '../api/modules/pobj.api'
 import { useCalendarioCache } from './useCalendarioCache'
 import type { Period } from '../types'
 

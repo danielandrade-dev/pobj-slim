@@ -4,7 +4,7 @@ import { Teleport } from 'vue'
 import Icon from '../Icon.vue'
 import type { OmegaUser } from '../../types/omega'
 import type { useOmega } from '../../composables/useOmega'
-import { apiPost, apiGet } from '../../services/api'
+import { apiPost, apiGet } from '../../api/http'
 import type { ApiResponse } from '../../types'
 
 interface Props {

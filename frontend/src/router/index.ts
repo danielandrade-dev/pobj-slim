@@ -1,13 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
-import Home from '../views/Home.vue'
-import Ranking from '../views/Ranking.vue'
-import Campanhas from '../views/Campanhas.vue'
-import Simuladores from '../views/Simuladores.vue'
-import Detalhes from '../views/Detalhes.vue'
-import VisaoExecutiva from '../views/VisaoExecutiva.vue'
-import Omega from '../views/Omega.vue'
-import NotFound from '../views/NotFound.vue'
+import Home from '../pages/Home.vue'
+import Ranking from '../pages/Ranking.vue'
+import Campanhas from '../pages/Campanhas.vue'
+import Simuladores from '../pages/Simuladores.vue'
+import Detalhes from '../pages/Detalhes.vue'
+import VisaoExecutiva from '../pages/VisaoExecutiva.vue'
+import Omega from '../pages/Omega.vue'
+import NotFound from '../pages/NotFound.vue'
 
 const routes: RouteRecordRaw[] = [
   {

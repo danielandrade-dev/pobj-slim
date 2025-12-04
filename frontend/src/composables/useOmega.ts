@@ -8,7 +8,7 @@ import {
   getOmegaMesu,
   createOmegaTicket,
   updateOmegaTicket
-} from '../services/omegaService'
+} from '../api/modules/omega.api'
 import type { OmegaUser } from '../types/omega'
 import type {
   OmegaInitData,

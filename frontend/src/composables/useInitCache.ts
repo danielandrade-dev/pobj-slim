@@ -1,5 +1,5 @@
 import { ref, readonly } from 'vue'
-import { getInit, type InitData } from '../services/initService'
+import { getInit, type InitData } from '../api/modules/pobj.api'
 
 const initCache = ref<InitData | null>(null)
 const isLoading = ref(false)

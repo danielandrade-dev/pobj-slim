@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { getCalendario, type CalendarioItem } from '../services/calendarioService'
+import { getCalendario, type CalendarioItem } from '../api/modules/pobj.api'
 
 const calendarioCache = ref<CalendarioItem[]>([])
 const isLoading = ref(false)

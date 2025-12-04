@@ -1,13 +1,14 @@
 import { ref, computed, watch, nextTick, type Ref, type ComputedRef } from 'vue'
 import type { Period, BusinessSnapshot, ResumoPayload } from '../types'
 import type { FilterState } from './useGlobalFilters'
-import { getResumo, type ResumoFilters } from '../services/resumoService'
+import { getResumo } from '../api/modules/pobj.api'
+import type { ProdutoFilters } from '../types'
 import { useGlobalFilters } from './useGlobalFilters'
 
 const resumoPayload = ref<ResumoPayload | null>(null)
 const resumoLoading = ref(false)
 const resumoError = ref<string | null>(null)
-const lastFilters = ref<ResumoFilters | null>(null)
+const lastFilters = ref<ProdutoFilters | null>(null)
 
 let watcherRegistered = false
 
@@ -29,8 +30,8 @@ function sanitizeValue(value?: string | null): string | undefined {
   return trimmed
 }
 
-function buildFiltersFromState(state?: FilterState, period?: Period): ResumoFilters {
-  const filters: ResumoFilters = {}
+function buildFiltersFromState(state?: FilterState, period?: Period): ProdutoFilters {
+  const filters: ProdutoFilters = {}
   if (state) {
     const segmento = sanitizeValue(state.segmento)
     const diretoria = sanitizeValue(state.diretoria)
@@ -76,7 +77,7 @@ function buildFiltersFromState(state?: FilterState, period?: Period): ResumoFilt
   return filters
 }
 
-function filtersEqual(f1: ResumoFilters, f2: ResumoFilters): boolean {
+function filtersEqual(f1: ProdutoFilters, f2: ProdutoFilters): boolean {
   const keys1 = Object.keys(f1).sort()
   const keys2 = Object.keys(f2).sort()
   
@@ -85,7 +86,7 @@ function filtersEqual(f1: ResumoFilters, f2: ResumoFilters): boolean {
   }
   
   for (const key of keys1) {
-    if (f1[key as keyof ResumoFilters] !== f2[key as keyof ResumoFilters]) {
+    if (f1[key as keyof ProdutoFilters] !== f2[key as keyof ProdutoFilters]) {
       return false
     }
   }
@@ -93,7 +94,7 @@ function filtersEqual(f1: ResumoFilters, f2: ResumoFilters): boolean {
   return true
 }
 
-async function fetchResumo(filters: ResumoFilters, force = false): Promise<void> {
+async function fetchResumo(filters: ProdutoFilters, force = false): Promise<void> {
   // Se não for forçado e os filtros são iguais, não busca novamente
   if (!force && lastFilters.value && filtersEqual(lastFilters.value, filters)) {
     return

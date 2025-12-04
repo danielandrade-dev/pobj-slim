@@ -5,7 +5,7 @@ import { useProdutosLegacy } from '../composables/useProdutosLegacy'
 import { useGlobalFilters } from '../composables/useGlobalFilters'
 import { useFilteredProdutos } from '../composables/useFilteredProdutos'
 import { formatByMetric, formatMetricFull, formatPoints, formatINT } from '../utils/formatUtils'
-import { formatBRDate } from '../services/calendarioService'
+import { formatBRDate } from '../api/modules/pobj.api'
 import type { LegacySection } from '../composables/useProdutosLegacy'
 
 const { filterState, period } = useGlobalFilters()

@@ -1,7 +1,7 @@
 import { ref, computed, watch, type Ref, type ComputedRef } from 'vue'
 import type { Period, DetalhesItem, DetalhesFilters } from '../types'
 import type { FilterState } from './useGlobalFilters'
-import { getDetalhes } from '../services/detalhesService'
+import { getDetalhes } from '../api/modules/pobj.api'
 import { useGlobalFilters } from './useGlobalFilters'
 
 const detalhesPayload = ref<DetalhesItem[] | null>(null)

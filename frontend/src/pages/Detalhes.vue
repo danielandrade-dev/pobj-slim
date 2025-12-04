@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import Icon from '../components/Icon.vue'
-import type { DetalhesItem } from '../services/detalhesService'
+import type { DetalhesItem } from '../api/modules/pobj.api'
 import { useGlobalFilters } from '../composables/useGlobalFilters'
 import { usePeriodManager } from '../composables/usePeriodManager'
 import { useDetalhesData } from '../composables/useDetalhesData'

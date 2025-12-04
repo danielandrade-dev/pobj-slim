@@ -1,5 +1,5 @@
 import { ref, computed, type Ref } from 'vue'
-import type { InitData } from '../services/initService'
+import type { InitData } from '../api/modules/pobj.api'
 import type { FilterOption, HierarchySelection } from '../types'
 
 // Tipo que aceita InitData com arrays mutáveis ou readonly

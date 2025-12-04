@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { getRanking, type RankingItem, type RankingFilters } from '../services/rankingService'
+import { getRanking, type RankingItem, type RankingFilters } from '../api/modules/pobj.api'
 import { useGlobalFilters } from '../composables/useGlobalFilters'
 import { formatINT } from '../utils/formatUtils'
 

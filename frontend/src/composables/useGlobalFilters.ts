@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import type { Period } from '../types'
-import { getDefaultPeriod } from '../services/calendarioService'
+import { getDefaultPeriod } from '../api/modules/pobj.api'
 
 export interface FilterState {
   segmento?: string
