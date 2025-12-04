@@ -111,11 +111,11 @@ const handleOutside = (e: MouseEvent) => {
   const target = e.target as HTMLElement
   
   // Não fecha se o clique foi dentro do popover, no anchor, ou em elementos relacionados ao date picker
+  const isInput = target instanceof HTMLInputElement
   if (
     popover.value.contains(target) ||
     props.anchor?.contains(target) ||
-    target.type === 'date' ||
-    (target.tagName === 'INPUT' && target.type === 'date')
+    (isInput && target.type === 'date')
   ) return
 
   cleanup()

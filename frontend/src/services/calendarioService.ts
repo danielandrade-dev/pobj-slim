@@ -42,9 +42,20 @@ export function formatBRDate(dateString: string): string {
     const year = date.getFullYear()
     return `${day}/${month}/${year}`
   }
-  const year = parseInt(parts[0], 10)
-  const month = parseInt(parts[1], 10)
-  const day = parseInt(parts[2], 10)
+  const yearStr = parts[0]
+  const monthStr = parts[1]
+  const dayStr = parts[2]
+  if (!yearStr || !monthStr || !dayStr) {
+    // Fallback se alguma parte estiver ausente
+    const date = new Date(dateString)
+    const day = String(date.getDate()).padStart(2, '0')
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const year = date.getFullYear()
+    return `${day}/${month}/${year}`
+  }
+  const year = parseInt(yearStr, 10)
+  const month = parseInt(monthStr, 10)
+  const day = parseInt(dayStr, 10)
   return `${String(day).padStart(2, '0')}/${String(month).padStart(2, '0')}/${year}`
 }
 

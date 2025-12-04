@@ -97,13 +97,14 @@ const openDatePopover = (anchor: HTMLElement): void => {
       const outside = (ev: MouseEvent): void => {
         const target = ev.target as HTMLElement
         // Não fecha se o clique foi dentro do popover, no anchor, ou em elementos relacionados ao date picker
+        const isInput = target instanceof HTMLInputElement
         if (
           target === pop || 
           pop.contains(target) || 
           target === anchor || 
           anchor.contains(target) ||
           target.closest('.date-popover') ||
-          target.type === 'date' ||
+          (isInput && target.type === 'date') ||
           target.tagName === 'INPUT'
         ) return
         closeDatePopover()

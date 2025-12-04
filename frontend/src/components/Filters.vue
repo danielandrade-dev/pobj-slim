@@ -200,7 +200,7 @@ const loadEstrutura = async (): Promise<void> => {
   }
 }
 
-const { period, updatePeriodLabels, updatePeriod: updatePeriodLocal } = usePeriodManager()
+const { period, updatePeriod: updatePeriodLocal } = usePeriodManager()
 
 const { accumulatedView, handleViewChange, options: accumulatedViewOptions } = useAccumulatedView(
   period,
@@ -266,7 +266,6 @@ const handleClear = (): void => {
   selectedStatusKpi.value = 'todos'
   accumulatedView.value = 'mensal'
   period.value = syncPeriodFromAccumulatedView('mensal', period.value)
-  updatePeriodLabels()
   
   clearFilters()
   updatePeriod(period.value)
