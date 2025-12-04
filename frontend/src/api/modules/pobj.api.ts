@@ -29,77 +29,10 @@ export type {
   ResumoPayload,
   Variavel,
   VariavelFilters,
-  CalendarioItem
+  CalendarioItem,
+  ExecData,
+  ExecFilters
 } from '../../types'
-
-export interface ExecKPIs {
-  real_mens: number
-  meta_mens: number
-  real_acum: number
-  meta_acum: number
-}
-
-export interface ExecRankingItem {
-  key: string
-  label: string
-  real_mens: number
-  meta_mens: number
-  p_mens: number
-}
-
-export interface ExecStatus {
-  hit: Array<{ key: string; label: string; p_mens: number }>
-  quase: Array<{ key: string; label: string; p_mens: number }>
-  longe: Array<{ key: string; label: string; gap: number }>
-}
-
-export interface ExecChartSeries {
-  id: string
-  label: string
-  values: (number | null)[]
-  color: string
-}
-
-export interface ExecChartData {
-  keys: string[]
-  labels: string[]
-  series: ExecChartSeries[]
-}
-
-export interface ExecHeatmapUnit {
-  value: string
-  label: string
-}
-
-export interface ExecHeatmapSection {
-  id: string
-  label: string
-}
-
-export interface ExecHeatmap {
-  units: ExecHeatmapUnit[]
-  sections: ExecHeatmapSection[]
-  data: Record<string, { real: number; meta: number }>
-}
-
-export interface ExecData {
-  kpis: ExecKPIs
-  ranking: ExecRankingItem[]
-  status: ExecStatus
-  chart: ExecChartData
-  heatmap: ExecHeatmap
-}
-
-export interface ExecFilters {
-  segmento?: string
-  diretoria?: string
-  regional?: string
-  agencia?: string
-  gerenteGestao?: string
-  gerente?: string
-  dataInicio?: string
-  dataFim?: string
-}
 
 function buildFilterParams<T extends Record<string, string | undefined>>(
   filters?: T

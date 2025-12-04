@@ -1,8 +1,8 @@
 import { ref, computed, watch, nextTick, type Ref, type ComputedRef } from 'vue'
-import type { Period, BusinessSnapshot, ResumoPayload } from '../types'
+import type { Period, BusinessSnapshot, ResumoPayload, ProdutoFilters } from '../types'
 import type { FilterState } from './useGlobalFilters'
 import { getResumo } from '../api/modules/pobj.api'
-import type { ProdutoFilters } from '../types'
+import { buildProdutoFilters, filtersEqual } from '../utils/filterUtils'
 import { useGlobalFilters } from './useGlobalFilters'
 
 const resumoPayload = ref<ResumoPayload | null>(null)
@@ -19,79 +19,6 @@ const emptySnapshot: BusinessSnapshot = {
   monthStart: '',
   monthEnd: '',
   today: ''
-}
-
-function sanitizeValue(value?: string | null): string | undefined {
-  if (!value) return undefined
-  const trimmed = value.trim()
-  if (!trimmed) return undefined
-  const lower = trimmed.toLowerCase()
-  if (lower === 'todos' || lower === 'todas') return undefined
-  return trimmed
-}
-
-function buildFiltersFromState(state?: FilterState, period?: Period): ProdutoFilters {
-  const filters: ProdutoFilters = {}
-  if (state) {
-    const segmento = sanitizeValue(state.segmento)
-    const diretoria = sanitizeValue(state.diretoria)
-    const regional = sanitizeValue(state.gerencia)
-    const agencia = sanitizeValue(state.agencia)
-    const ggestao = sanitizeValue(state.ggestao)
-    const gerente = sanitizeValue(state.gerente)
-    const familia = sanitizeValue(state.familia)
-    const indicador = sanitizeValue(state.indicador)
-    const subindicador = sanitizeValue(state.subindicador)
-    
-    // Mapeia status do frontend para o formato do backend
-    // Frontend: 'atingidos' | 'nao' | 'todos'
-    // Backend: '01' (Atingido) | '02' (Não Atingido) | '03' ou undefined (Todos)
-    let status: string | undefined = undefined
-    if (state.status && state.status !== 'todos') {
-      if (state.status === 'atingidos') {
-        status = '01'
-      } else if (state.status === 'nao') {
-        status = '02'
-      }
-    }
-
-    if (segmento) filters.segmento = segmento
-    if (diretoria) filters.diretoria = diretoria
-    if (regional) filters.regional = regional
-    if (agencia) filters.agencia = agencia
-    if (ggestao) filters.gerenteGestao = ggestao
-    if (gerente) filters.gerente = gerente
-    if (familia) filters.familia = familia
-    if (indicador) filters.indicador = indicador
-    if (subindicador) filters.subindicador = subindicador
-    if (status) filters.status = status
-  }
-
-  if (period?.start) {
-    filters.dataInicio = period.start
-  }
-  if (period?.end) {
-    filters.dataFim = period.end
-  }
-
-  return filters
-}
-
-function filtersEqual(f1: ProdutoFilters, f2: ProdutoFilters): boolean {
-  const keys1 = Object.keys(f1).sort()
-  const keys2 = Object.keys(f2).sort()
-  
-  if (keys1.length !== keys2.length) {
-    return false
-  }
-  
-  for (const key of keys1) {
-    if (f1[key as keyof ProdutoFilters] !== f2[key as keyof ProdutoFilters]) {
-      return false
-    }
-  }
-  
-  return true
 }
 
 async function fetchResumo(filters: ProdutoFilters, force = false): Promise<void> {
@@ -140,7 +67,7 @@ export function useResumoData(
         await nextTick()
         // Força a busca mesmo se os filtros forem iguais (quando o usuário clica em Filtrar)
         // Usa os valores globais para garantir que está lendo o estado mais recente
-        const filters = buildFiltersFromState(globalFilterState.value, globalPeriod.value)
+        const filters = buildProdutoFilters(globalFilterState.value, globalPeriod.value)
         fetchResumo(filters, true)
       },
       { immediate: true }
@@ -148,7 +75,7 @@ export function useResumoData(
   }
 
   const loadResumo = async () => {
-    const filters = lastFilters.value ?? buildFiltersFromState(filterState.value, period.value)
+    const filters = lastFilters.value ?? buildProdutoFilters(filterState.value, period.value)
     await fetchResumo(filters, true)
   }
 
@@ -161,7 +88,7 @@ export function useResumoData(
     loading: computed(() => resumoLoading.value),
     error: computed(() => resumoError.value),
     loadResumo,
-    buildFilters: () => buildFiltersFromState(filterState.value, period.value)
+    buildFilters: () => buildProdutoFilters(filterState.value, period.value)
   }
 }
 
