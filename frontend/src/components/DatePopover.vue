@@ -88,8 +88,8 @@ watch(
     
     // Adiciona listener após um pequeno delay para evitar fechar imediatamente
     setTimeout(() => {
-      document.addEventListener('click', handleOutside, { capture: false })
-      document.addEventListener('keydown', handleEscape)
+      document.addEventListener('click', handleOutside, { capture: false, once: true })
+      document.addEventListener('keydown', handleEscape, { once: true })
     }, 100)
   }
 )

@@ -25,7 +25,7 @@ const simplificarTexto = (text: string): string => {
 const escapeHTML = (text: string): string => {
   const div = document.createElement('div')
   div.textContent = text
-  return div.innerHTML
+  return div.textContent || ''
 }
 
 export function initSelectSearch(select: HTMLSelectElement): void {
@@ -48,16 +48,25 @@ export function initSelectSearch(select: HTMLSelectElement): void {
   panel.setAttribute('role', 'listbox')
   panel.setAttribute('aria-label', `Sugestões de ${labelText}`)
   panel.hidden = true
-  panel.innerHTML = `
-    <div class="select-search__box">
-      <input type="search" class="input input--xs select-search__input" placeholder="Pesquisar ${labelText.toLowerCase()}" aria-label="Pesquisar ${labelText}">
-    </div>
-    <div class="select-search__results"></div>
-  `
+  
+  const box = document.createElement('div')
+  box.className = 'select-search__box'
+  
+  const input = document.createElement('input')
+  input.type = 'search'
+  input.className = 'input input--xs select-search__input'
+  input.placeholder = `Pesquisar ${labelText.toLowerCase()}`
+  input.setAttribute('aria-label', `Pesquisar ${labelText}`)
+  box.appendChild(input)
+  
+  const list = document.createElement('div')
+  list.className = 'select-search__results'
+  
+  panel.appendChild(box)
+  panel.appendChild(list)
   wrapper.appendChild(panel)
 
-  const input = panel.querySelector('input') as HTMLInputElement
-  const list = panel.querySelector('.select-search__results') as HTMLElement
+  // input e list já foram criados acima
 
   const hidePanel = (): void => {
     panel.hidden = true
@@ -84,9 +93,10 @@ export function initSelectSearch(select: HTMLSelectElement): void {
 
   selectSearchDataMap.set(select, data)
 
-  input.addEventListener('input', () => updateSelectSearchResults(select))
-  input.addEventListener('focus', () => updateSelectSearchResults(select))
-  input.addEventListener('keydown', (ev) => {
+  // Usa eventos delegados para melhor performance
+  input.oninput = () => updateSelectSearchResults(select)
+  input.onfocus = () => updateSelectSearchResults(select)
+  input.onkeydown = (ev) => {
     if (ev.key === 'Escape') {
       input.value = ''
       hidePanel()
@@ -98,41 +108,41 @@ export function initSelectSearch(select: HTMLSelectElement): void {
         first.click()
       }
     }
-  })
-  input.addEventListener('blur', () => setTimeout(hidePanel, 120))
+  }
+  input.onblur = () => setTimeout(hidePanel, 120)
 
-  panel.addEventListener('mousedown', (ev) => ev.preventDefault())
-  panel.addEventListener('click', (ev) => {
+  panel.onmousedown = (ev) => ev.preventDefault()
+  panel.onclick = (ev) => {
     const item = (ev.target as HTMLElement).closest('.select-search__item')
     if (!item) return
     ev.preventDefault()
     const value = item.getAttribute('data-value') || ''
     aplicarSelecaoBusca(select, value)
     hidePanel()
-  })
+  }
 
-  select.addEventListener('mousedown', (ev) => {
+  select.onmousedown = (ev) => {
     ev.preventDefault()
     if (panel.hidden) {
       showPanel()
     } else {
       hidePanel()
     }
-  })
+  }
 
-  select.addEventListener('keydown', (ev) => {
+  select.onkeydown = (ev) => {
     if (['ArrowDown', 'ArrowUp', ' ', 'Enter'].includes(ev.key)) {
       ev.preventDefault()
       showPanel()
     }
-  })
+  }
 
-  select.addEventListener('change', () => {
+  select.onchange = () => {
     const meta = selectSearchDataMap.get(select)
     if (!meta) return
     meta.input.value = ''
     meta.hidePanel()
-  })
+  }
 
   select.dataset.searchBound = '1'
   
@@ -163,7 +173,11 @@ function updateSelectSearchResults(select: HTMLSelectElement, opts: { limit?: nu
   const { input, panel, list, options } = data
   if (!options || !options.length) {
     panel.hidden = true
-    if (list) list.innerHTML = ''
+    if (list) {
+      while (list.firstChild) {
+        list.removeChild(list.firstChild)
+      }
+    }
     return
   }
 
@@ -179,22 +193,44 @@ function updateSelectSearchResults(select: HTMLSelectElement, opts: { limit?: nu
   if (!finalList.length) {
     if (!term) {
       panel.hidden = true
-      if (list) list.innerHTML = ''
+      if (list) {
+        while (list.firstChild) {
+          list.removeChild(list.firstChild)
+        }
+      }
       return
     }
-    if (list) list.innerHTML = '<div class="select-search__empty">Nenhum resultado encontrado</div>'
+    // Limpa lista e adiciona mensagem vazia
+    if (list) {
+      while (list.firstChild) {
+        list.removeChild(list.firstChild)
+      }
+      const empty = document.createElement('div')
+      empty.className = 'select-search__empty'
+      empty.textContent = 'Nenhum resultado encontrado'
+      list.appendChild(empty)
+    }
     panel.hidden = false
     return
   }
 
-  const rows = finalList
-    .map(
-      (opt) =>
-        `<button type="button" class="select-search__item" data-value="${escapeHTML(opt.value)}">${escapeHTML(opt.label)}</button>`
-    )
-    .join('\n')
-
-  if (list) list.innerHTML = rows
+  // Limpa lista
+  if (list) {
+    while (list.firstChild) {
+      list.removeChild(list.firstChild)
+    }
+    
+    // Adiciona itens
+    finalList.forEach((opt) => {
+      const button = document.createElement('button')
+      button.type = 'button'
+      button.className = 'select-search__item'
+      button.setAttribute('data-value', opt.value)
+      button.textContent = opt.label
+      list.appendChild(button)
+    })
+  }
+  
   panel.hidden = false
 }
 

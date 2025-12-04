@@ -8,7 +8,10 @@ export function useOmegaRender(
     if (!userSelect) return
 
     const currentUsers = omega.users.value
-    userSelect.innerHTML = ''
+    // Limpa opções existentes
+    while (userSelect.firstChild) {
+      userSelect.removeChild(userSelect.firstChild)
+    }
 
     currentUsers.forEach((user: any) => {
       const option = document.createElement('option')
@@ -20,13 +23,13 @@ export function useOmegaRender(
       userSelect.appendChild(option)
     })
 
-    // Adiciona listener para mudança de usuário
-    userSelect.addEventListener('change', (e) => {
+    // Usa onchange em vez de addEventListener
+    userSelect.onchange = (e) => {
       const target = e.target as HTMLSelectElement
       omega.setCurrentUserId(target.value)
       renderProfile(root)
       renderTickets(root)
-    })
+    }
   }
 
   function renderProfile(root: HTMLElement) {
@@ -59,23 +62,31 @@ export function useOmegaRender(
 
     const navItems = omega.getNavItemsForRole(currentUser.role)
 
-    navElement.innerHTML = ''
+    // Limpa navegação existente
+    while (navElement.firstChild) {
+      navElement.removeChild(navElement.firstChild)
+    }
 
     navItems.forEach((item: any) => {
       const navItem = document.createElement('button')
       navItem.className = 'omega-nav__item'
       navItem.type = 'button'
       navItem.setAttribute('data-omega-view', item.id)
-      navItem.innerHTML = `
-        <i class="${item.icon}"></i>
-        <span>${item.label}</span>
-      `
+      
+      // Cria elementos em vez de innerHTML
+      const icon = document.createElement('i')
+      icon.className = item.icon
+      const span = document.createElement('span')
+      span.textContent = item.label
+      navItem.appendChild(icon)
+      navItem.appendChild(span)
 
       if (item.id === omega.currentView.value) {
         navItem.classList.add('omega-nav__item--active')
       }
 
-      navItem.addEventListener('click', () => {
+      // Usa onclick em vez de addEventListener
+      navItem.onclick = () => {
         omega.setCurrentView(item.id as any)
         renderTickets(root)
         // Atualiza estado ativo
@@ -83,7 +94,7 @@ export function useOmegaRender(
           el.classList.remove('omega-nav__item--active')
         })
         navItem.classList.add('omega-nav__item--active')
-      })
+      }
 
       navElement.appendChild(navItem)
     })
@@ -110,7 +121,15 @@ export function useOmegaRender(
         }
       })
 
-      newSelect.innerHTML = '<option value="">Selecione...</option>'
+      // Limpa e adiciona opção padrão
+      while (newSelect.firstChild) {
+        newSelect.removeChild(newSelect.firstChild)
+      }
+      const defaultOption = document.createElement('option')
+      defaultOption.value = ''
+      defaultOption.textContent = 'Selecione...'
+      newSelect.appendChild(defaultOption)
+      
       departments.forEach((id, name) => {
         const option = document.createElement('option')
         option.value = id
@@ -121,10 +140,10 @@ export function useOmegaRender(
         newSelect.appendChild(option)
       })
 
-      // Adiciona listener para atualizar tipos quando departamento mudar
-      newSelect.addEventListener('change', () => {
+      // Usa onchange em vez de addEventListener
+      newSelect.onchange = () => {
         renderTypeSelect(root, newSelect.value)
-      })
+      }
     }
 
     // Popula select de tipo de chamado
@@ -164,7 +183,15 @@ export function useOmegaRender(
       }
     })
 
-    typeSelect.innerHTML = '<option value="">Todos os tipos</option>'
+    // Limpa e adiciona opção padrão
+    while (typeSelect.firstChild) {
+      typeSelect.removeChild(typeSelect.firstChild)
+    }
+    const defaultOption = document.createElement('option')
+    defaultOption.value = ''
+    defaultOption.textContent = 'Todos os tipos'
+    typeSelect.appendChild(defaultOption)
+    
     Array.from(types).sort().forEach((tipo) => {
       const option = document.createElement('option')
       option.value = tipo
@@ -185,7 +212,11 @@ export function useOmegaRender(
 
     const selectedStatuses = filters.filters.value.statuses || []
 
-    statusHost.innerHTML = ''
+    // Limpa opções existentes
+    while (statusHost.firstChild) {
+      statusHost.removeChild(statusHost.firstChild)
+    }
+    
     statuses.forEach((status: any) => {
       const option = document.createElement('label')
       option.className = 'omega-filter-status__option'
@@ -203,10 +234,10 @@ export function useOmegaRender(
       option.appendChild(checkbox)
       option.appendChild(span)
 
-      // Adiciona listener para atualizar estado visual
-      checkbox.addEventListener('change', () => {
+      // Usa onchange em vez de addEventListener
+      checkbox.onchange = () => {
         option.setAttribute('data-checked', checkbox.checked ? 'true' : 'false')
-      })
+      }
 
       statusHost.appendChild(option)
     })
@@ -225,7 +256,11 @@ export function useOmegaRender(
       { value: 'critica', label: 'Crítica' }
     ]
 
-    prioritySelect.innerHTML = ''
+    // Limpa opções existentes
+    while (prioritySelect.firstChild) {
+      prioritySelect.removeChild(prioritySelect.firstChild)
+    }
+    
     priorities.forEach((priority) => {
       const option = document.createElement('option')
       option.value = priority.value
@@ -259,32 +294,57 @@ export function useOmegaRender(
     const currentUser = omega.currentUser.value
 
     if (!tickets || tickets.length === 0) {
-      tbody.innerHTML = `
-        <tr>
-          <td colspan="12" class="omega-empty-state">
-            <div class="omega-empty-state__content">
-              <i class="ti ti-inbox" style="font-size: 64px; color: var(--brad-color-gray, #c7c7c7); margin-bottom: 20px; opacity: 0.6;"></i>
-              <h3>Nenhum chamado encontrado</h3>
-              <p>Não há chamados para exibir nesta visualização.</p>
-              <button class="omega-btn omega-btn--primary" id="omega-new-ticket-empty" style="margin-top: 20px;">
-                <i class="ti ti-plus"></i>
-                <span>Registrar novo chamado</span>
-              </button>
-            </div>
-          </td>
-        </tr>
-      `
-
-      // Adiciona listener ao botão de novo ticket no estado vazio
-      const newTicketBtn = tbody.querySelector('#omega-new-ticket-empty')
-      if (newTicketBtn) {
-        newTicketBtn.addEventListener('click', () => {
-          const drawer = root.querySelector('#omega-drawer')
-          if (drawer) {
-            drawer.removeAttribute('hidden')
-          }
-        })
+      // Limpa tbody
+      while (tbody.firstChild) {
+        tbody.removeChild(tbody.firstChild)
       }
+      
+      // Cria linha de estado vazio usando createElement
+      const row = document.createElement('tr')
+      const cell = document.createElement('td')
+      cell.colSpan = 12
+      cell.className = 'omega-empty-state'
+      
+      const content = document.createElement('div')
+      content.className = 'omega-empty-state__content'
+      
+      const icon = document.createElement('i')
+      icon.className = 'ti ti-inbox'
+      icon.style.cssText = 'font-size: 64px; color: var(--brad-color-gray, #c7c7c7); margin-bottom: 20px; opacity: 0.6;'
+      
+      const h3 = document.createElement('h3')
+      h3.textContent = 'Nenhum chamado encontrado'
+      
+      const p = document.createElement('p')
+      p.textContent = 'Não há chamados para exibir nesta visualização.'
+      
+      const btn = document.createElement('button')
+      btn.className = 'omega-btn omega-btn--primary'
+      btn.id = 'omega-new-ticket-empty'
+      btn.style.cssText = 'margin-top: 20px;'
+      
+      const btnIcon = document.createElement('i')
+      btnIcon.className = 'ti ti-plus'
+      const btnSpan = document.createElement('span')
+      btnSpan.textContent = 'Registrar novo chamado'
+      btn.appendChild(btnIcon)
+      btn.appendChild(btnSpan)
+      
+      // Usa onclick em vez de addEventListener
+      btn.onclick = () => {
+        const drawer = root.querySelector('#omega-drawer')
+        if (drawer) {
+          drawer.removeAttribute('hidden')
+        }
+      }
+      
+      content.appendChild(icon)
+      content.appendChild(h3)
+      content.appendChild(p)
+      content.appendChild(btn)
+      cell.appendChild(content)
+      row.appendChild(cell)
+      tbody.appendChild(row)
 
       return
     }
@@ -317,7 +377,10 @@ export function useOmegaRender(
     // Aplica filtros avançados (DEPOIS de filtrar por view)
     filteredTickets = filters.applyFilters(filteredTickets)
 
-    tbody.innerHTML = ''
+    // Limpa tbody
+    while (tbody.firstChild) {
+      tbody.removeChild(tbody.firstChild)
+    }
 
     filteredTickets.forEach((ticket: any, index: number) => {
       const row = document.createElement('tr')
@@ -458,12 +521,16 @@ export function useOmegaRender(
     }
   }
 
-  function renderOmegaData() {
-    // Procura primeiro pela página Omega, depois pelo modal (compatibilidade)
-    const pageElement = document.getElementById('omega-page')
-    const modalElement = document.getElementById('omega-modal')
-    const rootElement = pageElement || modalElement
+  function renderOmegaData(rootRef?: HTMLElement | null) {
+    // Usa ref se fornecido, senão tenta encontrar no DOM (compatibilidade)
+    let rootElement: HTMLElement | null = rootRef || null
     
+    if (!rootElement) {
+      rootElement = document.querySelector('#omega-page') as HTMLElement || 
+                   document.querySelector('#omega-modal') as HTMLElement
+    }
+    
+    const modalElement = rootElement?.id === 'omega-modal' ? rootElement : null
     if (!rootElement || (modalElement && modalElement.hidden)) {
       console.warn('⚠️ Modal não encontrado ou está oculto')
       return

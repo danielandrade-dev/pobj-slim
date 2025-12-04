@@ -20,27 +20,47 @@ onMounted(async () => {
   await loadCalendario()
 })
 
-const handleClickOutside = (e: MouseEvent) => {
-  const target = e.target as HTMLElement
-  if (!target.closest('.prod-card')) {
-    openTooltipId.value = null
+
+// Usa composable para gerenciar eventos
+const useClickOutside = (callback: () => void) => {
+  const handleClick = (e: MouseEvent) => {
+    const target = e.target as HTMLElement
+    if (!target.closest('.prod-card')) {
+      callback()
+    }
   }
+  
+  onMounted(() => {
+    document.addEventListener('click', handleClick)
+  })
+  
+  onUnmounted(() => {
+    document.removeEventListener('click', handleClick)
+  })
 }
 
-const handleEscape = (e: KeyboardEvent) => {
-  if (e.key === 'Escape') {
-    openTooltipId.value = null
+const useEscape = (callback: () => void) => {
+  const handleKey = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      callback()
+    }
   }
+  
+  onMounted(() => {
+    document.addEventListener('keydown', handleKey)
+  })
+  
+  onUnmounted(() => {
+    document.removeEventListener('keydown', handleKey)
+  })
 }
 
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-  document.addEventListener('keydown', handleEscape)
+useClickOutside(() => {
+  openTooltipId.value = null
 })
 
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
-  document.removeEventListener('keydown', handleEscape)
+useEscape(() => {
+  openTooltipId.value = null
 })
 
 const fmtTooltip = (m: string, v: number): string => {

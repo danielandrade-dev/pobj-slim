@@ -181,6 +181,8 @@ async function loadOmegaData() {
   }
 }
 
+const isLoading = ref(false)
+
 function showLoadingState(root: HTMLElement | null) {
   if (!root) return
   
@@ -193,30 +195,10 @@ function showLoadingState(root: HTMLElement | null) {
     return
   }
   
+  isLoading.value = true
   const mainContent = root.querySelector('.omega-main__content')
   if (mainContent) {
     mainContent.classList.add('omega-loading')
-    const tbody = root.querySelector('#omega-ticket-rows')
-    if (tbody) {
-      tbody.innerHTML = `
-        ${Array.from({ length: 5 }).map(() => `
-          <tr class="omega-skeleton-row">
-            <td class="col-select"><div class="omega-skeleton omega-skeleton--checkbox"></div></td>
-            <td><div class="omega-skeleton omega-skeleton--text"></div></td>
-            <td><div class="omega-skeleton omega-skeleton--text" style="width: 80%"></div></td>
-            <td><div class="omega-skeleton omega-skeleton--text"></div></td>
-            <td><div class="omega-skeleton omega-skeleton--text"></div></td>
-            <td><div class="omega-skeleton omega-skeleton--text"></div></td>
-            <td><div class="omega-skeleton omega-skeleton--badge"></div></td>
-            <td><div class="omega-skeleton omega-skeleton--text"></div></td>
-            <td><div class="omega-skeleton omega-skeleton--text"></div></td>
-            <td><div class="omega-skeleton omega-skeleton--text"></div></td>
-            <td><div class="omega-skeleton omega-skeleton--text"></div></td>
-            <td><div class="omega-skeleton omega-skeleton--badge"></div></td>
-          </tr>
-        `).join('')}
-      `
-    }
   }
 }
 
@@ -229,27 +211,12 @@ function hideLoadingState(root: HTMLElement | null) {
   }
 }
 
+const hasError = ref(false)
+
 function showErrorState(root: HTMLElement | null) {
   if (!root) return
-  
-  const tbody = root.querySelector('#omega-ticket-rows') || mainContentRef.value?.querySelector('#omega-ticket-rows')
-  if (tbody) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="12" class="omega-empty-state">
-          <div class="omega-empty-state__content">
-            <i class="ti ti-alert-circle" style="font-size: 48px; color: var(--brad-color-error); margin-bottom: 16px;"></i>
-            <h3>Erro ao carregar dados</h3>
-            <p>Não foi possível carregar os chamados. Tente novamente.</p>
-            <button class="omega-btn omega-btn--primary" onclick="location.reload()" style="margin-top: 16px;">
-              <i class="ti ti-refresh"></i>
-              <span>Recarregar</span>
-            </button>
-          </div>
-        </td>
-      </tr>
-    `
-  }
+  hasError.value = true
+  isLoading.value = false
 }
 
 function renderOmegaData() {
@@ -385,45 +352,48 @@ function clearFormFeedback(root: HTMLElement) {
   feedback.className = 'omega-feedback'
 }
 
-// Função para mostrar toast
+// Sistema de toast reativo
+interface Toast {
+  id: string
+  message: string
+  tone: 'success' | 'info' | 'warning' | 'danger'
+  visible: boolean
+}
+
+const toasts = ref<Toast[]>([])
+
 function showOmegaToast(message: string, tone: 'success' | 'info' | 'warning' | 'danger' = 'success') {
   if (!message) return
-  const root = modalRoot.value
-  if (!root) return
-  const container = root.querySelector('#omega-toast-stack') as HTMLElement
-  if (!container) return
   
-  const icons: Record<string, string> = {
-    success: 'ti ti-check',
-    info: 'ti ti-info-circle',
-    warning: 'ti ti-alert-triangle',
-    danger: 'ti ti-alert-circle'
+  const id = `toast-${Date.now()}-${Math.random()}`
+  const toast: Toast = {
+    id,
+    message,
+    tone,
+    visible: false
   }
   
-  const icon = icons[tone] || icons.info
-  const toast = document.createElement('div')
-  toast.className = `omega-toast omega-toast--${tone}`
-  toast.setAttribute('role', 'status')
-  toast.innerHTML = `<i class="${icon}" aria-hidden="true"></i><span>${escapeHTML(message)}</span>`
-  container.appendChild(toast)
+  toasts.value.push(toast)
   
-  requestAnimationFrame(() => {
-    toast.setAttribute('data-visible', 'true')
+  // Limita a 3 toasts
+  if (toasts.value.length > 3) {
+    toasts.value.shift()
+  }
+  
+  nextTick(() => {
+    toast.visible = true
   })
   
   const lifetime = 3600
   setTimeout(() => {
-    toast.setAttribute('data-visible', 'false')
+    toast.visible = false
     setTimeout(() => {
-      if (toast.parentElement === container) toast.remove()
+      const index = toasts.value.findIndex(t => t.id === id)
+      if (index > -1) {
+        toasts.value.splice(index, 1)
+      }
     }, 220)
   }, lifetime)
-  
-  while (container.children.length > 3) {
-    const first = container.firstElementChild
-    if (!first || first === toast) break
-    first.remove()
-  }
 }
 
 // Função para atualizar o subject do formulário
@@ -612,58 +582,7 @@ function setButtonLoading(button: HTMLElement, loading: boolean) {
 }
 
 // Funções de filtros movidas para useOmegaFilters composable
-function setupFilterControls(root: HTMLElement) {
-  const filterToggle = root.querySelector('#omega-filters-toggle')
-  const filterForm = root.querySelector('#omega-filter-form')
-  const clearFiltersBtn = root.querySelector('#omega-clear-filters')
-  const clearFiltersTop = root.querySelector('#omega-clear-filters-top')
-
-  filterToggle?.addEventListener('click', () => {
-    filters.toggleFilterPanel()
-    const modalElement = document.getElementById('omega-modal')
-    if (modalElement) {
-      let panel = modalElement.querySelector('#omega-filter-panel') as HTMLElement
-      // Se o painel não está no body, move para o body para garantir z-index correto acima do header da tabela
-      if (panel && panel.parentElement !== document.body) {
-        document.body.appendChild(panel)
-      }
-      const toggle = modalElement.querySelector('#omega-filters-toggle')
-      if (panel) panel.hidden = !filters.filterPanelOpen.value
-      if (toggle) toggle.setAttribute('aria-expanded', filters.filterPanelOpen.value ? 'true' : 'false')
-      if (filters.filterPanelOpen.value) {
-        // Re-renderiza estrutura para garantir que os selects estejam populados ANTES de sincronizar
-        render.renderStructure(modalElement)
-        filters.syncFilterFormState(modalElement)
-      }
-      if (toggle) {
-        toggle.setAttribute('data-active', filters.hasActiveFilters() ? 'true' : 'false')
-      }
-    }
-  })
-
-  filterForm?.addEventListener('submit', (ev) => {
-    ev.preventDefault()
-    filters.applyFiltersFromForm(root)
-    renderOmegaData()
-  })
-
-  clearFiltersBtn?.addEventListener('click', () => {
-    filters.resetFilters()
-    filters.syncFilterFormState(root)
-    renderOmegaData()
-  })
-
-  clearFiltersTop?.addEventListener('click', () => {
-    filters.resetFilters()
-    filters.syncFilterFormState(root)
-    renderOmegaData()
-  })
-
-  // Atualiza estado inicial do botão
-  if (filterToggle) {
-    filterToggle.setAttribute('data-active', filters.hasActiveFilters() ? 'true' : 'false')
-  }
-}
+// setupFilterControls removido - agora gerenciado pelos componentes Vue
 
 function handleFilterApply() {
   renderOmegaData() // Re-renderiza após aplicar filtros
@@ -714,97 +633,18 @@ function getTicketTypesForDepartment(department: string): string[] {
 }
 
 // Função para sincronizar opções de tipo baseado no departamento
-function syncTicketTypeOptions(container: HTMLElement, department: string, options: { preserveSelection?: boolean; selectedType?: string } = {}) {
-  const typeSelect = container.querySelector('#omega-form-type') as HTMLSelectElement
-  if (!typeSelect) return
-  
-  const types = getTicketTypesForDepartment(department)
-  const previousValue = options.preserveSelection ? (options.selectedType || typeSelect.value || '') : (options.selectedType || '')
-  
-  if (types.length) {
-    const placeholder = '<option value="">Selecione o tipo de chamado</option>'
-    typeSelect.innerHTML = [
-      placeholder,
-      ...types.map((type) => `<option value="${escapeHTML(type)}">${escapeHTML(type)}</option>`)
-    ].join('')
-    
-    const nextValue = previousValue && types.includes(previousValue) ? previousValue : ''
-    if (nextValue) {
-      typeSelect.value = nextValue
-    } else {
-      typeSelect.value = ''
-      typeSelect.selectedIndex = 0
-    }
-  } else {
-    typeSelect.innerHTML = '<option value="" disabled>Selecione um departamento primeiro</option>'
-    typeSelect.value = ''
-  }
-  
-  typeSelect.disabled = !types.length
-}
+// Removida - agora gerenciada pelo componente OmegaDrawer.vue
 
-// Função para escapar HTML
+// Função para escapar HTML (mantida para compatibilidade)
 function escapeHTML(value: string): string {
   if (!value) return ''
   const div = document.createElement('div')
   div.textContent = value
-  return div.innerHTML
+  return div.textContent || ''
 }
 
 // Função para popular opções do formulário de novo ticket
-function populateFormOptions(root: HTMLElement) {
-  const form = root.querySelector('#omega-form')
-  if (!form) return
-  
-  const user = omega.currentUser.value
-  if (!user) return
-  
-  const departmentSelect = form.querySelector('#omega-form-department') as HTMLSelectElement
-  const requesterDisplay = form.querySelector('#omega-form-requester')
-  
-  // Atualiza nome do solicitante
-  if (requesterDisplay) {
-    requesterDisplay.textContent = user.name || '—'
-  }
-  
-  // Popula departamentos
-  if (departmentSelect) {
-    const departments = getAvailableDepartmentsForUser(user)
-    const previous = departmentSelect.value
-    
-    if (departments.length) {
-      const placeholder = '<option value="">Selecione um departamento</option>'
-      departmentSelect.innerHTML = [
-        placeholder,
-        ...departments.map((dept) => `<option value="${escapeHTML(dept)}">${escapeHTML(dept)}</option>`)
-      ].join('')
-      
-      const nextValue = previous && departments.includes(previous) ? previous : ''
-      if (nextValue) {
-        departmentSelect.value = nextValue
-      } else {
-        departmentSelect.value = ''
-        departmentSelect.selectedIndex = 0
-      }
-    } else {
-      departmentSelect.innerHTML = '<option value="" disabled>Nenhum departamento disponível</option>'
-      departmentSelect.value = ''
-    }
-    
-    departmentSelect.disabled = !departments.length
-    
-    // Remove listeners antigos e adiciona novo listener para mudança de departamento
-    const newDeptSelect = departmentSelect.cloneNode(true) as HTMLSelectElement
-    departmentSelect.parentNode?.replaceChild(newDeptSelect, departmentSelect)
-    
-    newDeptSelect.addEventListener('change', () => {
-      syncTicketTypeOptions(form as HTMLElement, newDeptSelect.value, { preserveSelection: false })
-    })
-    
-    // Sincroniza tipos iniciais
-    syncTicketTypeOptions(form as HTMLElement, newDeptSelect.value, { preserveSelection: true })
-  }
-}
+// Removida - agora gerenciada pelo componente OmegaDrawer.vue
 
 // Funções de bulk movidas para useOmegaBulk composable
 
@@ -962,7 +802,25 @@ onBeforeUnmount(() => {
     >
       <div class="omega-modal__overlay" @click="closeModal"></div>
       <section class="omega-modal__panel" role="dialog" aria-modal="true" aria-labelledby="omega-title">
-        <div id="omega-toast-stack" class="omega-toast-stack" aria-live="polite" aria-atomic="true"></div>
+        <div class="omega-toast-stack" aria-live="polite" aria-atomic="true">
+          <TransitionGroup name="toast" tag="div">
+            <div
+              v-for="toast in toasts"
+              :key="toast.id"
+              :class="['omega-toast', `omega-toast--${toast.tone}`]"
+              :data-visible="toast.visible"
+              role="status"
+            >
+              <i :class="{
+                'ti ti-check': toast.tone === 'success',
+                'ti ti-info-circle': toast.tone === 'info',
+                'ti ti-alert-triangle': toast.tone === 'warning',
+                'ti ti-alert-circle': toast.tone === 'danger'
+              }" aria-hidden="true"></i>
+              <span>{{ toast.message }}</span>
+            </div>
+          </TransitionGroup>
+        </div>
         
         <OmegaHeader
           :omega="omega"

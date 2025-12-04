@@ -57,10 +57,7 @@ async function loadOmegaData() {
           renderOmegaData()
         } else {
           // Se estiver usando componentes Vue, apenas limpa qualquer skeleton que possa ter sido inserido
-          const tbody = pageElement?.querySelector('#omega-ticket-rows')
-          if (tbody && tbody.querySelector('.omega-skeleton-row')) {
-            tbody.innerHTML = ''
-          }
+          isLoading.value = false
         }
       }, 100)
     })
@@ -71,6 +68,8 @@ async function loadOmegaData() {
     }
   }
 }
+
+const isLoading = ref(false)
 
 function showLoadingState(root: HTMLElement | null) {
   if (!root) return
@@ -83,30 +82,10 @@ function showLoadingState(root: HTMLElement | null) {
     return
   }
   
+  isLoading.value = true
   const mainContent = root.querySelector('.omega-main__content')
   if (mainContent) {
     mainContent.classList.add('omega-loading')
-    const tbody = root.querySelector('#omega-ticket-rows')
-    if (tbody) {
-      tbody.innerHTML = `
-        ${Array.from({ length: 5 }).map(() => `
-          <tr class="omega-skeleton-row">
-            <td class="col-select"><div class="omega-skeleton omega-skeleton--checkbox"></div></td>
-            <td><div class="omega-skeleton omega-skeleton--text"></div></td>
-            <td><div class="omega-skeleton omega-skeleton--text" style="width: 80%"></div></td>
-            <td><div class="omega-skeleton omega-skeleton--text"></div></td>
-            <td><div class="omega-skeleton omega-skeleton--text"></div></td>
-            <td><div class="omega-skeleton omega-skeleton--text"></div></td>
-            <td><div class="omega-skeleton omega-skeleton--badge"></div></td>
-            <td><div class="omega-skeleton omega-skeleton--text"></div></td>
-            <td><div class="omega-skeleton omega-skeleton--text"></div></td>
-            <td><div class="omega-skeleton omega-skeleton--text"></div></td>
-            <td><div class="omega-skeleton omega-skeleton--text"></div></td>
-            <td><div class="omega-skeleton omega-skeleton--badge"></div></td>
-          </tr>
-        `).join('')}
-      `
-    }
   }
 }
 
@@ -119,38 +98,22 @@ function hideLoadingState(root: HTMLElement | null) {
   }
 }
 
+const hasError = ref(false)
+
 function showErrorState(root: HTMLElement | null) {
   if (!root) return
-  
-  const tbody = root.querySelector('#omega-ticket-rows') || mainContentRef.value?.querySelector('#omega-ticket-rows')
-  if (tbody) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="12" class="omega-empty-state">
-          <div class="omega-empty-state__content">
-            <Icon name="alert-circle" :size="48" style="color: var(--brad-color-error); margin-bottom: 16px;" />
-            <h3>Erro ao carregar dados</h3>
-            <p>Não foi possível carregar os chamados. Tente novamente.</p>
-            <button class="omega-btn omega-btn--primary" onclick="location.reload()" style="margin-top: 16px;">
-              <Icon name="refresh" :size="18" />
-              <span>Recarregar</span>
-            </button>
-          </div>
-        </td>
-      </tr>
-    `
-  }
+  hasError.value = true
+  isLoading.value = false
 }
 
 function renderOmegaData() {
   // Verifica se estamos usando componentes Vue (OmegaTable)
-  const pageElement = document.getElementById('omega-page')
-  const container = pageElement?.querySelector('.omega-table-container')
+  const container = pageRoot.value?.querySelector('.omega-table-container')
   const isUsingVueComponents = !!container
   
   // Se estiver usando componentes Vue, não chama renderOmegaData
   // pois o Vue já gerencia a renderização
-  if (!isUsingVueComponents) {
+  if (!isUsingVueComponents && pageRoot.value) {
     render.renderOmegaData()
   }
   applySidebarState()
@@ -245,53 +208,56 @@ function buildObservationFromDetail(detail: any): string {
   return parts.join('\n')
 }
 
-// Função para mostrar toast
+// Sistema de toast reativo
+interface Toast {
+  id: string
+  message: string
+  tone: 'success' | 'info' | 'warning' | 'danger'
+  visible: boolean
+}
+
+const toasts = ref<Toast[]>([])
+
 function showOmegaToast(message: string, tone: 'success' | 'info' | 'warning' | 'danger' = 'success') {
   if (!message) return
-  const root = pageRoot.value
-  if (!root) return
-  const container = root.querySelector('#omega-toast-stack') as HTMLElement
-  if (!container) return
   
-  const icons: Record<string, string> = {
-    success: 'ti ti-check',
-    info: 'ti ti-info-circle',
-    warning: 'ti ti-alert-triangle',
-    danger: 'ti ti-alert-circle'
+  const id = `toast-${Date.now()}-${Math.random()}`
+  const toast: Toast = {
+    id,
+    message,
+    tone,
+    visible: false
   }
   
-  const icon = icons[tone] || icons.info
-  const toast = document.createElement('div')
-  toast.className = `omega-toast omega-toast--${tone}`
-  toast.setAttribute('role', 'status')
-  toast.innerHTML = `<i class="${icon}" aria-hidden="true"></i><span>${escapeHTML(message)}</span>`
-  container.appendChild(toast)
+  toasts.value.push(toast)
   
-  requestAnimationFrame(() => {
-    toast.setAttribute('data-visible', 'true')
+  // Limita a 3 toasts
+  if (toasts.value.length > 3) {
+    toasts.value.shift()
+  }
+  
+  nextTick(() => {
+    toast.visible = true
   })
   
   const lifetime = 3600
   setTimeout(() => {
-    toast.setAttribute('data-visible', 'false')
+    toast.visible = false
     setTimeout(() => {
-      if (toast.parentElement === container) toast.remove()
+      const index = toasts.value.findIndex(t => t.id === id)
+      if (index > -1) {
+        toasts.value.splice(index, 1)
+      }
     }, 220)
   }, lifetime)
-  
-  while (container.children.length > 3) {
-    const first = container.firstElementChild
-    if (!first || first === toast) break
-    first.remove()
-  }
 }
 
-// Função para escapar HTML
+// Função para escapar HTML (mantida para compatibilidade)
 function escapeHTML(value: string): string {
   if (!value) return ''
   const div = document.createElement('div')
   div.textContent = value
-  return div.innerHTML
+  return div.textContent || ''
 }
 
 // Função principal para criar novo ticket
@@ -421,8 +387,7 @@ function handleFilterClear() {
 // pois o Vue já gerencia a reatividade automaticamente
 watch(() => omega.tickets.value, () => {
   nextTick(() => {
-    const pageElement = document.getElementById('omega-page')
-    const container = pageElement?.querySelector('.omega-table-container')
+    const container = pageRoot.value?.querySelector('.omega-table-container')
     const isUsingVueComponents = !!container
     if (!isUsingVueComponents) {
       renderOmegaData()
@@ -432,8 +397,7 @@ watch(() => omega.tickets.value, () => {
 
 watch(() => omega.users.value, () => {
   nextTick(() => {
-    const pageElement = document.getElementById('omega-page')
-    const container = pageElement?.querySelector('.omega-table-container')
+    const container = pageRoot.value?.querySelector('.omega-table-container')
     const isUsingVueComponents = !!container
     if (!isUsingVueComponents) {
       renderOmegaData()
@@ -443,8 +407,7 @@ watch(() => omega.users.value, () => {
 
 watch(() => omega.currentUserId.value, () => {
   nextTick(() => {
-    const pageElement = document.getElementById('omega-page')
-    const container = pageElement?.querySelector('.omega-table-container')
+    const container = pageRoot.value?.querySelector('.omega-table-container')
     const isUsingVueComponents = !!container
     if (!isUsingVueComponents) {
       renderOmegaData()
@@ -454,8 +417,7 @@ watch(() => omega.currentUserId.value, () => {
 
 watch(() => omega.currentView.value, () => {
   nextTick(() => {
-    const pageElement = document.getElementById('omega-page')
-    const container = pageElement?.querySelector('.omega-table-container')
+    const container = pageRoot.value?.querySelector('.omega-table-container')
     const isUsingVueComponents = !!container
     if (!isUsingVueComponents) {
       renderOmegaData()
@@ -495,7 +457,25 @@ onBeforeUnmount(() => {
     class="omega-page"
     data-omega-standalone
   >
-    <div id="omega-toast-stack" class="omega-toast-stack" aria-live="polite" aria-atomic="true"></div>
+    <div class="omega-toast-stack" aria-live="polite" aria-atomic="true">
+      <TransitionGroup name="toast" tag="div">
+        <div
+          v-for="toast in toasts"
+          :key="toast.id"
+          :class="['omega-toast', `omega-toast--${toast.tone}`]"
+          :data-visible="toast.visible"
+          role="status"
+        >
+          <i :class="{
+            'ti ti-check': toast.tone === 'success',
+            'ti ti-info-circle': toast.tone === 'info',
+            'ti ti-alert-triangle': toast.tone === 'warning',
+            'ti ti-alert-circle': toast.tone === 'danger'
+          }" aria-hidden="true"></i>
+          <span>{{ toast.message }}</span>
+        </div>
+      </TransitionGroup>
+    </div>
     
     <OmegaHeader
       :omega="omega"

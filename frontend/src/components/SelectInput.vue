@@ -42,11 +42,6 @@ const selectOption = (option: FilterOption): void => {
   isOpen.value = false
 }
 
-const handleClickOutside = (event: MouseEvent): void => {
-  if (wrapperRef.value && !wrapperRef.value.contains(event.target as Node)) {
-    isOpen.value = false
-  }
-}
 
 const handleKeydown = (event: KeyboardEvent): void => {
   if (event.key === 'Escape') {
@@ -87,12 +82,25 @@ const focusPreviousOption = (): void => {
   items[prevIndex]?.focus()
 }
 
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-})
+// Usa composable para gerenciar click outside
+const useClickOutside = (callback: () => void) => {
+  const handleClick = (event: MouseEvent) => {
+    if (wrapperRef.value && !wrapperRef.value.contains(event.target as Node)) {
+      callback()
+    }
+  }
+  
+  onMounted(() => {
+    document.addEventListener('click', handleClick)
+  })
+  
+  onUnmounted(() => {
+    document.removeEventListener('click', handleClick)
+  })
+}
 
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
+useClickOutside(() => {
+  isOpen.value = false
 })
 
 watch(() => props.disabled, (disabled) => {

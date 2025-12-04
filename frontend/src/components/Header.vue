@@ -22,26 +22,48 @@ const toggleSubmenu = (submenu: string): void => {
   submenuOpen.value = submenuOpen.value === submenu ? null : submenu
 }
 
-const handleClickOutside = (event: MouseEvent): void => {
-  if (userboxRef.value && !userboxRef.value.contains(event.target as Node)) {
-    closeUserMenu()
+
+// Usa composable para gerenciar eventos
+const useClickOutside = (callback: () => void) => {
+  const handleClick = (event: MouseEvent) => {
+    if (userboxRef.value && !userboxRef.value.contains(event.target as Node)) {
+      callback()
+    }
   }
+  
+  onMounted(() => {
+    document.addEventListener('click', handleClick)
+  })
+  
+  onUnmounted(() => {
+    document.removeEventListener('click', handleClick)
+  })
 }
 
-const handleEscape = (event: KeyboardEvent): void => {
-  if (event.key === 'Escape' && userMenuOpen.value) {
-    closeUserMenu()
+const useEscape = (callback: () => void) => {
+  const handleKey = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      callback()
+    }
   }
+  
+  onMounted(() => {
+    document.addEventListener('keydown', handleKey)
+  })
+  
+  onUnmounted(() => {
+    document.removeEventListener('keydown', handleKey)
+  })
 }
 
-onMounted(() => {
-  document.addEventListener('click', handleClickOutside)
-  document.addEventListener('keydown', handleEscape)
+useClickOutside(() => {
+  closeUserMenu()
 })
 
-onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside)
-  document.removeEventListener('keydown', handleEscape)
+useEscape(() => {
+  if (userMenuOpen.value) {
+    closeUserMenu()
+  }
 })
 
 const handleMenuAction = async (action: string): Promise<void> => {

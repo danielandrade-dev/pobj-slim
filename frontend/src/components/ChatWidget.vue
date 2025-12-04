@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { sendMessage } from '../services/agentService'
 import Icon from './Icon.vue'
 
@@ -14,11 +14,12 @@ const messages = ref<Message[]>([])
 const inputText = ref('')
 const isSending = ref(false)
 
+const messagesRef = ref<HTMLElement | null>(null)
+
 const scrollToBottom = () => {
   nextTick(() => {
-    const msgsEl = document.getElementById('chat-messages')
-    if (msgsEl) {
-      msgsEl.scrollTop = msgsEl.scrollHeight
+    if (messagesRef.value) {
+      messagesRef.value.scrollTop = messagesRef.value.scrollHeight
     }
   })
 }
@@ -28,14 +29,13 @@ const addMessage = (role: 'user' | 'bot', text: string, isTyping = false) => {
   scrollToBottom()
 }
 
+const inputRef = ref<HTMLInputElement | null>(null)
+
 const toggleChat = () => {
   isOpen.value = !isOpen.value
   if (isOpen.value) {
     nextTick(() => {
-      const input = document.getElementById('chat-input') as HTMLInputElement
-      if (input) {
-        input.focus()
-      }
+      inputRef.value?.focus()
     })
   }
 }
@@ -85,18 +85,21 @@ const handleSubmit = async (e: Event) => {
 // Mensagem de boas-vindas
 onMounted(() => {
   addMessage('bot', 'Olá! Posso ajudar com dúvidas sobre o POBJ e campanhas. O que você quer saber?')
-  
-  // Fecha o chat ao pressionar Escape
-  const handleEscape = (e: KeyboardEvent) => {
-    if (e.key === 'Escape' && isOpen.value) {
-      closeChat()
-    }
+})
+
+// Fecha o chat ao pressionar Escape usando composable
+const handleEscape = (e: KeyboardEvent) => {
+  if (e.key === 'Escape' && isOpen.value) {
+    closeChat()
   }
+}
+
+onMounted(() => {
   window.addEventListener('keydown', handleEscape)
-  
-  return () => {
-    window.removeEventListener('keydown', handleEscape)
-  }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleEscape)
 })
 </script>
 
@@ -137,7 +140,7 @@ onMounted(() => {
         Assistente virtual com IA — respostas podem conter erros.
       </p>
 
-      <div id="chat-messages" class="chatw__msgs" aria-live="polite">
+      <div ref="messagesRef" id="chat-messages" class="chatw__msgs" aria-live="polite">
         <div
           v-for="(msg, index) in messages"
           :key="index"
@@ -159,6 +162,7 @@ onMounted(() => {
 
       <form id="chat-form" class="chatw__form" autocomplete="off" @submit="handleSubmit">
         <input
+          ref="inputRef"
           id="chat-input"
           v-model="inputText"
           type="text"

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import Icon from './Icon.vue'
 import { getDefaultPeriod, formatBRDate } from '../services/calendarioService'
 import { useCalendarioCache } from '../composables/useCalendarioCache'
@@ -19,7 +19,6 @@ const emit = defineEmits<{
 const period = ref<{ start: string; end: string }>(props.modelValue || getDefaultPeriod())
 const { loadCalendario } = useCalendarioCache()
 const buttonRef = ref<HTMLElement | null>(null)
-const datePopover = ref<HTMLElement | null>(null)
 
 watch(() => props.modelValue, (newValue) => {
   if (newValue) {
@@ -36,113 +35,92 @@ onMounted(async () => {
   }
 })
 
+const isPopoverOpen = ref(false)
+const localStart = ref(period.value.start)
+const localEnd = ref(period.value.end)
+const popoverRef = ref<HTMLElement | null>(null)
+const startInputRef = ref<HTMLInputElement | null>(null)
+const endInputRef = ref<HTMLInputElement | null>(null)
+
 const closeDatePopover = (): void => {
-  if (datePopover.value?.parentNode) {
-    datePopover.value.parentNode.removeChild(datePopover.value)
-  }
-  datePopover.value = null
+  isPopoverOpen.value = false
 }
 
-const openDatePopover = (anchor: HTMLElement): void => {
-  // Se o popover já estiver aberto, fecha
-  if (datePopover.value && document.body.contains(datePopover.value)) {
+const openDatePopover = (): void => {
+  localStart.value = period.value.start
+  localEnd.value = period.value.end
+  isPopoverOpen.value = true
+  nextTick(() => {
+    positionPopover()
+    startInputRef.value?.focus()
+  })
+}
+
+const positionPopover = () => {
+  if (!buttonRef.value || !popoverRef.value) return
+  
+  const anchor = buttonRef.value
+  const pop = popoverRef.value
+  const w = pop.offsetWidth || 340
+  const h = pop.offsetHeight || 170
+  const r = anchor.getBoundingClientRect()
+  const pad = 12
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+
+  let top = r.bottom + 8
+  let left = r.right - w
+  if (top + h + pad > vh) top = Math.max(pad, r.top - h - 8)
+  if (left < pad) left = pad
+  if (left + w + pad > vw) left = Math.max(pad, vw - w - pad)
+
+  pop.style.top = `${top}px`
+  pop.style.left = `${left}px`
+}
+
+const handleOutsideClick = (ev: MouseEvent): void => {
+  const target = ev.target as HTMLElement
+  if (
+    !popoverRef.value ||
+    !buttonRef.value ||
+    popoverRef.value.contains(target) ||
+    buttonRef.value.contains(target) ||
+    target.closest('.date-popover')
+  ) return
+  closeDatePopover()
+}
+
+const handleEscape = (ev: KeyboardEvent): void => {
+  if (ev.key === 'Escape' && isPopoverOpen.value) {
     closeDatePopover()
+  }
+}
+
+const saveDatePopover = (): void => {
+  if (!localStart.value || !localEnd.value || new Date(localStart.value) > new Date(localEnd.value)) {
+    alert('Período inválido.')
     return
   }
 
+  period.value = { start: localStart.value, end: localEnd.value }
+  emit('update:modelValue', { start: localStart.value, end: localEnd.value })
   closeDatePopover()
-
-  const pop = document.createElement('div')
-  pop.className = 'date-popover'
-  pop.id = 'date-popover'
-  pop.style.position = 'fixed'
-  pop.style.visibility = 'hidden'
-  pop.style.top = '0'
-  pop.style.left = '0'
-  pop.innerHTML = `
-    <h4>Alterar data</h4>
-    <div class="row" style="margin-bottom:8px">
-      <input id="inp-start" type="date" value="${period.value.start}" aria-label="Data inicial">
-      <input id="inp-end"   type="date" value="${period.value.end}"   aria-label="Data final">
-    </div>
-    <div class="actions">
-      <button type="button" class="btn-sec" id="btn-cancelar">Cancelar</button>
-      <button type="button" class="btn-pri" id="btn-salvar">Salvar</button>
-    </div>
-  `
-  document.body.appendChild(pop)
-
-  requestAnimationFrame(() => {
-    const w = pop.offsetWidth || 340
-    const h = pop.offsetHeight || 170
-
-    const r = anchor.getBoundingClientRect()
-    const pad = 12
-    const vw = window.innerWidth
-    const vh = window.innerHeight
-
-    let top = r.bottom + 8
-    let left = r.right - w
-    if (top + h + pad > vh) top = Math.max(pad, r.top - h - 8)
-    if (left < pad) left = pad
-    if (left + w + pad > vw) left = Math.max(pad, vw - w - pad)
-
-    pop.style.top = `${top}px`
-    pop.style.left = `${left}px`
-    pop.style.visibility = 'visible'
-
-    // Adiciona os listeners apenas após o popover estar visível
-    // Isso evita que o modal seja fechado antes de aparecer
-    setTimeout(() => {
-      const outside = (ev: MouseEvent): void => {
-        const target = ev.target as HTMLElement
-        // Não fecha se o clique foi dentro do popover, no anchor, ou em elementos relacionados ao date picker
-        const isInput = target instanceof HTMLInputElement
-        if (
-          target === pop || 
-          pop.contains(target) || 
-          target === anchor || 
-          anchor.contains(target) ||
-          target.closest('.date-popover') ||
-          (isInput && target.type === 'date') ||
-          target.tagName === 'INPUT'
-        ) return
-        closeDatePopover()
-      }
-
-      const esc = (ev: KeyboardEvent): void => {
-        if (ev.key === 'Escape') closeDatePopover()
-      }
-
-      // Usa click em vez de mousedown para evitar conflitos com date picker nativo
-      // capture: false garante que eventos dentro do popover sejam processados primeiro
-      document.addEventListener('click', outside, { once: true, capture: false })
-      document.addEventListener('keydown', esc, { once: true })
-    }, 100)
-  })
-
-  pop.querySelector('#btn-cancelar')?.addEventListener('click', closeDatePopover)
-  pop.querySelector('#btn-salvar')?.addEventListener('click', () => {
-    const startInput = document.getElementById('inp-start') as HTMLInputElement
-    const endInput = document.getElementById('inp-end') as HTMLInputElement
-    const s = startInput?.value
-    const e = endInput?.value
-
-    if (!s || !e || new Date(s) > new Date(e)) {
-      alert('Período inválido.')
-      return
-    }
-
-    period.value = { start: s, end: e }
-    emit('update:modelValue', { start: s, end: e })
-    closeDatePopover()
-  })
-
-  datePopover.value = pop
 }
 
+watch(() => isPopoverOpen.value, (open) => {
+  if (open) {
+    nextTick(() => {
+      setTimeout(() => {
+        document.addEventListener('click', handleOutsideClick, { once: true, capture: false })
+        document.addEventListener('keydown', handleEscape, { once: true })
+      }, 100)
+    })
+  }
+})
+
 onUnmounted(() => {
-  closeDatePopover()
+  document.removeEventListener('click', handleOutsideClick)
+  document.removeEventListener('keydown', handleEscape)
 })
 </script>
 
@@ -160,10 +138,39 @@ onUnmounted(() => {
         id="btn-alterar-data"
         type="button"
         class="link-action"
-        @click="buttonRef && openDatePopover(buttonRef)"
+        @click="openDatePopover"
       >
         <Icon name="chevron-down" :size="16" /> Alterar data
       </button>
+      
+      <Teleport to="body">
+        <div
+          v-if="isPopoverOpen"
+          ref="popoverRef"
+          class="date-popover"
+          style="position: fixed; visibility: visible;"
+        >
+          <h4>Alterar data</h4>
+          <div class="row" style="margin-bottom:8px">
+            <input
+              ref="startInputRef"
+              v-model="localStart"
+              type="date"
+              aria-label="Data inicial"
+            />
+            <input
+              ref="endInputRef"
+              v-model="localEnd"
+              type="date"
+              aria-label="Data final"
+            />
+          </div>
+          <div class="actions">
+            <button type="button" class="btn-sec" @click="closeDatePopover">Cancelar</button>
+            <button type="button" class="btn-pri" @click="saveDatePopover">Salvar</button>
+          </div>
+        </div>
+      </Teleport>
     </div>
   </div>
 </template>

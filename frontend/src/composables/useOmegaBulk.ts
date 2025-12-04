@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { createOmegaNotification, createPobjNotification } from './useOmegaNotifications'
 
 export function useOmegaBulk(omega: any) {
@@ -6,14 +6,30 @@ export function useOmegaBulk(omega: any) {
   const bulkPanelOpen = ref(false)
   const bulkStatus = ref('')
 
+  const bulkStatusOptions = computed(() => {
+    return omega.statuses.value.map((status: any) => ({
+      value: status.id,
+      label: status.label
+    }))
+  })
+
   function populateBulkStatusOptions(root: HTMLElement) {
     const select = root.querySelector('#omega-bulk-status-select') as HTMLSelectElement
     if (!select) return
 
     const statuses = omega.statuses.value
-    select.innerHTML = statuses.map((status: any) => {
-      return `<option value="${status.id}">${status.label}</option>`
-    }).join('')
+    // Limpa opções existentes
+    while (select.firstChild) {
+      select.removeChild(select.firstChild)
+    }
+    
+    // Adiciona novas opções
+    statuses.forEach((status: any) => {
+      const option = document.createElement('option')
+      option.value = status.id
+      option.textContent = status.label
+      select.appendChild(option)
+    })
 
     const current = bulkStatus.value && statuses.some((s: any) => s.id === bulkStatus.value)
       ? bulkStatus.value
@@ -114,47 +130,17 @@ export function useOmegaBulk(omega: any) {
     }
   }
 
+  // setupBulkControls removido - agora gerenciado pelo componente OmegaBulkPanel.vue
   function setupBulkControls(root: HTMLElement, onRender: () => void) {
-    const bulkBtn = root.querySelector('#omega-bulk-status')
-    const bulkClose = root.querySelector('#omega-bulk-close')
-    const bulkCancel = root.querySelector('#omega-bulk-cancel')
-    const bulkStatusSelect = root.querySelector('#omega-bulk-status-select') as HTMLSelectElement
-    const bulkForm = root.querySelector('#omega-bulk-form')
-
-    bulkBtn?.addEventListener('click', () => {
-      const currentUser = omega.currentUser.value
-      if (!currentUser) return
-      if (!selectedTicketIds.value.size) return
-      bulkPanelOpen.value = !bulkPanelOpen.value
-      onRender()
-    })
-
-    bulkClose?.addEventListener('click', () => {
-      bulkPanelOpen.value = false
-      onRender()
-    })
-
-    bulkCancel?.addEventListener('click', () => {
-      bulkPanelOpen.value = false
-      onRender()
-    })
-
-    bulkStatusSelect?.addEventListener('change', (ev) => {
-      bulkStatus.value = (ev.target as HTMLSelectElement).value || ''
-    })
-
-    bulkForm?.addEventListener('submit', (ev) => {
-      ev.preventDefault()
-      const status = bulkStatusSelect?.value || ''
-      handleBulkStatusSubmit(status)
-      onRender()
-    })
+    // Função mantida para compatibilidade, mas não faz nada
+    // Os controles são gerenciados pelo componente Vue
   }
 
   return {
     selectedTicketIds,
     bulkPanelOpen,
     bulkStatus,
+    bulkStatusOptions,
     populateBulkStatusOptions,
     handleBulkStatusSubmit,
     renderBulkPanel,

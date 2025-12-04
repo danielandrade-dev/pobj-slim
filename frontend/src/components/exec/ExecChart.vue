@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, watch, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 
 interface ChartSeries {
   id: string
@@ -19,10 +19,11 @@ const props = defineProps<{
 }>()
 
 const hasData = computed(() => props.chartData.series.length > 0)
+const containerRef = ref<HTMLElement | null>(null)
 
 const renderChart = () => {
-  const container = document.getElementById('exec-chart')
-  if (!container || !hasData.value) return
+  if (!containerRef.value || !hasData.value) return
+  const container = containerRef.value
   
   const W = 900
   const H = 260
@@ -124,7 +125,7 @@ onMounted(() => {
         </span>
       </div>
     </div>
-    <div id="exec-chart" class="chart"></div>
+    <div ref="containerRef" id="exec-chart" class="chart"></div>
   </div>
 </template>
 

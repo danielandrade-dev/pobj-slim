@@ -1,11 +1,11 @@
-import { ref, computed, onBeforeUnmount } from 'vue'
+import { ref, computed, onBeforeUnmount, type Ref } from 'vue'
 
 let fullscreenKeydownHandler: ((e: KeyboardEvent) => void) | null = null
 
-export function useOmegaFullscreen() {
+export function useOmegaFullscreen(modalRef?: Ref<HTMLElement | null>) {
   const isFullscreen = ref(false)
   function setOmegaFullscreen(on?: boolean) {
-    const root = document.getElementById('omega-modal')
+    const root = modalRef?.value || (typeof document !== 'undefined' ? document.querySelector('#omega-modal') as HTMLElement : null)
     if (!root) {
       console.warn('⚠️ Modal não encontrado para fullscreen')
       return

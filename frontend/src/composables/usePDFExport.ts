@@ -1,11 +1,22 @@
 import html2pdf from 'html2pdf.js'
+import type { Ref } from 'vue'
 
 export function usePDFExport() {
-  const exportToPDF = async (elementId: string, filename?: string) => {
-    const element = document.getElementById(elementId)
+  const exportToPDF = async (elementRef: HTMLElement | Ref<HTMLElement | null> | string, filename?: string) => {
+    let element: HTMLElement | null = null
+    
+    if (typeof elementRef === 'string') {
+      // Fallback para compatibilidade com código legado
+      element = document.querySelector(`#${elementRef}`) as HTMLElement
+    } else if (elementRef instanceof HTMLElement) {
+      element = elementRef
+    } else if (elementRef && 'value' in elementRef) {
+      element = elementRef.value
+    }
+    
     if (!element) {
-      console.error(`Elemento com ID "${elementId}" não encontrado`)
-      throw new Error(`Elemento não encontrado: ${elementId}`)
+      console.error(`Elemento não encontrado`)
+      throw new Error(`Elemento não encontrado`)
     }
 
     const defaultFilename = filename || `visao-executiva-${new Date().toISOString().split('T')[0]}.pdf`
